@@ -3158,7 +3158,7 @@ check: Tuur read `plan/reads/reconcile-v2.md` and said go.
 
 ### Q431 [auto] (todo) swap: the Mac sweep calls reconcile v2
 spec: C2 C52
-needs: Q430
+needs: Q430 Q510
 do: Point `MemoCloudReconciler`'s callers (launch, activation, CloudKit import, `CloudFirstImport`, `MacNoteOpenWork`) at reconcile v2. The v1 code stays in place for Q432 to delete.
 check: `grep -rqE "ReconcileV2" Skrift_Native/SkriftDesktop/App Skrift_Native/SkriftDesktop/Pipeline`
 
@@ -3692,6 +3692,13 @@ needs: Q508
 gate+: yes
 do: The phone renders a conversation note from memo.transcript, not the Mac's copy-edit, so his edit to a diarized note on the Mac reaches the cloud MemoEnhancement but never his phone's view (pre-existing; found in Q508). Show the current (non-stale, MemoEnhancement.current) copy-edit for conversations the same way as for prose, keeping speaker turns and the turn gutter. Test `PhoneConversationPolishTests` (phone, plan/mtest.sh).
 check: `grep -rqE "class PhoneConversationPolishTests\\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh PhoneConversationPolishTests`
+
+### Q510 [auto] (todo) reconcile v2 covers the whole sweep before the swap
+spec: C52 C157 C187 C190 C191 C3
+needs: Q429
+gate+: yes
+do: Q429's reconcile v2 left these on v1: triggers/coalescer/fresh context wiring (C52), MacMemoAuthor backfill + reflectTranscripts, orphan-row trash (C157, Q487's rules incl. the quarter refusal), the background first-enable ingest, the unrated projection (C187), the phone materializer (C190), the cloudKitMacSync default (C191). Bring each into Skrift_Native/Shared/ReconcileV2 (or name why it stays outside the sweep) so Q431's swap replaces v1 whole. Keep the one synchronous main-actor sweep and the harness green (v2 unexplained 0). Also close R44's gap: a later-stamped phone polish with identical text must not be refused. Total stays within 2,119 lines; append the changes to plan/reads/reconcile-v2.md.
+check: `test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119 && grep -qi 'C157' plan/reads/reconcile-v2.md && grep -qi 'C190' plan/reads/reconcile-v2.md`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5328,3 +5335,4 @@ check: `grep -rqE "class PhoneConversationPolishTests\\b" Skrift_Native/SkriftMo
 - 2026-10-23 20:03 Q509 added
 - 2026-10-23 20:04 Q508 -> done — gate 76s @50d9771c
 - 2026-10-23 20:09 Q509 -> done — gate 49s @e43ef3fa
+- 2026-10-23 20:15 Q510 added
