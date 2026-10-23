@@ -33,6 +33,18 @@ final class CloudSyncMonitor: ObservableObject {
     /// when the user re-toggles sync for the book — an explicit "try again".
     @Published private(set) var bookSyncFailures: [UUID: String] = [:]
 
+    /// The latest finished CloudKit import this launch: true = succeeded, false = failed,
+    /// nil = none finished yet (no iCloud, in-memory store, or too early in launch).
+    private(set) var lastImportSucceeded: Bool?
+
+    /// True only when this device can trust "no carrier" to mean the carrier is really gone:
+    /// signed in to iCloud AND the latest CloudKit import this launch finished without an error.
+    /// A sign-in hiccup, a mirror reset or a launch before the first import reads unhealthy.
+    /// The phantom sweep (C298) runs only when this is true.
+    var isCloudHealthy: Bool {
+        FileManager.default.ubiquityIdentityToken != nil && lastImportSucceeded == true
+    }
+
     func setBookSyncFailure(_ bookID: UUID, reason: String) { bookSyncFailures[bookID] = reason }
     func clearBookSyncFailure(_ bookID: UUID) { bookSyncFailures.removeValue(forKey: bookID) }
 
@@ -106,7 +118,12 @@ final class CloudSyncMonitor: ObservableObject {
             let id = event.identifier
             let ended = event.endDate != nil
             let importDone = ended && event.type == .import && event.succeeded
-            MainActor.assumeIsolated { self?.apply(id: id, ended: ended, importDone: importDone) }
+            let importFailed = ended && event.type == .import && !event.succeeded
+            MainActor.assumeIsolated {
+                if importDone { self?.lastImportSucceeded = true }
+                if importFailed { self?.lastImportSucceeded = false }
+                self?.apply(id: id, ended: ended, importDone: importDone)
+            }
         }
     }
 
