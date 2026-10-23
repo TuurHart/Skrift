@@ -3602,7 +3602,7 @@ gate+: yes
 do: The model-download completeness check verifies the downloaded files by expected byte count or hash, not a size floor; a truncated-but-over-floor download counts as incomplete and resumes. Test `ResumableModelDownloaderTests` gains the truncated case (new test file if the existing class is protected: `ModelDownloadCompletenessTests`).
 check: `grep -rqE "class ModelDownloadCompletenessTests\b" Skrift_Native -r`
 
-### Q497 [auto] (todo) C: importing several books at once never merges them
+### Q497 [auto] (done) C: importing several books at once never merges them
 spec: C293
 needs: -
 gate+: yes
@@ -5255,3 +5255,4 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 18:40 Q504 -> done — gate 84s @c67910ce
 - 2026-10-23 18:42 Q482 -> done — hand-merged (R34 fixed by this item: RoundTripParityTests pre-registered XCTExpectFailure flips to a plain assertion (C5))
 - 2026-10-23 18:46 Q501 -> done — hand-merged (D215 extension asked by Q501: expected-differences-copyedit-v2.json registrations moved/added for headings + bold)
+- 2026-10-23 18:52 Q497 -> done — gate 74s @4fd69d33
