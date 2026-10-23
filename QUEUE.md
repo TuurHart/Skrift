@@ -3616,7 +3616,7 @@ gate+: yes
 do: An imported book named "Title — Author" (with an author byline) becomes title "Title" with the author in its own field. Test `BookTitleAuthorTests` (phone).
 check: `plan/mtest.sh BookTitleAuthorTests`
 
-### Q499 [auto] (stuck) C: unsharing an audiobook leaves no phantom library entry
+### Q499 [auto] (done) C: unsharing an audiobook leaves no phantom library entry
 spec: C298
 needs: -
 gate+: yes
@@ -5280,3 +5280,4 @@ check: `grep -rqE "class StalePolishReadersTests\b" Skrift_Native/SkriftMobile/S
 - 2026-10-23 19:14 Q492 -> done — gate 105s @d050c3ec
 - 2026-10-23 19:16 Q500 -> stuck — gate failed — .queue/Q500.gate.log
 - 2026-10-23 19:16 Q506 added
+- 2026-10-23 19:23 Q499 -> done — gate 219s @b7f70ca0
