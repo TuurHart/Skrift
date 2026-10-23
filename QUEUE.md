@@ -3470,7 +3470,7 @@ gate+: yes
 do: Same recipe as Q472 (`grep -n "finding: Q472" plan/RUN.md`): bump SKRIFT_BUILD (phone project.yml) AND CURRENT_PROJECT_VERSION (desktop project.yml) to 193; Debug build for the iPhone 17 Pro (00008150-001658662223C01C, same id for xcodebuild; phone needs -skipMacroValidation -skipPackagePluginValidation), install with devicectl, string-grep a Q476 literal (`lockedEpisodes`) in the built binary; Mac Debug build, quit Skrift Dev via osascript (com.skrift.desktop.dev), ditto to /Applications/Skrift Dev.app, open once. Never touch /Applications/Skrift.app or real data, never open -a the worktree app. If the phone is locked or unplugged, report blocked.
 check: Report shows build 193 installed on the phone (devicectl app list) and the Mac Dev app CFBundleVersion is 193.
 
-### Q478 [auto] (doing) copy-edit v2 keeps checkboxes, short-note sentences, his spelling and lists (D215)
+### Q478 [auto] (done) copy-edit v2 keeps checkboxes, short-note sentences, his spelling and lists (D215)
 spec: C29 C33 C35 C177 D209 D215
 needs: -
 gate+: yes
@@ -5228,3 +5228,4 @@ check: no test class ZipCRCTests
 - 2026-10-23 17:24 Q479 -> done — gate 265s @b91dad8c
 - 2026-10-23 17:24 Q501 added
 - 2026-10-23 17:24 Q502 added
+- 2026-10-23 17:28 Q478 -> done — hand-merged (D215 2026-10-23: expected-differences-copyedit-v2.json additive registrations as the item asked)
