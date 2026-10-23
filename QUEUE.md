@@ -3554,7 +3554,7 @@ gate+: yes
 do: Add, alias or rename re-derives links for every processed row on the Mac once, deterministically, and re-exports the untouched vault files we own whose links or `people:` went stale; a rename rewrites `[[Old]]` → `[[New]]` and `people:`; edited or foreign files are never touched. Add corpus fixtures `voice-en-bruno-before-roster` ×3 and a rename golden. Test `RosterReexportTests` (desktop).
 check: `grep -rqE "class RosterReexportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q490 [auto] (todo) B: changing a note's destination moves its exported file; retitle and folder switch never move files
+### Q490 [auto] (stuck) B: changing a note's destination moves its exported file; retitle and folder switch never move files
 spec: C163 C164
 needs: -
 gate+: yes
@@ -3665,7 +3665,7 @@ gate+: yes
 do: The suite crash (8 in an hour on 2026-10-23, SwiftData SIGSEGV in _swift_release_dealloc under PipelineFile.*Status setters) is a SwiftData thread-confinement violation, not container lifetime (lane A disproved that: retaining both containers still crashed 1 of 30). BatchRunner is a plain nonisolated struct and the project builds in Swift 5.9 mode, so its async run executes on the global executor (SE-0338) while every caller (CopyEditCorpusRun, CopyEditV2Mac.corpusStep, ProcessingCoordinator) hands it PipelineFile rows from a main-actor ModelContext. Production bug too: the Mac's Process / Re-transcribe path. Make BatchRunner @MainActor (pure statics nonisolated); engines stay awaited on their own actors. Test `BatchRunnerIsolationTests` (desktop): run executes on the main thread with a probe transcriber. Report the stress loop numbers before and after (baseline 5 of 100).
 check: `grep -rqE "class BatchRunnerIsolationTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q506 [auto] (todo) B: every reader skips a polish older than his last raw edit
+### Q506 [auto] (done) B: every reader skips a polish older than his last raw edit
 spec: C152 C261
 needs: Q486
 gate+: yes
@@ -5304,3 +5304,5 @@ check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 19:45 Q505 -> stuck — check failed — .queue/Q505.check.log
 - 2026-10-23 19:45 Q505 -> todo
 - 2026-10-23 19:48 Q505 -> done — gate 164s @c3a965b9
+- 2026-10-23 19:50 Q490 -> stuck — gate failed — .queue/Q490.gate.log
+- 2026-10-23 19:53 Q506 -> done — gate 64s @7800be13
