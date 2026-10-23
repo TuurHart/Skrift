@@ -3547,7 +3547,7 @@ gate+: yes
 do: When a picture marker is removed from the body, the next export removes that image file from the vault if it is ours and untouched (C54 ownership); the manifest entry stays (C14). Shared export code, both exporters. Add corpus fixture `pic-deleted-after-export`. Test `RemovedPictureExportTests` (desktop).
 check: `grep -rqE "class RemovedPictureExportTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q489 [auto] (todo) B: a roster change re-links every processed note once and re-exports the stale vault files
+### Q489 [auto] (done) B: a roster change re-links every processed note once and re-exports the stale vault files
 spec: C159 C283 D32
 needs: -
 gate+: yes
@@ -5314,3 +5314,4 @@ check: `grep -rqE "class MacConversationEditKeptTests\\b" Skrift_Native/SkriftDe
 - 2026-10-23 19:50 Q490 -> stuck — gate failed — .queue/Q490.gate.log
 - 2026-10-23 19:53 Q506 -> done — gate 64s @7800be13
 - 2026-10-23 19:57 Q508 added
+- 2026-10-23 19:59 Q489 -> done — gate 117s @1d30a93d
