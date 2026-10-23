@@ -477,12 +477,15 @@ enum RunFile {
             do {
                 let archive = try Archive(url: URL(fileURLWithPath: epubPath), accessMode: .read)
                 var entries: [String: Data] = [:]
+                var unreadable: [String: String] = [:]
                 for entry in archive where entry.type == .file {
-                    var data = Data()
-                    _ = try archive.extract(entry) { data.append($0) }
-                    entries[entry.path] = data
+                    if let data = try? VerifiedZip.data(entry, in: archive) {   // CRC-checked (Q502)
+                        entries[entry.path] = data
+                    } else {
+                        unreadable[entry.path] = EPubSkip.damagedReason
+                    }
                 }
-                let book = try EPubParse.parse(entries: entries)
+                let book = try EPubParse.parse(entries: entries, unreadable: unreadable)
                 let blocks = book.blocks.map { AlignmentCore.Block(text: $0.text, sourceFile: $0.sourceFile) }
                 let bookWords = book.blocks.map { $0.text.split(separator: " ").count }.reduce(0, +)
                 log("== ALIGNCHECK \(URL(fileURLWithPath: epubPath).lastPathComponent) ==")
