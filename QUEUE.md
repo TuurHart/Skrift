@@ -3714,7 +3714,7 @@ gate+: yes
 do: After Q431 the app still calls v1 reconcile files: MacCloudWriteBack (resolve/upsert/memoID; MetaSync, EditSync, ProcessingCoordinator write-back, NoteBody, VaultExporter, LiveRecordingSession, MacAppendRecording, WayOutRules, MacEmbeddingSnapshot, PipelineFile+BodyNormalise), MirroredNoteFields (MetaSync push), MemoCloudUpdate.resanitiseAndCompile (BatchRunner, RosterRelink, MacAppendRecording), MemoCloudIngest.metadataJSON/ocrText (MemoNoteProjection, MacLocationStamp), and the MemoCloudReconciler statics in ReconcileTriggers.swift. Route each to its reconcile v2 equivalent (Writers, Reflect.recompile, Ingest) or move the static into ReconcileV2, so Q432 can delete v1 without touching app code. Keep the harness green and Shared/ReconcileV2 within 2,119 lines. Write the list of v1 files no app code references any more into plan/reads/reconcile-v2.md.
 check: `! grep -rqE "MacCloudWriteBack\.|MemoCloudUpdate\.|MemoCloudIngest\." Skrift_Native/SkriftDesktop/App Skrift_Native/SkriftDesktop/Features && test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119`
 
-### Q513 [auto] (todo) B: export v2 swap gaps (iPad document captures, unchanged-skip before placing pictures)
+### Q513 [auto] (done) B: export v2 swap gaps (iPad document captures, unchanged-skip before placing pictures)
 spec: C57 C58 C2
 needs: Q511
 gate+: yes
@@ -5370,3 +5370,4 @@ check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-23 22:10 Q431 -> todo
 - 2026-10-23 22:15 Q431 -> done — gate 130s @7644128d
 - 2026-10-23 22:20 Q512 -> done — gate 131s @722c50cb
+- 2026-10-23 22:35 Q513 -> done — gate 94s @83d0605d
