@@ -173,7 +173,7 @@ struct NoteActions: View {
         let body = file.bestBodyText
         if body.contains("[[img_") || body.contains("[[vid_") || body.contains("[[file_"),
            let ctx = MemoCloudStore.container?.mainContext,
-           let memo = MacCloudWriteBack.resolve(for: file, in: ctx), MacNoteAttachments.hasBlocks(memo: memo) {
+           let memo = ReconcileV2.Writers.resolve(file, in: ctx), MacNoteAttachments.hasBlocks(memo: memo) {
             Menu(NoteAttachment.attachmentViewTitle) {
                 ForEach([NoteAttachment.Size.small, .large], id: \.self) { size in
                     Button(size == .small ? NoteAttachment.setAllSmallTitle : NoteAttachment.setAllLargeTitle) {

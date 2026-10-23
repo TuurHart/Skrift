@@ -69,11 +69,11 @@ enum MemoNoteProjection {
         pf.significance = memo.significance > 0 ? memo.significance : nil
         pf.locked = memo.locked
         pf.remindAt = memo.remindAt
-        pf.imageOCRText = MemoCloudIngest.ocrText(for: memo)
+        pf.imageOCRText = ReconcileV2.Ingest.ocrText(for: memo)
         // The SAME blob a real ingest writes → place/weather/daypart chips, the capture
         // banner + shared-content block, and the audiobook quote card all derive through
         // the identical accessors a pipelined note uses.
-        pf.audioMetadataJSON = MemoCloudIngest.metadataJSON(for: memo)
+        pf.audioMetadataJSON = ReconcileV2.Ingest.metadataJSON(for: memo)
         // Only the transcribe step can be truthfully claimed (the phone did it). The rest
         // are pending because they genuinely haven't run — which is also what keeps the
         // title chooser away (it needs a `titleSuggested` the Mac hasn't produced).

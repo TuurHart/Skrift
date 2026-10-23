@@ -150,7 +150,7 @@ enum WayOutRules {
     /// *candidate* from either kind of row. The only real test is whether that
     /// candidate is a memo that's ACTUALLY in `memoIDs` (the live cloud fetch).
     static func isMacOnly(_ pf: PipelineFile, memoIDs: Set<UUID>) -> Bool {
-        guard let candidate = MacCloudWriteBack.memoID(for: pf) else { return true }
+        guard let candidate = ReconcileV2.Writers.memoID(for: pf) else { return true }
         return !memoIDs.contains(candidate)
     }
 

@@ -94,7 +94,7 @@ enum MacAppendRecording {
             pf.transcriptUserEdited = true
             pf.transcribeStatus = .done
             // Re-link names + recompile over the new working body (no LLM).
-            MemoCloudUpdate.resanitiseAndCompile(pf, people: people, author: author)
+            ReconcileV2.Reflect.recompile(pf, people: people, author: author)
         }
         pf.lastActivityAt = now
 
@@ -128,8 +128,8 @@ enum MacAppendRecording {
         // The polished body moved too: write it back now, as a Mac body edit does
         // (`MacCloudEditSync`), so the sweep can't revert the copy-edit to the cloud's older one.
         if !words.isEmpty, !(pf.enhancedCopyedit ?? "").isEmpty {
-            try MacCloudWriteBack.upsert(for: pf, into: cloud, deviceID: deviceID, now: now,
-                                         bodyOverride: Sanitiser.unlinkToSpoken(pf.bestBodyText, people: people))
+            try ReconcileV2.Writers.upsertEnhancement(for: pf, into: cloud, deviceID: deviceID, now: now,
+                                                      body: Sanitiser.unlinkToSpoken(pf.bestBodyText, people: people))
         }
     }
 

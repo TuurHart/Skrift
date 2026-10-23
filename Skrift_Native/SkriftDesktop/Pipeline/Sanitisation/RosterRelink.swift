@@ -32,7 +32,7 @@ enum RosterRelink {
     /// under `linkedWith`, the roster that body was linked with, so a rename cannot hide it.
     static func rederive(_ pf: PipelineFile, linkedWith old: [Person], people: [Person], author: String) {
         MacEditRoundTrip.settle(pf, linkedWith: old)
-        MemoCloudUpdate.resanitiseAndCompile(pf, people: people, author: author)
+        ReconcileV2.Reflect.recompile(pf, people: people, author: author)
     }
 
     /// Re-link every processed live row from `linkedWith` to `people`. Returns the ids whose

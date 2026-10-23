@@ -274,7 +274,7 @@ struct BatchRunner {
                 // A raw edit landed after this run wrote its copy-edit (C153): take the copy-edit
                 // back too, so the body is the edit, not a polish of the words it replaced.
                 pf.enhancedCopyedit = priorCopyedit
-                MemoCloudUpdate.resanitiseAndCompile(pf, people: people, author: settings.authorName)
+                ReconcileV2.Reflect.recompile(pf, people: people, author: settings.authorName)
             }
             pf.enhanceStatus = .pending
             return

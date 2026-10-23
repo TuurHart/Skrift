@@ -307,7 +307,7 @@ final class LiveRecordingSession {
         NotificationCenter.default.post(name: AudioController.audioFileDidChange, object: path)
 
         let settings = SettingsStore.shared.load()
-        let memo = cloudContext.flatMap { MacCloudWriteBack.resolve(for: pf, in: $0) }
+        let memo = cloudContext.flatMap { ReconcileV2.Writers.resolve(pf, in: $0) }
         do {
             try MacAppendRecording.land(text: text, timings: timings, splice: splice,
                                         on: pf, memo: memo, cloud: cloudContext,

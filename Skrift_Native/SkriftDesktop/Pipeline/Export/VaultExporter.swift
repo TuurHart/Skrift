@@ -139,7 +139,7 @@ enum VaultExporter {
     static func workInputs(for pf: PipelineFile, cloud: ModelContext?,
                            settings: AppSettings, session: ExportSession? = nil) -> NoteWorkState.Inputs {
         var enhancement: MemoEnhancement?
-        if let cloud, let memo = MacCloudWriteBack.resolve(for: pf, in: cloud) {
+        if let cloud, let memo = ReconcileV2.Writers.resolve(pf, in: cloud) {
             let memoID = memo.id
             enhancement = (try? cloud.fetch(FetchDescriptor<MemoEnhancement>(
                 predicate: #Predicate { $0.memoID == memoID })))?.first

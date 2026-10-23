@@ -61,7 +61,7 @@ enum MacLocationStamp {
             memo.mergeCapturedMetadata(context)
             try? ctx.save()
             // The Mac's editing model, which is what its exporter actually reads.
-            pf.audioMetadataJSON = MemoCloudIngest.metadataJSON(for: memo)
+            pf.audioMetadataJSON = ReconcileV2.Ingest.metadataJSON(for: memo)
             try? pf.modelContext?.save()
             log.debug("stamped \(memoID, privacy: .public): place \(context.location != nil, privacy: .public), weather \(context.weather != nil, privacy: .public), both models")
         }
