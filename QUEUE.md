@@ -3686,6 +3686,13 @@ gate+: yes
 do: Q489 made a Mac body edit survive re-derivation (MacEditRoundTrip.adopt / settle into pf.enhancedCopyedit, de-linked) but skips conversation rows, so his Mac edit to a diarized note is still replaced by the old polish on a phone tag edit, a roster change, the open-note refresh or Redo. Extend the same rule to conversation bodies (speaker turns keep their headers; de-link per turn). Test `MacConversationEditKeptTests` (desktop): each of the four paths keeps his edit in sanitised, the compile and the cloud copy.
 check: `grep -rqE "class MacConversationEditKeptTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q509 [auto] (todo) B: the phone shows a Mac edit to a conversation note
+spec: C47 C152
+needs: Q508
+gate+: yes
+do: The phone renders a conversation note from memo.transcript, not the Mac's copy-edit, so his edit to a diarized note on the Mac reaches the cloud MemoEnhancement but never his phone's view (pre-existing; found in Q508). Show the current (non-stale, MemoEnhancement.current) copy-edit for conversations the same way as for prose, keeping speaker turns and the turn gutter. Test `PhoneConversationPolishTests` (phone, plan/mtest.sh).
+check: `grep -rqE "class PhoneConversationPolishTests\\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh PhoneConversationPolishTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5318,3 +5325,4 @@ check: `grep -rqE "class MacConversationEditKeptTests\\b" Skrift_Native/SkriftDe
 - 2026-10-23 20:00 Q507 -> done — gate 87s @29ecb51d
 - 2026-10-23 20:00 Q490 -> todo
 - 2026-10-23 20:02 Q490 -> done — gate 87s @937e8190
+- 2026-10-23 20:03 Q509 added
