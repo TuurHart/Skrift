@@ -3484,7 +3484,7 @@ gate+: yes
 do: Today photo offsets are wall-clock (RecordView). Make the recording clock stop during an interruption (call, Siri, alarm) and have photo offsets read that clock, so a picture taken after a call lands at its spoken place. Add corpus fixture `pic-after-interruption`. Test `InterruptionClockTests` (phone target).
 check: `plan/mtest.sh InterruptionClockTests`
 
-### Q480 [auto] (stuck) A: a transcript records its language mode; ⋯ › Transcribe again in Dutch / English
+### Q480 [auto] (done) A: a transcript records its language mode; ⋯ › Transcribe again in Dutch / English
 spec: C151 D46
 needs: -
 gate+: yes
@@ -3616,7 +3616,7 @@ gate+: yes
 do: An imported book named "Title — Author" (with an author byline) becomes title "Title" with the author in its own field. Test `BookTitleAuthorTests` (phone).
 check: `plan/mtest.sh BookTitleAuthorTests`
 
-### Q499 [auto] (todo) C: unsharing an audiobook leaves no phantom library entry
+### Q499 [auto] (stuck) C: unsharing an audiobook leaves no phantom library entry
 spec: C298
 needs: -
 gate+: yes
@@ -5259,3 +5259,5 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 18:55 Q498 -> done — gate 65s @7533abc9
 - 2026-10-23 18:57 Q500 -> stuck — gate failed — .queue/Q500.gate.log
 - 2026-10-23 19:00 Q491 -> done — hand-merged (Q491 asked for goldens re-recorded by the harness flag: 99 vault export + 101 row goldens gain editedAt/memoEditedAt; 3 test lines ported (D163))
+- 2026-10-23 19:05 Q499 -> stuck — gate failed — .queue/Q499.gate.log
+- 2026-10-23 19:09 Q480 -> done — hand-merged (D163 port: new stored PipelineFile fields transcriptLanguageMode + pendingPolishBlock in ReconcileDiffHarnessTests.fields and the 101 v1-rows goldens (null))
