@@ -482,7 +482,7 @@ enum RunFile {
                     if let data = try? VerifiedZip.data(entry, in: archive) {   // CRC-checked (Q502)
                         entries[entry.path] = data
                     } else {
-                        unreadable[entry.path] = "damaged inside the ePub file"
+                        unreadable[entry.path] = EPubSkip.damagedReason
                     }
                 }
                 let book = try EPubParse.parse(entries: entries, unreadable: unreadable)

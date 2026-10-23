@@ -515,6 +515,10 @@ struct EPubSkip: Equatable, Sendable {
     let part: String
     let reason: String
 
+    /// The reason for a part whose zip entry failed its CRC check (`VerifiedZip`) — one
+    /// spelling for the phone's reader and the Mac's harness.
+    static let damagedReason = "damaged inside the ePub file"
+
     /// One sentence for the attach outcome naming every skipped part; nil when none were.
     static func summary(_ skips: [EPubSkip]) -> String? {
         guard !skips.isEmpty else { return nil }
