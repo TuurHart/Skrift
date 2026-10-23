@@ -3693,7 +3693,7 @@ gate+: yes
 do: The phone renders a conversation note from memo.transcript, not the Mac's copy-edit, so his edit to a diarized note on the Mac reaches the cloud MemoEnhancement but never his phone's view (pre-existing; found in Q508). Show the current (non-stale, MemoEnhancement.current) copy-edit for conversations the same way as for prose, keeping speaker turns and the turn gutter. Test `PhoneConversationPolishTests` (phone, plan/mtest.sh).
 check: `grep -rqE "class PhoneConversationPolishTests\\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh PhoneConversationPolishTests`
 
-### Q510 [auto] (todo) reconcile v2 covers the whole sweep before the swap
+### Q510 [auto] (done) reconcile v2 covers the whole sweep before the swap
 spec: C52 C157 C187 C190 C191 C3
 needs: Q429
 gate+: yes
@@ -5346,3 +5346,4 @@ check: `grep -rqE "class ExportV2InputsTests\\b" Skrift_Native/SkriftDesktop/Skr
 - 2026-10-23 20:17 Q429 -> done — hand-merged (Q429's own harness registration: V2SweepEngine added to ReconcileDiffHarnessTests (v1 assertions unchanged, secondSweepConflicts per engine) and expected-differences-rows.json gains pic-missing-file C41 for v2; Tuur reads the diff in Q430)
 - 2026-10-23 20:22 Q434 -> done — hand-merged (Q434's own harness registration: engines = [V1Engine(), V2Engine()] in ExportDiffHarnessTests and v2 ids added to expected-differences-export.json (no id removed); Tuur reads the diff in Q435)
 - 2026-10-23 20:23 Q511 added
+- 2026-10-23 20:28 Q510 -> done — gate 69s @0a277300
