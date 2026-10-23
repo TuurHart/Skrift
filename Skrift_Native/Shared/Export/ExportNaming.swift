@@ -45,6 +45,16 @@ enum ExportNaming {
         return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
     }
 
+    /// C284: a moment as the device's local date and time to the second (`2026-09-13T21:00:00`),
+    /// the form Obsidian's date-time property reads; local like `date:` (C64).
+    static func localDateTime(_ date: Date, timeZone: TimeZone = deviceZone) -> String {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = timeZone
+        let c = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+        return String(format: "%04d-%02d-%02dT%02d:%02d:%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0,
+                      c.hour ?? 0, c.minute ?? 0, c.second ?? 0)
+    }
+
     /// `localDay` of a stored ISO-8601 string (the Mac keeps `recordedAt` as UTC text).
     /// nil when the string does not parse.
     static func localDay(iso: String, timeZone: TimeZone = deviceZone) -> String? {

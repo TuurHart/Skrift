@@ -1,6 +1,7 @@
 ---
 title: "kiln idea"
 date: 2026-09-10
+editedAt:
 author: Tiuri
 source: Voice-memo
 summary:

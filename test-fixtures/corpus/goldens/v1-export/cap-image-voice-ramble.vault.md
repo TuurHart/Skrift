@@ -1,6 +1,7 @@
 ---
 title: "capture_B85E25C2-B04B-564A-A339-D3ADAF72438D"
 date: 2026-07-28
+editedAt:
 author: Tiuri
 source: capture-image
 summary:

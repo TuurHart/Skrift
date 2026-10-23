@@ -1,6 +1,7 @@
 ---
 title: "capture_6A3AE681-57AD-5464-9AF2-1094C838025E"
 date: 2026-07-30
+editedAt:
 author: Tiuri
 source: capture-text
 summary:

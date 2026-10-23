@@ -23,7 +23,7 @@
       "transcriptMarkersInjected" : false,
       "transcriptUserEdited" : false
     },
-    "compiledText" : "---\ntitle: \"Saturday workshop debrief\"\ndate: 2026-08-19\nauthor: Corpus Author\nsource: Voice-memo\nsummary: \"Six-person hand-building session went well; Mariam's colleagues want the glazing evening. Charge €45.\"\ntags:\n  - workshop\npeople: [[Mariam Haddad]]\nsignificance: 0.7\nlocation:\nlastTouched:\n---\n\nThe Saturday went well: six people, and nobody leaned on a chain. [[Mariam Haddad]]'s colleagues want to come back for the glazing evening.\n\nI think we charge forty-five and see.",
+    "compiledText" : "---\ntitle: \"Saturday workshop debrief\"\ndate: 2026-08-19\neditedAt:\nauthor: Corpus Author\nsource: Voice-memo\nsummary: \"Six-person hand-building session went well; Mariam's colleagues want the glazing evening. Charge €45.\"\ntags:\n  - workshop\npeople: [[Mariam Haddad]]\nsignificance: 0.7\nlocation:\nlastTouched:\n---\n\nThe Saturday went well: six people, and nobody leaned on a chain. [[Mariam Haddad]]'s colleagues want to come back for the glazing evening.\n\nI think we charge forty-five and see.",
     "deletedAt" : null,
     "destinationRaw" : "personal",
     "diarizationSegmentsJSON" : null,
@@ -48,6 +48,7 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/3B6912FA-AAD7-5203-96C4-D7D2B1050AAA_memo_3B6912FA-AAD7-5203-96C4-D7D2B1050AAA.m4a/original.m4a",
     "pendingPolishBlock" : null,

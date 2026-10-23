@@ -1,6 +1,7 @@
 ---
 title: "memo_18D54AB6-67EB-5AEC-BB42-DB228B00D25D"
 date: 2026-07-18
+editedAt:
 author: Tiuri
 source: Audiobook-quote
 book: "The Shape of Clay"

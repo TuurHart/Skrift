@@ -1,6 +1,7 @@
 ---
 title: "IJsselmeer weekend 🚲"
 date: 2026-09-14
+editedAt:
 author: Tiuri
 source: Typed-note
 summary:

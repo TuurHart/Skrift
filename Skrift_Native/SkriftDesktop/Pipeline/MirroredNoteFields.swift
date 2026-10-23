@@ -110,6 +110,15 @@ enum MirroredNoteFields {
                   return true
               }),
 
+        // C284: the frontmatter's `editedAt:`. Phone → Mac only: every content edit, on any
+        // device, stamps `Memo.editedAt` itself (`Memo.markEdited`), so the memo is the truth.
+        Field(name: "editedAt", recompiles: true,
+              pull: { memo, pf in
+                  guard pf.memoEditedAt != memo.editedAt else { return false }
+                  pf.memoEditedAt = memo.editedAt
+                  return true
+              }),
+
         Field(name: "remindAt", recompiles: false,
               pull: { memo, pf in
                   guard pf.remindAt != memo.remindAt else { return false }

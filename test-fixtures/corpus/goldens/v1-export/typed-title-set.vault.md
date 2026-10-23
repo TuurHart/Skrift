@@ -1,6 +1,7 @@
 ---
 title: "Kiln wiring — what Marco said"
 date: 2026-09-06
+editedAt:
 author: Tiuri
 source: Typed-note
 summary:

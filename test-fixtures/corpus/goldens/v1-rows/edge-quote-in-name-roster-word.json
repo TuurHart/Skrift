@@ -48,6 +48,7 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/72DC1326-1B1D-5326-9DD7-32C89B2AA727_memo_72DC1326-1B1D-5326-9DD7-32C89B2AA727.m4a/original.m4a",
     "pendingPolishBlock" : null,

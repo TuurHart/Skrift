@@ -1,6 +1,7 @@
 ---
 title: "capture_F01EAE04-8833-5D90-B94E-554AD80F3644"
 date: 2026-08-03
+editedAt:
 author: Tiuri
 source: capture-url
 url: https://en.wikipedia.org/wiki/Ceramic_glaze

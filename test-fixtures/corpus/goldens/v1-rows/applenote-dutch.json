@@ -49,6 +49,7 @@
     ],
     "locked" : true,
     "mediaSource" : "applenote",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/5210FEAE-7C4E-5974-9926-1FA90C36497F_note/original.md",
     "pendingPolishBlock" : null,

@@ -48,6 +48,7 @@
     ],
     "locked" : false,
     "mediaSource" : "typed",
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/EB1B2431-41DB-5CC2-93C4-A2A2FB0D8167_note/original.md",
     "pendingPolishBlock" : null,

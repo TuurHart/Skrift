@@ -68,6 +68,7 @@ extension PipelineFile {
             },
             sharedContent: sc,
             rawRecordedAt: Self.rawMetaString(audioMetadataJSON, key: "recordedAt"),
+            editedAt: memoEditedAt,
             destination: destination,
             spoken: sourceType == .audio && !path.isEmpty,
             // The ONE classifier the phone's exporter uses too (Q142): a typed row is

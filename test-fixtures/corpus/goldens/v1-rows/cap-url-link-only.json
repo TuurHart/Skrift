@@ -50,6 +50,7 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/capture_54EEAC77-39E9-5BF3-A688-DE3AD39B2F96",
     "pendingPolishBlock" : null,

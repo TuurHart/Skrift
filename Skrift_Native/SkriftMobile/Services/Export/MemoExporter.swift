@@ -53,6 +53,7 @@ enum MemoExporter {
             metadata: meta.map(compilerMetadata),
             sharedContent: capture ? memo.sharedContent : nil,
             rawRecordedAt: nil,
+            editedAt: memo.editedAt,
             destination: memo.destination,
             spoken: !memo.audioFilename.isEmpty,
             kind: SourceKind.of(memo),                     // typed → `Typed-note` (Q142)

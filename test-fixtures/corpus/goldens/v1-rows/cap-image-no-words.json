@@ -63,6 +63,7 @@
     ],
     "locked" : false,
     "mediaSource" : null,
+    "memoEditedAt" : null,
     "nameResolutionsData" : null,
     "path" : "$OUT/capture_ACFA1AE3-DA64-5250-808C-8F22D251F927",
     "pendingPolishBlock" : null,

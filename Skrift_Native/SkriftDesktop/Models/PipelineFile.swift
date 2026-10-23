@@ -67,6 +67,9 @@ final class PipelineFile {
     /// re-link+recompile runs once per edit and never loops. Additive/optional → lightweight
     /// migration; nil on rows ingested before this shipped (treated as "reflect the next edit").
     var syncedSourceEditedAt: Date?
+    /// C284: the synced `Memo.editedAt` (nil = never edited), mirrored by `MirroredNoteFields`
+    /// so the Mac's export writes the same `editedAt:` as the phone's. ADDITIVE, nil default.
+    var memoEditedAt: Date? = nil
 
     /// Trash-state sync watermark: the `Memo.deletedAt` this row last reflected. Lets the
     /// reconciler mirror a phone trash/restore onto `deletedAt` WITHOUT clobbering a Mac-local
