@@ -455,7 +455,7 @@ struct AudiobookLibraryView: View {
                         BookShelfTile(book: book, isCurrent: isCurrent, syncState: syncState,
                                       transferFraction: cloudSync.bookTransfers[book.id]?.fraction,
                                       realign: BookTileState.realignLine(active: textActivity.isActive(book.id),
-                                                                         stage: textActivity.stage),
+                                                                         stage: textActivity.progress?.tileLine),
                                       noteCount: noteCounts[book.id] ?? 0,
                                       onNotes: { notesSheetBook = book }) {
                             openOrPlay(book, syncState: syncState)

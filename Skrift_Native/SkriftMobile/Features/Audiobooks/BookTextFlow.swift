@@ -19,7 +19,7 @@ struct BookTextFlow: ViewModifier {
     @State private var showImporter = false
     /// Busy line rendered INSIDE the sheet (a plain overlay on the presenting view is
     /// invisible once the sheet covers it; alerts/importers stack over it natively).
-    @State private var busyMessage: String?
+    @State private var busy: BookTextProgress?
     /// Success/partial outcome — an ALERT (2026-07-22 device round: a 1.6 s toast
     /// read as "nothing happened").
     @State private var outcome: String?
@@ -43,7 +43,7 @@ struct BookTextFlow: ViewModifier {
     func body(content: Content) -> some View {
         content
             .sheet(item: $sheetBook) { book in
-                BookTextSheet(book: book, busyMessage: busyMessage) {
+                BookTextSheet(book: book, busy: busy) {
                     attachBook = book
                     showImporter = true
                 }
@@ -94,11 +94,11 @@ struct BookTextFlow: ViewModifier {
         // The busy message persists for the whole run and follows the runner's live
         // stages (a 13 h book's matching takes minutes — a static line read as hung,
         // Tuur 2026-07-22); outcomes are explicit, user-dismissed alerts.
-        withAnimation(.easeOut(duration: 0.2)) { busyMessage = "Checking the text against this audiobook…" }
-        defer { withAnimation(.easeIn(duration: 0.3)) { busyMessage = nil } }
+        withAnimation(.easeOut(duration: 0.2)) { busy = BookTextProgress(stage: "Checking the text against this audiobook…", done: 0, total: 0) }
+        defer { withAnimation(.easeIn(duration: 0.3)) { busy = nil } }
         do {
             let summary = try await BookAlignmentRunner.attach(bookFileAt: url, bookID: book.id) { stage in
-                Task { @MainActor in busyMessage = stage }
+                Task { @MainActor in busy = stage }
             }
             if let text = Self.outcomeText(summary) {
                 outcome = text
