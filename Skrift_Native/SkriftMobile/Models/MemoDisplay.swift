@@ -179,6 +179,15 @@ extension Memo {
         isShareCapture ? .shareCapture : audioFilename.isEmpty ? .typed : .speech
     }
 
+    /// Copy-edit v2's source for this note (Q426, C36): a share capture gets title + summary,
+    /// speaker turns get no copy-edit, a typed note is never re-paragraphed — the Mac's rule
+    /// (`CopyEditV2Mac.source`) read off the memo.
+    var copyEditV2Source: CopyEditV2.Source {
+        if isShareCapture { return .share }
+        if SpeakerTranscript.isConversation(transcript, source: linkSource) { return .conversation }
+        return audioFilename.isEmpty ? .typed : .spoken
+    }
+
     /// SF Symbol glyph for the list row icon, keyed off `sharedContent.type`.
     var shareCaptureGlyph: String {
         sharedContent == nil ? SourceKind.captureURL.glyph : SourceKind.of(self).glyph

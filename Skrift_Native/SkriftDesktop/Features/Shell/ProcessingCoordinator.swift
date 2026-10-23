@@ -710,7 +710,8 @@ final class ProcessingCoordinator {
                 let isConversation = SpeakerTranscript.isConversation(transcript, source: pf.noteSource)
                 let c = isConversation
                     ? transcript
-                    : try await enhancer.copyEdit(transcript, prompts: settings.prompts, modelRepo: repo)
+                    : try await enhancer.copyEdit(transcript, spoken: pf.sourceType != .note,
+                                                  prompts: settings.prompts, modelRepo: repo)
                 pf.enhancedCopyedit = c
                 // re-link names on the fresh copy-edit so the body stays consistent
                 // (honoring the note's persisted "unlink all mentions" choices)

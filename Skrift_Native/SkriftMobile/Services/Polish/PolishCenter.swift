@@ -47,12 +47,13 @@ protocol PolishEngine: Sendable {
     /// like the desktop `EnhancementService`, via the SAME Shared helpers.
     /// Reports the CURRENT step plus an overall 0…1 fraction, so the bar can
     /// show a determinate line the way the Mac's run bar does.
-    func polish(transcript: String,
+    /// `source` (Q426): what the words are — copy-edit v2 gives each source its own verbs (C36).
+    func polish(transcript: String, source: CopyEditV2.Source,
                 onStep: @escaping @Sendable (PolishStep, Double) -> Void) async throws -> PolishResult
     /// Re-run ONE part (the Mac's Redo ▸ Title/Copy-edit/Summary). Same prompts,
     /// same escrow, same budget as the full pass. Part names come from the shared
     /// menu vocabulary (`NoteRedoItem`) — one word set, both apps.
-    func redo(_ part: NoteRedoItem, transcript: String) async throws -> String
+    func redo(_ part: NoteRedoItem, transcript: String, source: CopyEditV2.Source) async throws -> String
 }
 
 /// Device gate for the on-demand polisher. The iPhone never qualifies (the
@@ -197,7 +198,7 @@ final class PolishCenter {
         }
         phases[id] = .processing(step: step, fraction: 0.2)
         do {
-            let out = try await engine.redo(part, transcript: transcript)
+            let out = try await engine.redo(part, transcript: transcript, source: memo.copyEditV2Source)
             // The existing sidecar row is the target — redo is only offered when a
             // polish exists (menu gate); a vanished row means the note was un-polished
             // mid-run, and writing a fresh partial enhancement would call it processed.
@@ -240,7 +241,7 @@ final class PolishCenter {
                 }
             }
             phases[id] = .processing(step: .copyEdit, fraction: 0)
-            let result = try await engine.polish(transcript: transcript) { step, fraction in
+            let result = try await engine.polish(transcript: transcript, source: memo.copyEditV2Source) { step, fraction in
                 Task { @MainActor in self.phases[id] = .processing(step: step, fraction: fraction) }
             }
             write(result, forMemo: id, repository: repository)

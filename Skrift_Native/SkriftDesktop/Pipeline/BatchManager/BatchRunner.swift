@@ -224,9 +224,10 @@ struct BatchRunner {
         // must NOT be routed to the turn linker (it would drop the note's preamble and
         // skip copy-edit). Notes/captures always take the monologue path.
         let isConversation = SpeakerTranscript.isConversation(transcript, source: pf.noteSource)
+        // Q426: copy-edit v2 needs to know typed from spoken (C34: a typed note is never re-paragraphed).
         var copyedit = isConversation
             ? transcript
-            : try await enhancer.copyEdit(transcript, prompts: prompts, modelRepo: repo)
+            : try await enhancer.copyEdit(transcript, spoken: pf.sourceType != .note, prompts: prompts, modelRepo: repo)
         // Audiobook quote protection — the outer byte-assert (backlog spec 8): an
         // audiobook capture opens with a "> " quote block (contract C1) that must
         // survive copy-edit byte-identical. The enhancer protects it internally; if
@@ -306,7 +307,7 @@ struct BatchRunner {
         pf.enhanceStatus = .processing
         var body = before
         if !isConversation {
-            let polished = try await enhancer.copyEdit(block, prompts: settings.prompts,
+            let polished = try await enhancer.copyEdit(block, spoken: pf.sourceType != .note, prompts: settings.prompts,
                                                        modelRepo: settings.enhancementModelRepo)
             guard (pf.enhancedCopyedit ?? "") == before else {
                 Self.log.warning("file \(pf.id, privacy: .public): body edited during the appended-block polish — discarded, stays pending")
