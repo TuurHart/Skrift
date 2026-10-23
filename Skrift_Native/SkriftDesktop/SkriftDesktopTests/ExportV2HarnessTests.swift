@@ -4,7 +4,7 @@ import SwiftData
 extension ExportDiffHarnessTests {
     /// Q434: export v2 over the seeded corpus — the same sweep and rows as `V1Engine`, written by
     /// `VaultExporter.exportV2` (the same writer, compiled by `Shared/ExportV2`). `created:` and
-    /// "he gave a title" come from the synced memo, which the Mac row does not mirror yet.
+    /// "he gave a title" ride the row, mirrored from the synced memo (Q511).
     struct V2Engine: ExportEngine {
         let name = "v2"
 
@@ -46,9 +46,7 @@ extension ExportDiffHarnessTests {
                     pf.destination = profile.destination
                     defer { pf.destinationRaw = kept }
                     do {
-                        let gave = !(memo?.title ?? "").trimmingCharacters(in: .whitespaces).isEmpty
-                        let r = try VaultExporter.exportV2(pf, settings: settings, session: session,
-                                                           createdAt: memo?.createdAt, heGaveTitle: gave)
+                        let r = try VaultExporter.exportV2(pf, settings: settings, session: session)
                         let md = (try? String(contentsOf: r.markdownURL, encoding: .utf8)) ?? ""
                         let rel = String(r.markdownURL.standardizedFileURL.path
                             .dropFirst(exportRoot.standardizedFileURL.path.count + 1))

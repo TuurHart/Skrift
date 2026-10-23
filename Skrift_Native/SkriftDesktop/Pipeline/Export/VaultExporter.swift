@@ -225,6 +225,8 @@ enum VaultExporter {
     @discardableResult
     static func export(_ pf: PipelineFile, settings: AppSettings,
                        session: ExportSession? = nil) throws -> Result {
+        // Q511: the swap switch. Off until Q436; v1 below is the shipping path.
+        if ExportV2.isLive { return try exportV2(pf, settings: settings, session: session) }
         // The engine-scope gate (`ExportGate`, the SAME predicate the iPad runs): folder, a
         // locked note NEVER reaching the plaintext vault, and the D139 two-versions hold
         // (Mac-only). Rating / trash / processing are asked by the callers that act on a

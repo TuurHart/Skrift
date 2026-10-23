@@ -119,6 +119,23 @@ enum MirroredNoteFields {
                   return true
               }),
 
+        // D12 / C130 (Q511): export v2's `created:` and "he gave this title". Phone → Mac only:
+        // the memo is the truth for when it was made and for the title he typed. They reach the
+        // frontmatter only through v2, so they recompile exactly when v2 is live (the swap, Q436).
+        Field(name: "createdAt", recompiles: ExportV2.isLive,
+              pull: { memo, pf in
+                  guard pf.memoCreatedAt != memo.createdAt else { return false }
+                  pf.memoCreatedAt = memo.createdAt
+                  return true
+              }),
+        Field(name: "titleIsHis", recompiles: ExportV2.isLive,
+              pull: { memo, pf in
+                  let his = !(memo.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                  guard pf.memoTitleIsHis != his else { return false }
+                  pf.memoTitleIsHis = his
+                  return true
+              }),
+
         Field(name: "remindAt", recompiles: false,
               pull: { memo, pf in
                   guard pf.remindAt != memo.remindAt else { return false }

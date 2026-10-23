@@ -70,6 +70,12 @@ final class PipelineFile {
     /// C284: the synced `Memo.editedAt` (nil = never edited), mirrored by `MirroredNoteFields`
     /// so the Mac's export writes the same `editedAt:` as the phone's. ADDITIVE, nil default.
     var memoEditedAt: Date? = nil
+    /// D12 (Q511): the synced `Memo.createdAt`, mirrored pull-only for export v2's `created:`.
+    /// ADDITIVE, nil default (nil = not reflected yet / no memo).
+    var memoCreatedAt: Date? = nil
+    /// C130 (Q511): the synced memo carries a title HE typed (`Memo.title`), so the portfolio
+    /// writes `title:`. Mirrored pull-only; false = no title of his (or no memo).
+    var memoTitleIsHis: Bool = false
 
     /// Trash-state sync watermark: the `Memo.deletedAt` this row last reflected. Lets the
     /// reconciler mirror a phone trash/restore onto `deletedAt` WITHOUT clobbering a Mac-local

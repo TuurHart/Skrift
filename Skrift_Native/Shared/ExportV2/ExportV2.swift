@@ -16,6 +16,11 @@ import Foundation
 /// `date:` the recording's local day (C64), OCR text and a shared document exported (R38).
 enum ExportV2 {
 
+    /// THE swap switch (Q511): true routes the Mac's `VaultExporter.export` and the iPad's
+    /// `ObsidianPublisher` through v2. OFF until Tuur has read plan/reads/export-v2.md (Q435);
+    /// Q436 flips it.
+    static let isLive = false
+
     /// What v2 reads about a note. `input` is the one shared `CompilerInput` both apps build
     /// (body precedence, voice, name-linking, memo-link stems: `CompilerInput.make`); the rest
     /// is what v1 never carried.
