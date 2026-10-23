@@ -1144,7 +1144,7 @@ struct MemoPageView: View {
     /// their quote block; conversations route to `SpeakerTurnsView`). nil = show raw.
     /// Newest `enhancedAt` first via the @Query sort — mirrors `repository.enhancement`.
     var macPolish: MemoEnhancement? {
-        guard let e = enhancements.first, e.hasContent, !e.isStale(for: memo),
+        guard let e = MemoEnhancement.current(enhancements.first, for: memo), e.hasContent,
               !memo.isShareCapture, memo.captureQuote == nil,
               SpeakerTranscript.parse(memo.transcript) == nil else { return nil }
         return e
