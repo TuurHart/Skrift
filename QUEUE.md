@@ -5366,3 +5366,5 @@ check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-23 21:57 Q512 added
 - 2026-10-23 21:57 Q513 added
 - 2026-10-23 21:59 Q511 -> done — hand-merged (D163 port: new stored fields memoCreatedAt + memoTitleIsHis in ReconcileDiffHarnessTests.fields, 101 v1-rows goldens re-recorded by flag, MirroredNoteFieldsTests + MemoCloudUpdateTests.baselined ported)
+- 2026-10-23 22:02 Q431 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
+- 2026-10-23 22:10 Q431 -> todo
