@@ -3236,7 +3236,7 @@ check: Tuur said yes and `plan/mtest.sh NoteBodyTests` and `plan/mtest.sh AudioS
 spec: D201
 needs: Q410
 do: Q410 added the synced field `VocabularyRecord.wordLedger`. Before the production update, run a Dev build once so the field exists in CloudKit Development, then in the CloudKit Console deploy the Development schema to Production (same step as Q298; see plan/release/RELEASE.md). Without it the prod apps cannot save the carrier.
-check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger` and `Memo.transcriptLanguageMode` (Q480) and `MemoEnhancement.pendingBlock` (Q481), plus any field later items add (check plan/RUN.md for "NEW synced field").
+check: Tuur deployed the schema and the console's Production schema shows `VocabularyRecord.wordLedger` and `Memo.transcriptLanguageMode` (Q480) and `MemoEnhancement.pendingBlock` (Q481) and `Memo.transcriptEditedAt` (Q486), plus any field later items add (check plan/RUN.md for "NEW synced field").
 
 ### Q444 [auto] (done) install Dev 191 (Q408–Q422) on the iPhone 17 Pro and the Mac
 spec: -
@@ -3663,6 +3663,13 @@ needs: -
 gate+: yes
 do: The desktop UnitTests run crashed 8 times between 17:54 and 19:00 on 2026-10-23 (~/Library/Logs/DiagnosticReports/xctest-2026-10-23-*.ips): EXC_BAD_ACCESS/SIGSEGV (one SIGABRT) inside SwiftData during _swift_release_dealloc, reached from PipelineFile.transcribeStatus.setter / enhanceStatus.setter (BatchRunner.run via CopyEditV2Mac.corpusStep, CopyEditV2HarnessTests) or from a runloop observer under XCTWaiter. Each crash marks the running test failed and turns the gate red (Q500 failed this way). Q483's CommitOnceCache lock did not remove it. Lead suspect: 56 sites build `ModelContext(try ModelContainer(...))` and keep no reference to the container (CopyEditCorpusRun.run lines ~100-104 plus 30 test files); a ModelContext does not reliably keep its container alive, so the store can be freed while models still change. Prove or kill that suspect first (a stress loop of the crashing harness, e.g. CopyEditV2HarnessTests + ReconcileDiffHarnessTests repeated, before and after). Fix at the root: one helper that returns a context whose container is retained for the context's lifetime (production CopyEditCorpusRun and a test helper), and route every site through it. No assertion changes. Test `ModelContainerLifetimeTests` (desktop) shows a context outliving its builder's scope stays usable.
 check: `grep -rqE "class ModelContainerLifetimeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rqE "ModelContext\((try )?ModelContainer\(" Skrift_Native --include=*.swift`
+
+### Q506 [auto] (todo) B: every reader skips a polish older than his last raw edit
+spec: C152 C261
+needs: Q486
+gate+: yes
+do: Q486 added MemoEnhancement.isStale(for:) (transcriptEditedAt > enhancedAt), but only the phone note page honours it: the phone/iPad vault exporter, WallPrinter and the list cache still read the newest copy-edit, so a note he re-edited after the Mac polished it exports and lists the old polish. Route every reader of the Mac polish through one shared accessor that returns nil when stale (fall back to his raw, as the note page does). Test `StalePolishReadersTests` (phone, plan/mtest.sh).
+check: `grep -rqE "class StalePolishReadersTests\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh StalePolishReadersTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5271,3 +5278,5 @@ check: `grep -rqE "class ModelContainerLifetimeTests\b" Skrift_Native/SkriftDesk
 - 2026-10-23 19:12 Q505 added
 - 2026-10-23 19:12 Q502 -> stuck — gate failed — .queue/Q502.gate.log
 - 2026-10-23 19:14 Q492 -> done — gate 105s @d050c3ec
+- 2026-10-23 19:16 Q500 -> stuck — gate failed — .queue/Q500.gate.log
+- 2026-10-23 19:16 Q506 added
