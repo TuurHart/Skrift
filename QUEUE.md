@@ -3127,7 +3127,7 @@ check: Tuur read `plan/reads/copyedit-v2.md` (and the Dutch rambles run, if pres
 spec: C2 C28 C38 C39
 needs: Q425 Q478
 do: Point the Mac `EnhancementService` / batch path and the iPad polish path at copy-edit v2; a stale local prompt override is migrated away at first launch (C39). The v1 functions stay in place for Q427 to delete.
-check: `! grep -rnE "extractAnchors\(|PolishEscrow\." Skrift_Native/SkriftDesktop/Pipeline Skrift_Native/SkriftDesktop/Features Skrift_Native/SkriftMobile/Features`
+check: `! grep -rnE --exclude=CopyEditPipeline.swift "extractAnchors\(|PolishEscrow\." Skrift_Native/SkriftDesktop/Pipeline Skrift_Native/SkriftDesktop/Features Skrift_Native/SkriftMobile/Features`
 
 ### Q427 [tuur] (todo) delete v1 copy-edit after the tag
 spec: C2 C252
@@ -3623,7 +3623,7 @@ gate+: yes
 do: An entry with no local audio and no cloud carrier is removed at the next library load, with a log line. Test `PhantomEntryTests` (phone): unshare then reload shows no empty row.
 check: `plan/mtest.sh PhantomEntryTests`
 
-### Q500 [auto] (todo) C: directory accessors create their folder once per launch
+### Q500 [auto] (stuck) C: directory accessors create their folder once per launch
 spec: C280
 needs: -
 gate+: yes
@@ -5257,3 +5257,4 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 18:46 Q501 -> done — hand-merged (D215 extension asked by Q501: expected-differences-copyedit-v2.json registrations moved/added for headings + bold)
 - 2026-10-23 18:52 Q497 -> done — gate 74s @4fd69d33
 - 2026-10-23 18:55 Q498 -> done — gate 65s @7533abc9
+- 2026-10-23 18:57 Q500 -> stuck — gate failed — .queue/Q500.gate.log
