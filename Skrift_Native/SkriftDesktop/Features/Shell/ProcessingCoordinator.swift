@@ -350,6 +350,9 @@ final class ProcessingCoordinator {
         // never sees the polish. Log it so it's diagnosable (a durable retry queue is the
         // documented Phase-2 follow-up). A `nil` return is an intentional skip (not a synced
         // memo / nothing to write), not a failure.
+        // Q489: a Mac body edit still only in `sanitised` goes out as his words, never the old
+        // polish (a Redo title after an edit used to push the copy-edit it replaced).
+        MacEditRoundTrip.settle(pf, linkedWith: NamesStore.shared.livePeople())
         do {
             // `passRan: true` — the guard above already proved `enhanceStatus == .done`,
             // so reaching here IS "a pass ran on this file", empty result or not.
@@ -753,6 +756,9 @@ final class ProcessingCoordinator {
     /// — and flag the count so the silent mis-resolution can't slip by. `previousPeople` is the
     /// live roster snapshot taken BEFORE the change.
     func rescanRoster(previousPeople old: [Person], context: ModelContext) {
+        // C159 (Q489): every roster change re-links all processed notes once and re-exports
+        // the vault ones — the reconcile pass runs that (`RosterRelink`), so ask for one now.
+        MemoCloudReconciler.reconcileSoon(.localChange)
         let new = NamesStore.shared.livePeople()
         let collided = RosterAudit.newlyAmbiguous(old: old, new: new)
         guard !collided.isEmpty else { return }

@@ -46,8 +46,11 @@ final class MacCloudEditSync {
     /// `MemoNoteProjection.writeBack` puts them on the memo's own fields instead. Its typed
     /// title still goes out through `MacCloudMetaSync.setTitle`, as it always did.
     func note(_ pf: PipelineFile, title: Bool = false) {
-        guard MemoCloudStore.syncContainer != nil else { return }
+        // Q489: a body edit also keeps the row's copy-edit in step (`flush`), with sync on or off,
+        // so the title-only push is the one part that needs the synced store.
+        let synced = MemoCloudStore.syncContainer != nil
         let body = pf.modelContext != nil
+        guard body || (title && synced) else { return }
         guard body || title else { return }
         let id = pf.id
         if body { bodyPending.insert(id) }
@@ -56,7 +59,7 @@ final class MacCloudEditSync {
             guard let self else { return }
             let titled = self.titlePending.removeValue(forKey: id)
             let bodied = self.bodyPending.remove(id) != nil
-            if let titled { MacCloudMetaSync.setTitle(titled.enhancedTitle, for: titled) }
+            if let titled, synced { MacCloudMetaSync.setTitle(titled.enhancedTitle, for: titled) }
             if bodied, let pf { self.flush(pf) }
         }
     }
@@ -65,17 +68,17 @@ final class MacCloudEditSync {
     /// coalesces to the latest text. The Sanitiser round trip runs off the main actor (M13);
     /// only the store reads and writes stay on it.
     private func flush(_ pf: PipelineFile) {
-        guard let container = MemoCloudStore.container else { return }
         let id = pf.id
         let generation = (flushGeneration[id] ?? 0) + 1
         flushGeneration[id] = generation
         let people = NamesStore.shared.livePeople()
         let body = pf.bestBodyText
-        let ctx = container.mainContext
-        let memo = MacCloudWriteBack.resolve(for: pf, in: ctx)
+        let ctx = MemoCloudStore.syncContainer != nil ? MemoCloudStore.container?.mainContext : nil
+        let memo = ctx.flatMap { MacCloudWriteBack.resolve(for: pf, in: $0) }
         // A title/summary-only edit never touches `pf.sanitised`; `MacEditRoundTrip` round-trips
         // the stored polish through the same pipeline so only a REAL body change registers (Q42).
-        let before = memo.flatMap { EditConflicts.polishedBody(for: $0.id, in: ctx) }
+        let before = memo.flatMap { m in ctx.flatMap { EditConflicts.polishedBody(for: m.id, in: $0) } }
+            ?? pf.enhancedCopyedit
         let neverLink = Set(pf.unlinkedNames)
         let namePicks = pf.namePicks
         Task { @MainActor [weak self, weak pf] in
@@ -83,6 +86,9 @@ final class MacCloudEditSync {
                                                       neverLink: neverLink, namePicks: namePicks)
             guard let self, let pf, self.flushGeneration[id] == generation else { return }
             self.flushGeneration[id] = nil
+            MacEditRoundTrip.adopt(trip, into: pf)
+            try? pf.modelContext?.save()
+            guard let ctx else { return }
             do {
                 try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: DeviceID.current(),
                                              bodyOverride: trip.raw)

@@ -57,6 +57,12 @@ enum MemoCloudUpdate {
             return trashChanged
         }
 
+        // Q489: the body as it stands before this reflect, for `MacEditRoundTrip.settle` below
+        // (a Mac edit still only in `sanitised` is adopted before the recompile rebuilds it).
+        let before = (body: pf.sanitised,
+                      working: CompilerInput.workingBody(raw: pf.transcript, copyedit: pf.enhancedCopyedit).text,
+                      neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
+
         // A PHONE-authored enhancement edit. The Mac's own write-back echo is skipped by the
         // device-id check, so the Mac never re-reflects what it just wrote.
         let phoneEnh: MemoEnhancement? = {
@@ -75,6 +81,7 @@ enum MemoCloudUpdate {
         // Path 2 — the phone edited the polished copy-edit / title / summary. A copy-edit made
         // before a later raw edit is of words that are gone (C153): never adopt it.
         var copyeditAdopted = false
+        var rawEditWins = false
         if let e = phoneEnh {
             if pf.enhancedCopyedit != e.copyedit, !e.isStale(for: memo) {
                 pf.enhancedCopyedit = e.copyedit; contentChanged = true; copyeditAdopted = true
@@ -121,6 +128,7 @@ enum MemoCloudUpdate {
                (memo.transcriptEditedAt ?? memo.lastEditedAt) > e.enhancedAt {
                 pf.enhanceStatus = .pending
                 pf.enhancedCopyedit = nil
+                rawEditWins = true
                 pf.pendingPolishBlock = nil   // the whole note is polished again, not a block (C152)
             }
         }
@@ -155,6 +163,12 @@ enum MemoCloudUpdate {
         guard contentChanged || metaChanged || trashChanged else { return false }
 
         if contentChanged {
+            // Q489: a Mac body edit survives a recompile caused by anything else (a phone tag
+            // edit, a blob change). Not when a newer phone polish or raw edit replaced the body.
+            if !copyeditAdopted && !rawEditWins {
+                MacEditRoundTrip.settle(pf, body: before.body, working: before.working, linkedWith: people,
+                                        neverLink: before.neverLink, namePicks: before.namePicks)
+            }
             // Re-link + recompile once (no LLM) over the pristine working text (copy-edit →
             // transcript), so a path-2 copy-edit wins the body and a path-3 raw edit falls
             // through for un-enhanced rows.
