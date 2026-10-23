@@ -319,6 +319,27 @@ final class BookAlignmentStore: Sendable {
 
 // MARK: - Runner
 
+/// Real progress for a book-text import or re-align (C290): steps done of a known total, so a
+/// 13 h book's minutes-long run shows a moving bar, not just a stage name. A step is the copy,
+/// the parse, each audio file matched, and the chapter placement.
+struct BookTextProgress: Equatable, Sendable {
+    var stage: String
+    var done: Int
+    var total: Int
+
+    /// Playback runs on its own session and is never paused by a text run — the toast says so.
+    static let listeningLine = "You can keep listening while this runs."
+
+    var fraction: Double { total > 0 ? min(1, Double(done) / Double(total)) : 0 }
+    /// "3 of 14 done"; nil before the total is known.
+    var countLine: String? { total > 0 ? "\(min(done, total)) of \(total) done" : nil }
+    /// The library tile's one-liner: stage plus count.
+    var tileLine: String { countLine.map { "\(stage) · \($0)" } ?? stage }
+
+    /// Steps for one text run: copy (attach only) + parse + one per file to match + chapters.
+    static func total(files: Int, copying: Bool) -> Int { (copying ? 1 : 0) + 1 + files + 1 }
+}
+
 /// Live "this book is matching up its text right now" state, for any surface that would
 /// otherwise look FROZEN while a re-align runs (device finding 2026-07-23, Tuur: tapped a
 /// book, "I can't click any books, it seems to be frozen… maybe stuff's happening in the
@@ -331,22 +352,24 @@ final class BookTextActivity: ObservableObject {
 
     /// The book currently matching up its text, if any (only ever one — the runner is serial).
     @Published private(set) var bookID: UUID?
+    /// The runner's live stage and step count (C290).
+    @Published private(set) var progress: BookTextProgress?
     /// The runner's live stage line ("Reading the text…", "Matching the text…").
-    @Published private(set) var stage: String?
+    var stage: String? { progress?.stage }
 
     func begin(_ id: UUID, stage: String) {
         bookID = id
-        self.stage = stage
+        progress = BookTextProgress(stage: stage, done: 0, total: 0)
     }
 
-    func update(_ stage: String) {
+    func update(_ progress: BookTextProgress) {
         guard bookID != nil else { return }
-        self.stage = stage
+        self.progress = progress
     }
 
     func end() {
         bookID = nil
-        stage = nil
+        progress = nil
     }
 
     func isActive(_ id: UUID) -> Bool { bookID == id }
@@ -404,7 +427,7 @@ enum BookAlignmentRunner {
     /// is unchanged). Rejected-everywhere still writes sidecars (verdict recorded) — the UI
     /// decides what to tell the user from `AttachSummary`/the sidecars' verdicts.
     static func attach(bookFileAt url: URL, bookID: UUID,
-                       progress: (@Sendable (String) -> Void)? = nil) async throws -> AttachSummary {
+                       progress: (@Sendable (BookTextProgress) -> Void)? = nil) async throws -> AttachSummary {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else {
             throw AttachError.bookMissing
         }
@@ -420,10 +443,12 @@ enum BookAlignmentRunner {
         // Bare closure (no explicit `() throws -> T in` signature) so the compiler infers the
         // async+throws effects from the `let outcome: TextAlignOutcome =` context — matches
         // `AudiobookImporter.importSingleFile`'s exact "copy + parse off main" shape.
+        let matchCount = deferring ? 0 : book.files.count
+        let total = BookTextProgress.total(files: matchCount, copying: true)
         let outcome: TextAlignOutcome = try await Task.detached(priority: .userInitiated) {
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            progress?("Copying the file in…")
+            progress?(BookTextProgress(stage: "Copying the file in…", done: 0, total: total))
             do {
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                 try AudiobookImporter.materializingCopy(from: url, to: dest)
@@ -431,7 +456,7 @@ enum BookAlignmentRunner {
                 throw AttachError.copyFailed
             }
 
-            progress?("Reading the text…")
+            progress?(BookTextProgress(stage: "Reading the text…", done: 1, total: total))
             let epubBook = try parseBookFile(at: dest)
             let alignBlocks = mergeBlocksByFile(epubBook.blocks)
 
@@ -439,14 +464,16 @@ enum BookAlignmentRunner {
             let indices = deferring ? [] : Array(book.files.indices)
             let perFile = await alignText(named: filename, blocks: alignBlocks, book: book, bookID: bookID,
                                           folder: folder, indices: indices, store: transcriptStore,
-                                          progress: { progress?($0) })
+                                          progress: { stage, matched in
+                                              progress?(BookTextProgress(stage: stage, done: 2 + matched, total: total))
+                                          })
             return TextAlignOutcome(
                 perFile: perFile, toc: epubBook.toc, title: epubBook.title,
                 transcriptSigs: transcriptSignatures(for: Array(perFile.keys), book: book, bookID: bookID,
                                                      folder: folder, store: transcriptStore),
                 drm: epubBook.drm, skipped: epubBook.skipped)
         }.value
-        progress?("Placing chapters…")
+        progress?(BookTextProgress(stage: "Placing chapters…", done: total - 1, total: total))
 
         var order = book.attachedTextFilenames
         if !order.contains(filename) { order.append(filename) }
@@ -460,6 +487,7 @@ enum BookAlignmentRunner {
             precomputedTOC: [filename: outcome.toc],
             newlyAttachedFilename: filename
         )
+        progress?(BookTextProgress(stage: "Done", done: total, total: total))
         return AttachSummary(alignedFiles: outcome.aligned,
                              totalFiles: outcome.total, deferredWhileTranscribing: deferring,
                              drm: outcome.drm, skippedParts: outcome.skipped)
@@ -560,11 +588,17 @@ enum BookAlignmentRunner {
         await MainActor.run { BookTextActivity.shared.begin(bookID, stage: "Matching up your book text…") }
         defer { Task { @MainActor in BookTextActivity.shared.end() } }
 
+        // Per text: parse + each stale file; then one chapter step for the whole book.
+        let perText = 1 + staleIndices.count
+        let healTotal = localNames.count * perText + 1
         let realigned: [String: TextAlignOutcome] = await Task.detached(priority: .background) { () -> [String: TextAlignOutcome] in
             var out: [String: TextAlignOutcome] = [:]
-            for textName in localNames {
+            for (n, textName) in localNames.enumerated() {
                 let url = folder.appendingPathComponent(textName)
-                await MainActor.run { BookTextActivity.shared.update("Reading the text…") }
+                let base = n * perText
+                await MainActor.run {
+                    BookTextActivity.shared.update(BookTextProgress(stage: "Reading the text…", done: base, total: healTotal))
+                }
                 guard let epubBook = try? parseBookFile(at: url) else {
                     DevLog.log("bookAlign[\(bookID)] re-parse failed for \(textName) — skipping re-align")
                     continue
@@ -576,14 +610,20 @@ enum BookAlignmentRunner {
                 let perFile = await alignText(
                     named: textName, blocks: alignBlocks, book: book, bookID: bookID, folder: folder,
                     indices: staleIndices, store: transcriptStore, yieldBetweenFiles: true,
-                    progress: { stage in await MainActor.run { BookTextActivity.shared.update(stage) } })
+                    progress: { stage, matched in
+                        await MainActor.run {
+                            BookTextActivity.shared.update(BookTextProgress(stage: stage, done: base + 1 + matched, total: healTotal))
+                        }
+                    })
                 out[textName] = TextAlignOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title)
             }
             return out
         }.value
 
         guard !realigned.isEmpty else { return }
-        await MainActor.run { BookTextActivity.shared.update("Placing chapters…") }
+        await MainActor.run {
+            BookTextActivity.shared.update(BookTextProgress(stage: "Placing chapters…", done: healTotal - 1, total: healTotal))
+        }
 
         let transcriptSigs = transcriptSignatures(for: staleIndices, book: book, bookID: bookID,
                                                   folder: folder, store: transcriptStore)
@@ -630,15 +670,17 @@ enum BookAlignmentRunner {
     private static func alignText(
         named textName: String, blocks: [AlignmentCore.Block], book: Audiobook, bookID: UUID,
         folder: URL, indices: [Int], store: BookTranscriptStore, yieldBetweenFiles: Bool = false,
-        progress: (String) async -> Void
+        progress: (_ stage: String, _ filesDone: Int) async -> Void
     ) async -> [Int: FileAlignResult] {
         var perFile: [Int: FileAlignResult] = [:]
-        for i in indices {
+        // `filesDone` counts every index passed, transcript or not, so the step count the
+        // caller planned (one per index) always reaches its total.
+        for (k, i) in indices.enumerated() {
             guard let ft = loadTranscript(index: i, book: book, bookID: bookID, folder: folder,
                                           store: store) else { continue }
             await progress(book.files.count > 1
                 ? "Matching the text… (file \(i + 1) of \(book.files.count))"
-                : "Matching the text against the transcript…")
+                : "Matching the text against the transcript…", k)
             perFile[i] = alignFile(ft: ft, against: blocks, textFilename: textName)
             if yieldBetweenFiles { await Task.yield() }
         }

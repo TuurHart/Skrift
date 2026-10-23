@@ -20,9 +20,9 @@ struct BookTextSheet: View {
     /// taller than .medium — opening there read as "cut off" (Tuur, b111).
     @State private var detent: PresentationDetent
 
-    init(book: Audiobook, busyMessage: String? = nil, onAdd: @escaping () -> Void) {
+    init(book: Audiobook, busy: BookTextProgress? = nil, onAdd: @escaping () -> Void) {
         self.book = book
-        self.busyMessage = busyMessage
+        self.busy = busy
         self.onAdd = onAdd
         // Cheap record-only check — never `textSummary` here (it decodes every
         // sidecar; see `summary` below).
@@ -32,7 +32,7 @@ struct BookTextSheet: View {
     /// a plain view overlay on the presenting view is invisible once this `.sheet` covers the
     /// screen (only UIKit-level presentations like `.alert`/`.fileImporter` stack over a sheet
     /// automatically), so the busy message needs to render from inside the sheet itself.
-    var busyMessage: String?
+    var busy: BookTextProgress?
     /// Opens the SAME fileImporter flow the library owns — this sheet never presents its own
     /// picker.
     var onAdd: () -> Void
@@ -58,7 +58,7 @@ struct BookTextSheet: View {
     /// the presenting view handing in a new busy state (attach in flight), or a background
     /// re-align ending. Drives the `.task(id:)` reload.
     private var summaryReloadKey: String {
-        "\(busyFilename ?? "-")|\(busyMessage ?? "-")|\(textActivity.isActive(book.id))|\(removingTranscript)"
+        "\(busyFilename ?? "-")|\(busy?.stage ?? "-")|\(textActivity.isActive(book.id))|\(removingTranscript)"
     }
 
     private var perText: [BookTextSummary.PerText] { summary?.perText ?? [] }
@@ -100,14 +100,25 @@ struct BookTextSheet: View {
             // One status toast: the presenting view's attach stage wins; otherwise a
             // background re-align (schema heal / re-check) running for this book. The
             // standing reassurance line is true for both (Tuur 2026-07-22: "didn't know
-            // if I could keep listening" - playback is genuinely unaffected).
-            if let message = busyMessage ?? (textActivity.isActive(book.id) ? textActivity.stage : nil) {
-                VStack(spacing: 3) {
-                    Text(message)
+            // if I could keep listening" - playback is genuinely unaffected). C290: the bar and
+            // count are real steps done of the run's total, not a spinner.
+            if let progress = busy ?? (textActivity.isActive(book.id) ? textActivity.progress : nil) {
+                VStack(spacing: 6) {
+                    Text(progress.stage)
                         .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
-                    Text("You can keep listening while this runs.")
+                    if let count = progress.countLine {
+                        ThinProgressBar(fraction: progress.fraction, height: 4)
+                            .frame(width: 220)
+                            .accessibilityHidden(true)
+                        Text(count)
+                            .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
+                            .monospacedDigit()
+                    }
+                    Text(BookTextProgress.listeningLine)
                         .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("book-text-progress")
                 .padding(.horizontal, 16).padding(.vertical, 10)
                 .background(Color.skElev, in: RoundedRectangle.sk(16))
                 .transition(.opacity)
