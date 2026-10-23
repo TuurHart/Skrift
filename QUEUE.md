@@ -3679,7 +3679,7 @@ gate+: yes
 do: Same bug class as Q505: `struct IngestService: Sendable` has nonisolated async funcs (ingestReport/ingestFile/ingestAudio/ingestVideo/ingestNote/attachPictures/...) that insert PipelineFile rows into the CALLER'S context (the Sidebar passes mainContext), so drag-drop and import write the main context off the main thread. Split it: file work (copy, video export, hashing) stays off main so the old P1 freeze does not come back, inserts and row mutations run on the main actor. Test `IngestIsolationTests` (desktop): every insert happens on the main thread with a probe.
 check: `grep -rqE "class IngestIsolationTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q508 [auto] (todo) B: a Mac edit to a conversation note survives every re-derivation
+### Q508 [auto] (done) B: a Mac edit to a conversation note survives every re-derivation
 spec: C261 C47
 needs: Q489
 gate+: yes
@@ -5326,3 +5326,4 @@ check: `grep -rqE "class PhoneConversationPolishTests\\b" Skrift_Native/SkriftMo
 - 2026-10-23 20:00 Q490 -> todo
 - 2026-10-23 20:02 Q490 -> done — gate 87s @937e8190
 - 2026-10-23 20:03 Q509 added
+- 2026-10-23 20:04 Q508 -> done — gate 76s @50d9771c
