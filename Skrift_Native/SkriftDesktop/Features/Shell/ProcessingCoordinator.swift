@@ -356,8 +356,8 @@ final class ProcessingCoordinator {
         do {
             // `passRan: true` — the guard above already proved `enhanceStatus == .done`,
             // so reaching here IS "a pass ran on this file", empty result or not.
-            try MacCloudWriteBack.upsert(for: pf, into: container.mainContext,
-                                         deviceID: DeviceID.current(), passRan: true)
+            try ReconcileV2.Writers.upsertEnhancement(for: pf, into: container.mainContext,
+                                                      deviceID: DeviceID.current(), passRan: true)
         } catch {
             AppLog.cloudkit
                 .error("write-back failed for \(pf.id, privacy: .public): \(String(describing: error), privacy: .public)")

@@ -756,7 +756,7 @@ enum RunFile {
             // A throw here (`typedNote`, `save`, the fetch) used to vanish inside the Task: `exit()`
             // was never reached and the process carried on as a GUI app. `Harness.main` catches,
             // prints `>>> ERROR: …` and exits 1.
-            let memo = try MacMemoAuthor.typedNote(into: cloudCtx)
+            let memo = try Memo.newTyped(into: cloudCtx)
             memo.transcript = body
             memo.transcriptUserEdited = true
             log(">>> typed note \(memo.id) — unrated, no row yet")

@@ -203,9 +203,9 @@ extension MemoCloudReconciler {
     /// holds the engine; the next reconcile retries.
     private static func adoptOrphanedTranscriptions(_ memos: [Memo], container: ModelContainer,
                                                     context: ModelContext, thisDevice: String) {
-        let kinds = AssetKindIndex(context)
+        let assets = ReconcileV2.AssetIndex(context)
         let plan = MacOrphanTranscription.plan(
-            memos: memos, hasAudio: { kinds.kinds($0).contains(MemoAsset.Kind.audio) },
+            memos: memos, hasAudio: { assets.has($0, MemoAsset.Kind.audio, minBytes: 0) },
             thisDevice: thisDevice, now: Date())
         if !plan.release.isEmpty {
             do { try MacOrphanTranscription.release(plan.release, in: context) }

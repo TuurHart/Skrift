@@ -1596,8 +1596,8 @@ enum Snapshot {
         writePNG(view, to: path)
     }
 
-    /// Q143: the synthetic corpus's captures pushed through the REAL ingest (`MemoCloudIngest` →
-    /// `UploadService` → working folders on disk), then each one's review pane drawn: link
+    /// Q143: the synthetic corpus's captures pushed through the REAL ingest (`ReconcileV2.Ingest`
+    /// prepare → working folders on disk), then each one's review pane drawn: link
     /// (description), image (pixels), PDF (first page + page chip + text disclosure), an
     /// UNRATED link (honest banner, placeholder), and a video with a typed thought (annotation
     /// lead). Writes `<dir>/<name>.png`. Triggered by: `-snapshot-capture-corpus <dir> -corpus <corpus>`.
@@ -1608,8 +1608,7 @@ enum Snapshot {
         let corpusURL = URL(fileURLWithPath: (corpusPath as NSString).expandingTildeInPath, isDirectory: true)
         _ = try? CorpusSeed.seed(from: corpusURL, into: ctx, recordingsDirectory: tmp.appendingPathComponent("rec"))
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-        var upload = UploadService()
-        upload.outputDir = tmp.appendingPathComponent("out")
+        let outputDir = tmp.appendingPathComponent("out")
 
         // corpus note id → (output name, tweak applied to the memo before ingest, rated?)
         let wanted: [(id: String, name: String, tweak: (Memo) -> Void, rated: Bool)] = [
@@ -1641,7 +1640,7 @@ enum Snapshot {
             }
             // Q431: v2's ingest (the gates the sweep applies: live and rated).
             guard memo.deletedAt == nil, NoteConsent.isRated(memo),
-                  let prepared = try? ReconcileV2.Ingest.prepare(memo, assets: assets, outputDir: upload.outputDir) else {
+                  let prepared = try? ReconcileV2.Ingest.prepare(memo, assets: assets, outputDir: outputDir) else {
                 print("renderCaptureCorpus: \(w.name) — ingest returned nil"); continue
             }
             let pf = ReconcileV2.Ingest.makeRow(prepared, memo: memo)

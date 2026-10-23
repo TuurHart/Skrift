@@ -12,10 +12,7 @@ extension ReconcileV2 {
         /// UUID, not the memo's, so no naming rule is right for every vintage of row: try each
         /// candidate UUID and take the one the store has.
         static func resolve(_ row: PipelineFile, in ctx: ModelContext) -> Memo? {
-            var seen = Set<UUID>()
-            let fromName = uuid(fromFilename: row.filename), fromID = UUID(uuidString: row.id)
-            let order = row.isLocalRecording ? [fromID, fromName] : [fromName, fromID]
-            for candidate in order.compactMap({ $0 }) where seen.insert(candidate).inserted {
+            for candidate in candidates(for: row) {
                 var d = FetchDescriptor<Memo>(predicate: #Predicate { $0.id == candidate })
                 d.fetchLimit = 1
                 if let memo = (try? ctx.fetch(d))?.first { return memo }
@@ -23,8 +20,20 @@ extension ReconcileV2 {
             return nil
         }
 
+        /// The UUIDs a row's memo may have, most likely first: the row id for a Mac recording,
+        /// else the filename's. Use `resolve` where a store is at hand.
+        nonisolated static func candidates(for row: PipelineFile) -> [UUID] {
+            let fromName = uuid(fromFilename: row.filename), fromID = UUID(uuidString: row.id)
+            let order = row.isLocalRecording ? [fromID, fromName] : [fromName, fromID]
+            var seen = Set<UUID>()
+            return order.compactMap { $0 }.filter { seen.insert($0).inserted }
+        }
+
+        /// The most likely memo UUID, with no store to ask (`candidates.first`).
+        nonisolated static func memoID(for row: PipelineFile) -> UUID? { candidates(for: row).first }
+
         /// `memo_<uuid>.<ext>` / `capture_<uuid>` → the UUID in the name.
-        static func uuid(fromFilename name: String) -> UUID? {
+        nonisolated static func uuid(fromFilename name: String) -> UUID? {
             for prefix in ["memo_", "capture_"] where name.hasPrefix(prefix) {
                 return UUID(uuidString: String((name as NSString).deletingPathExtension.dropFirst(prefix.count)))
             }
@@ -75,6 +84,12 @@ extension ReconcileV2 {
         @discardableResult
         static func mirrorMeta(_ row: PipelineFile, in ctx: ModelContext) -> Bool {
             guard let memo = resolve(row, in: ctx) else { return false }
+            return pushMeta(row, to: memo)
+        }
+
+        /// `mirrorMeta` onto a memo the caller already resolved.
+        @discardableResult
+        static func pushMeta(_ row: PipelineFile, to memo: Memo) -> Bool {
             var changed = false
             if memo.tags != row.tags { memo.tags = row.tags; changed = true }
             if let s = row.significance, memo.significance != s { memo.significance = s; changed = true }

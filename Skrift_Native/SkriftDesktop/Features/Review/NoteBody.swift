@@ -237,7 +237,7 @@ struct NoteBody: View {
     /// the owning memo's manifest + photo row so the phone gets it.
     private func addPhoto(_ data: Data) -> MacNotePhotos.Added? {
         let ctx = cloudContext
-        let memo = ctx.flatMap { MacCloudWriteBack.resolve(for: file, in: $0) }
+        let memo = ctx.flatMap { ReconcileV2.Writers.resolve(file, in: $0) }
         return MacNotePhotos.add(imageData: data, to: file, memo: memo, context: ctx)
     }
 
@@ -245,13 +245,13 @@ struct NoteBody: View {
 
     /// The synced memo behind this note (nil for a local-only note or with CloudKit off).
     private func cloudMemo() -> Memo? {
-        cloudContext.flatMap { MacCloudWriteBack.resolve(for: file, in: $0) }
+        cloudContext.flatMap { ReconcileV2.Writers.resolve(file, in: $0) }
     }
 
     /// A dropped / pasted / inserted video or file: copied in, mirrored to the phone.
     private func addAttachment(_ url: URL) -> MacNoteAttachments.Added? {
         let ctx = cloudContext
-        return MacNoteAttachments.add(fileURL: url, to: file, memo: ctx.flatMap { MacCloudWriteBack.resolve(for: file, in: $0) },
+        return MacNoteAttachments.add(fileURL: url, to: file, memo: ctx.flatMap { ReconcileV2.Writers.resolve(file, in: $0) },
                                       context: ctx)
     }
 
@@ -266,7 +266,7 @@ struct NoteBody: View {
     /// Quick Look's Markup saved into a photo: the phone gets the marked-up file.
     private func photoMarkedUp(_ url: URL) {
         let ctx = cloudContext
-        let memo = ctx.flatMap { MacCloudWriteBack.resolve(for: file, in: $0) }
+        let memo = ctx.flatMap { ReconcileV2.Writers.resolve(file, in: $0) }
         MacNotePhotos.markupSaved(fileURL: url, memo: memo, context: ctx)
     }
 

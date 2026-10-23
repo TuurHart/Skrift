@@ -113,12 +113,16 @@ extension ReconcileV2 {
 
         /// Re-link + recompile over the working body (copy-edit, else transcript); no model.
         static func recompile(_ row: PipelineFile, context ctx: Context) {
+            recompile(row, people: ctx.people, author: ctx.author)
+        }
+
+        static func recompile(_ row: PipelineFile, people: [Person], author: String) {
             let working = CompilerInput.workingBody(raw: row.transcript, copyedit: row.enhancedCopyedit).text
             guard !working.isEmpty else { return }
             row.relinkNames(working: working, isConversation: SpeakerTranscript.isConversation(working, source: row.noteSource),
-                            people: ctx.people)
+                            people: people)
             row.sanitiseStatus = .done
-            row.compiledText = Compiler.compile(file: row, author: ctx.author, knownPeople: ctx.people)
+            row.compiledText = Compiler.compile(file: row, author: author, knownPeople: people)
         }
     }
 

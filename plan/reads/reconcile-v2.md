@@ -47,3 +47,24 @@ v2 now covers the pass around the sweep, not only the sweep: 1,262 lines (24% of
 **R44 closed.** v2's reflect now records every phone polish it SEES: when a later-stamped phone polish carries words the row already has (nothing to adopt), the row's watermark still moves to its stamp. The Mac's next polish is then written, not refused as "newer, unseen". The row is saved but not re-exported (`watermarked`, not `updatedIDs`).
 
 Still outside v2 after Q510: the edit-conflict bookkeeping (v2 calls the shared `EditConflictHold`), the notice + re-export + connections index (the pass returns `reexportIDs`; the app does the export).
+
+## Q512: app code stops calling v1
+
+App code (App, Features, Pipeline, Models) now calls only reconcile v2, so Q432 can delete v1 without touching it. v2 is 1,298 lines (budget 2,119).
+
+| v1 call | now | sites |
+|---|---|---|
+| `MacCloudWriteBack.resolve` | `ReconcileV2.Writers.resolve` | MacCloudMetaSync, MacCloudEditSync, LiveRecordingSession, NoteBody (4), NoteActions, VaultExporter, PipelineFile+BodyNormalise |
+| `MacCloudWriteBack.upsert` | `Writers.upsertEnhancement` (R44 stamp-to-stamp guard) | MacCloudEditSync, ProcessingCoordinator, MacAppendRecording |
+| `MacCloudWriteBack.memoID` / `uuid(fromFilename:)` | `Writers.memoID` / `Writers.candidates` (same order) | WayOutRules, MacEmbeddingSnapshot |
+| `MirroredNoteFields.pushable` | `Writers.pushMeta` (tags; a rating only when set) | MacCloudMetaSync.mirror |
+| `MemoCloudUpdate.resanitiseAndCompile` | `Reflect.recompile(_:people:author:)` | MacAppendRecording, RosterRelink, BatchRunner |
+| `MemoCloudIngest.metadataJSON` / `ocrText` | `ReconcileV2.Ingest` | MemoNoteProjection, MacLocationStamp |
+| `AssetKindIndex` | `ReconcileV2.AssetIndex.has` | wiring's orphan-transcription adopt |
+| `UploadService` | a plain output URL | Snapshot capture renderer |
+| `MacMemoAuthor.typedNote` | `Memo.newTyped` | RunFile `-typednote` |
+| `MemoCloudReconciler` declaration (`didStart`, `coalescer`) | `ReconcileTriggers.swift`; the v1 file is now an extension | — |
+
+Behaviour change: the Mac's edit and pass write-backs now use v2's R44 guard. A polish from another device that the row has not seen yet (beyond its watermark + 5 s) refuses the Mac's write, where v1 compared the other stamp with this Mac's clock.
+
+Stays outside v2: `MemoPhotoMaterializer` (+ `MacNoteAttachments.materializeMissing`). The unrated-note projection (C187) uses it at view time from a lazy asset closure, with no store to index; it is not reconcile code and Q432 must keep it.

@@ -54,7 +54,7 @@ extension PipelineFile {
 
     /// The synced polish row for this note in `cloud`, if any (newest `enhancedAt` first).
     private func cloudEnhancement(in cloud: ModelContext?) -> MemoEnhancement? {
-        guard let cloud, let memoID = MacCloudWriteBack.resolve(for: self, in: cloud)?.id else { return nil }
+        guard let cloud, let memoID = ReconcileV2.Writers.resolve(self, in: cloud)?.id else { return nil }
         let rows = (try? cloud.fetch(FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
         return rows.max { $0.enhancedAt < $1.enhancedAt }
     }

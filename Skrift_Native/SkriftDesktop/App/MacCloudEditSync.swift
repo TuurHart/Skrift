@@ -74,7 +74,7 @@ final class MacCloudEditSync {
         let people = NamesStore.shared.livePeople()
         let body = pf.bestBodyText
         let ctx = MemoCloudStore.syncContainer != nil ? MemoCloudStore.container?.mainContext : nil
-        let memo = ctx.flatMap { MacCloudWriteBack.resolve(for: pf, in: $0) }
+        let memo = ctx.flatMap { ReconcileV2.Writers.resolve(pf, in: $0) }
         // A title/summary-only edit never touches `pf.sanitised`; `MacEditRoundTrip` round-trips
         // the stored polish through the same pipeline so only a REAL body change registers (Q42).
         let before = memo.flatMap { m in ctx.flatMap { EditConflicts.polishedBody(for: m.id, in: $0) } }
@@ -94,8 +94,8 @@ final class MacCloudEditSync {
             try? pf.modelContext?.save()
             guard let ctx else { return }
             do {
-                try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: DeviceID.current(),
-                                             bodyOverride: trip.raw)
+                try ReconcileV2.Writers.upsertEnhancement(for: pf, into: ctx, deviceID: DeviceID.current(),
+                                                          body: trip.raw)
                 // C98 (Q38): he edited the polished body here, so it is a words edit for conflict
                 // detection. Only when the body actually moved: a title/summary edit flushes here too.
                 if trip.bodyMoved, let memo,

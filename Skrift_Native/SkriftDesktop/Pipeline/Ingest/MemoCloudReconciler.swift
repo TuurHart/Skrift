@@ -12,16 +12,7 @@ import os
 /// Gated by `cloudKitMacSyncEnabled` (defaults ON), and `MemoCloudIngest` dedups by memo
 /// UUID / embedded filename, so a memo collapses to one `PipelineFile`. Bonjour/HTTP sync is
 /// retired; CloudKit is the only transport.
-@MainActor
-enum MemoCloudReconciler {
-    /// Set once by `start()` (the App wiring) so the launch/active/import observers register
-    /// only once.
-    static var didStart = false
-
-    /// C52: the ONE coalescer every trigger goes through (see `reconcileSoon` in the app
-    /// wiring, which creates it) — stored here because extensions can't hold stored statics.
-    @MainActor static var coalescer: ReconcileCoalescer?
-
+extension MemoCloudReconciler {
     /// What a sweep did: how many NEW rows were ingested, and the ids of EXISTING rows a phone
     /// edit updated (Part B) — the latter drive a re-export so the vault reflects the edit too.
     struct SweepOutcome: Equatable {
