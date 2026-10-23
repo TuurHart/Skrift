@@ -753,6 +753,9 @@ final class ProcessingCoordinator {
     /// — and flag the count so the silent mis-resolution can't slip by. `previousPeople` is the
     /// live roster snapshot taken BEFORE the change.
     func rescanRoster(previousPeople old: [Person], context: ModelContext) {
+        // C159 (Q489): every roster change re-links all processed notes once and re-exports
+        // the vault ones — the reconcile pass runs that (`RosterRelink`), so ask for one now.
+        MemoCloudReconciler.reconcileSoon(.localChange)
         let new = NamesStore.shared.livePeople()
         let collided = RosterAudit.newlyAmbiguous(old: old, new: new)
         guard !collided.isEmpty else { return }
