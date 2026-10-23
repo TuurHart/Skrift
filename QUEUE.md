@@ -3657,6 +3657,13 @@ gate+: yes
 do: Q481 polishes only an appended block (BatchRunner.polishAppendedBlock) and Q483 turns spoken hashtags into tags through SpokenHashtags.shownBody, but the append path never calls shownBody, so "hashtag x" said in an added recording stays words. Call shownBody on the spliced body in polishAppendedBlock (and the phone path if it has one). Test `AppendSpokenHashtagTests` (desktop).
 check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q505 [auto] (todo) the desktop suite stops crashing in SwiftData dealloc
+spec: C5
+needs: -
+gate+: yes
+do: The desktop UnitTests run crashed 8 times between 17:54 and 19:00 on 2026-10-23 (~/Library/Logs/DiagnosticReports/xctest-2026-10-23-*.ips): EXC_BAD_ACCESS/SIGSEGV (one SIGABRT) inside SwiftData during _swift_release_dealloc, reached from PipelineFile.transcribeStatus.setter / enhanceStatus.setter (BatchRunner.run via CopyEditV2Mac.corpusStep, CopyEditV2HarnessTests) or from a runloop observer under XCTWaiter. Each crash marks the running test failed and turns the gate red (Q500 failed this way). Q483's CommitOnceCache lock did not remove it. Lead suspect: 56 sites build `ModelContext(try ModelContainer(...))` and keep no reference to the container (CopyEditCorpusRun.run lines ~100-104 plus 30 test files); a ModelContext does not reliably keep its container alive, so the store can be freed while models still change. Prove or kill that suspect first (a stress loop of the crashing harness, e.g. CopyEditV2HarnessTests + ReconcileDiffHarnessTests repeated, before and after). Fix at the root: one helper that returns a context whose container is retained for the context's lifetime (production CopyEditCorpusRun and a test helper), and route every site through it. No assertion changes. Test `ModelContainerLifetimeTests` (desktop) shows a context outliving its builder's scope stays usable.
+check: `grep -rqE "class ModelContainerLifetimeTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rqE "ModelContext\((try )?ModelContainer\(" Skrift_Native --include=*.swift`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5261,3 +5268,4 @@ check: `grep -rqE "class AppendSpokenHashtagTests\b" Skrift_Native/SkriftDesktop
 - 2026-10-23 19:00 Q491 -> done — hand-merged (Q491 asked for goldens re-recorded by the harness flag: 99 vault export + 101 row goldens gain editedAt/memoEditedAt; 3 test lines ported (D163))
 - 2026-10-23 19:05 Q499 -> stuck — gate failed — .queue/Q499.gate.log
 - 2026-10-23 19:09 Q480 -> done — hand-merged (D163 port: new stored PipelineFile fields transcriptLanguageMode + pendingPolishBlock in ReconcileDiffHarnessTests.fields and the 101 v1-rows goldens (null))
+- 2026-10-23 19:12 Q505 added
