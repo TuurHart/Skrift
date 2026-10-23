@@ -115,7 +115,7 @@ final class ExportDiffHarnessTests: XCTestCase {
     }
 
     /// Registered engines — a v2 exporter lands here, never by editing `V1Engine`.
-    static let engines: [ExportEngine] = [V1Engine()]
+    static let engines: [ExportEngine] = [V1Engine(), V2Engine()]
 
     /// The deterministic tail of the Mac's processing (`BatchRunner` step 4, the only part that
     /// needs no model): name-link the working body — the copy-edit when the sweep adopted one,
