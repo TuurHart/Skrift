@@ -3734,7 +3734,7 @@ needs: -
 do: Mock the Settings row "Export all notes…" on the phone and the Mac, the progress while it builds, and the share sheet / save step, drawn from current Settings source (file:line refs), in Skrift_Native/SkriftDesktop/mocks/Q515-export-all.html, published as an Artifact. Tuur signs it off.
 check: Tuur signed off the mock.
 
-### Q516 [auto] (todo) A: build Export all notes as a zip per the mock
+### Q516 [auto] (done) A: build Export all notes as a zip per the mock
 spec: D218 C2
 needs: Q515
 gate+: yes
@@ -5428,3 +5428,4 @@ check: `grep -rqE "class PhoneMissingPictureTests\\b" Skrift_Native/SkriftMobile
 - 2026-10-24 09:18 Q517 -> done — hand-merged (Q517 asked for it: MacSyncStateTests allCases assertions gain the two new states (additive only))
 - 2026-10-24 09:23 Q518 added
 - 2026-10-24 09:23 Q519 added
+- 2026-10-24 09:25 Q516 -> done — gate 104s @7a27d37a
