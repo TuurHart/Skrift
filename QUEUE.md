@@ -3741,7 +3741,7 @@ gate+: yes
 do: Per the signed-off mock: one shared exporter (Skrift_Native/Shared) compiles every note not in the trash with export v2 into the vault layout (Personal and Portfolio folders, as D189), adds each note's audio, photos and attachments beside it, zips to a temp file and opens the share sheet (phone) / save panel (Mac). Streams to disk (no whole-library in memory); shows progress; cancellable. Never touches his real vault. Test `ExportAllZipTests` (desktop, on the synthetic corpus): every live corpus note appears once with its assets, trashed notes do not.
 check: `grep -rqE "class ExportAllZipTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q517 [auto] (todo) B: Mac Settings never says Up to date while sync is stopped or failing
+### Q517 [auto] (done) B: Mac Settings never says Up to date while sync is stopped or failing
 spec: C155 D217 D218
 needs: Q485
 gate+: yes
@@ -5411,3 +5411,4 @@ check: `grep -rqE "class MacSyncStateStoppedTests\\b" Skrift_Native/SkriftDeskto
 - 2026-10-24 08:58 Q485 -> todo
 - 2026-10-24 09:01 Q485 -> done — gate 147s @d5456150
 - 2026-10-24 09:10 Q436 -> done — hand-merged (Tuur's D216 (2026-10-24) changes the asserted export: HH:MM:SS duration and unresolved links kept; ExportV2HarnessTests/ExportV2PhoneInputsTests/ExportV2InputsTests/ExportV2SwapGapsTests/VaultExporterTests/PortfolioExportTests/ExportDiffHarnessTests ported)
+- 2026-10-24 09:18 Q517 -> done — hand-merged (Q517 asked for it: MacSyncStateTests allCases assertions gain the two new states (additive only))
