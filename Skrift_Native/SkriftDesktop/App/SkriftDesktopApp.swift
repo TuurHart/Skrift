@@ -104,6 +104,7 @@ struct SkriftDesktopApp: App {
             monitor.onStopChanged = { stopped in
                 if stopped { CloudFirstImport.reset(stampURL: AppPaths.memoCloudFirstImportStamp) }
             }
+            monitor.onProblemChanged = { MacSyncMonitor.shared.syncHealthChanged() }
             monitor.attach(cloud)
         }
 
