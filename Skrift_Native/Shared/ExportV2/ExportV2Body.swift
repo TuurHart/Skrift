@@ -15,9 +15,10 @@ extension ExportV2 {
                 body = keepingOnlyPeople(MemoLinkSyntax.exportRewrite(body, resolveStem: input.memoLinkResolver),
                                          people: note.people)
             } else {
-                // R49 before the memo-links leave as `[[stem|Title]]` (C59).
-                body = MemoLinkSyntax.exportRewrite(escapingUnresolved(body, people: note.people),
-                                                    resolveStem: input.memoLinkResolver)
+                // `escapesUnknownLinks` (off, D216) before the memo-links leave as `[[stem|Title]]` (C59).
+                body = MemoLinkSyntax.exportRewrite(
+                    escapesUnknownLinks ? escapingUnresolved(body, people: note.people) : body,
+                    resolveStem: input.memoLinkResolver)
             }
             // A body stored before body v2 reads as it shows (Q13); a v2 body passes unchanged (C65).
             body = BodyV2Legacy.shown(body).text
@@ -36,7 +37,7 @@ extension ExportV2 {
             return quoted(body, book: book, author: author, chapter: chapter, url: Frontmatter.trimmed(meta?.bookURL))
         }
 
-        /// R49: a hand-typed `[[word]]` that is no memo-link, no marker and no roster entry is
+        /// The dropped R49, behind `escapesUnknownLinks`: a hand-typed `[[word]]` that is no memo-link, no marker and no roster entry is
         /// written escaped, so it reads as he typed it and never becomes a link to nothing.
         static func escapingUnresolved(_ body: String, people: [Person]) -> String {
             let roster = rosterKeys(people)

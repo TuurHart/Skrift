@@ -225,8 +225,15 @@ enum VaultExporter {
     @discardableResult
     static func export(_ pf: PipelineFile, settings: AppSettings,
                        session: ExportSession? = nil) throws -> Result {
-        // Q511: the swap switch. Off until Q436; v1 below is the shipping path.
-        if ExportV2.routes { return try exportV2(pf, settings: settings, session: session) }
+        // Q436: export v2 ships; v1 stays callable for the corpus harness until Q437 deletes it.
+        ExportV2.routes ? try exportV2(pf, settings: settings, session: session)
+                        : try exportV1(pf, settings: settings, session: session)
+    }
+
+    /// v1's export, kept beside v2 until Q437 (the harness's `V1Engine` pins it).
+    @discardableResult
+    static func exportV1(_ pf: PipelineFile, settings: AppSettings,
+                         session: ExportSession? = nil) throws -> Result {
         // The engine-scope gate (`ExportGate`, the SAME predicate the iPad runs): folder, a
         // locked note NEVER reaching the plaintext vault, and the D139 two-versions hold
         // (Mac-only). Rating / trash / processing are asked by the callers that act on a

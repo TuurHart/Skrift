@@ -21,7 +21,8 @@ final class VaultExporterTests: XCTestCase {
         settings.noteFolder = vault.path
         settings.authorName = "Tiuri"
 
-        let r = try VaultExporter.export(pf, settings: settings)
+        let nick = Person(canonical: "[[Nick Jansen]]", aliases: [], short: "Nick", lastModifiedAt: "2026-09-01T09:00:00Z")
+        let r = try VaultExporter.export(pf, settings: settings, session: ExportSession(people: [nick]))
 
         XCTAssertEqual(r.markdownURL.lastPathComponent, "My Note.md")
         let md = try String(contentsOf: r.markdownURL, encoding: .utf8)

@@ -102,9 +102,11 @@ final class PortfolioExportTests: XCTestCase {
         }
         // …and the keys a portfolio entry DOES need, including the stamp that stops a filed
         // note from being written again.
-        for key in ["title:", "date:", "tags:", VaultStamp.idKey] {
+        for key in ["date:", "tags:", VaultStamp.idKey] {
             XCTAssertTrue(text.contains(key), "missing \(key)")
         }
+        // C130 (export v2, Q436): `title:` only when he typed it; this one is the Mac's suggestion.
+        XCTAssertFalse(text.contains("title:"))
         XCTAssertFalse(text.contains("summary:"), "D189: the archive dropped summary:")
 
         // The portfolio OWNS these two keys with other meanings — Skrift must not squat on them.

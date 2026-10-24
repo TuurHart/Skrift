@@ -86,7 +86,7 @@ final class ExportV2InputsTests: XCTestCase {
         XCTAssertTrue(ExportV2.compile(note, profile: .portfolio, stem: "s").markdown.contains("title: \"Kiln wiring\""))
     }
 
-    func testTheSwapSwitchIsOff() {
-        XCTAssertFalse(ExportV2.isLive, "Q436 flips it after Tuur reads plan/reads/export-v2.md (Q435)")
+    func testTheSwapSwitchIsOn() {
+        XCTAssertTrue(ExportV2.isLive, "Q436")
     }
 }
