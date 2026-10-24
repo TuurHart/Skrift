@@ -237,7 +237,7 @@ suite is retired; the unit suite IS the gate (D85).
   never overwrites Mac-made data; staleness is a CONTENT HASH, never a byte count, and
   diarization is re-adopted whenever it changes (R57); unchanged rows are skipped without
   faulting blobs (R29).
-  || check: `MemoCloudReconcilerTests:205-296`; sweep reads metadata only. — B:2151, AUDIT
+  || check: `MemoCloudReconcilerTests:190-296`; sweep reads metadata only. — B:2151, AUDIT
 - C46 [auto] The Mac's polish goes back as `MemoEnhancement`, LWW by `enhancedAt` — stamp
   compared to STAMP with ±5 s skew tolerance, never against this device's clock (D60, D93,
   R44); a fresh row adopts an enhancement this Mac wrote; an existing row never echoes its own.
