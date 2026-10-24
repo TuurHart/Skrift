@@ -77,7 +77,7 @@ struct EditConflict: Equatable {
 /// too. A USER edit of it (`recordPolishedEdit`: the phone's polished editor, the Mac's
 /// review-screen edit write-back) bumps the vector and writes the head with the polished text
 /// in `polishedBody`; every words head carries the polish the device held. The Mac's own
-/// polish write (`MacCloudWriteBack.upsert` after a pass) and the one-time body normalisation
+/// polish write (`ReconcileV2.Writers.upsertEnhancement` after a pass) and the one-time body normalisation
 /// never call either recorder, so they never count as edits.
 ///
 /// Only words conflict: rating, lock, reminder and destination never touch the vector and

@@ -155,8 +155,7 @@ extension ReconcileV2 {
             guard row.transcribeStatus == .done, !(row.transcript ?? "").isEmpty,
                   assets.has(memo.id, MemoAsset.Kind.diarization) else { return false }
             let empty = row.diarizationSegmentsJSON?.isEmpty ?? true
-            let phoneWords = transcriptChanged && row.transcript == memo.transcript
-                && Memo.isTrustedTranscript(userEdited: memo.transcriptUserEdited, confidence: memo.transcriptConfidence)
+            let phoneWords = transcriptChanged && row.transcript == Ingest.phoneWords(memo, audio: true)
             guard empty || phoneWords,
                   let segments = Ingest.decodeDiarization(assets.blobs(for: memo.id)),
                   segments != row.diarizationSegments else { return false }

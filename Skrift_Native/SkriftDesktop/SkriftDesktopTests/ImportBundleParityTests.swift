@@ -201,7 +201,7 @@ final class ImportBundleParityTests: XCTestCase {
         let memoCtx = ModelContext(try ModelContainer(
             for: Memo.self, MemoAsset.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: nil, into: memoCtx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: memoCtx))
         XCTAssertEqual(memo.annotationText, "Look at this one", "the phone reads the same annotation")
     }
 
@@ -284,7 +284,7 @@ final class ImportBundleParityTests: XCTestCase {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)))
         let pf = PipelineFile(id: UUID().uuidString, filename: "a.m4a", path: "", size: 1, sourceType: .audio)
         pf.includeAudioInExport = false
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: nil, into: c))
+        let memo = try XCTUnwrap(try V2.author(pf, into: c))
         XCTAssertFalse(memo.includeAudioInExport)
     }
 }

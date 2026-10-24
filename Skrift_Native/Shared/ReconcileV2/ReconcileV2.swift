@@ -169,7 +169,7 @@ enum ReconcileV2 {
                                                             uniquingKeysWith: { a, _ in a }),
                                    rows: rows))
         } catch {
-            return .failure(String(describing: error))
+            return .failure(error.localizedDescription)   // C168: the sync state's detail line shows it
         }
     }
 

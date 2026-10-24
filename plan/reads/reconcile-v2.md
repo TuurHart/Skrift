@@ -68,3 +68,23 @@ App code (App, Features, Pipeline, Models) now calls only reconcile v2, so Q432 
 Behaviour change: the Mac's edit and pass write-backs now use v2's R44 guard. A polish from another device that the row has not seen yet (beyond its watermark + 5 s) refuses the Mac's write, where v1 compared the other stamp with this Mac's clock.
 
 Stays outside v2: `MemoPhotoMaterializer` (+ `MacNoteAttachments.materializeMissing`). The unrated-note projection (C187) uses it at view time from a lazy asset closure, with no store to index; it is not reconcile code and Q432 must keep it.
+
+## Q432: v1 deleted
+
+Seven v1 files are gone (1,895 lines): `Pipeline/Ingest/{MacCloudWriteBack,MemoCloudUpdate,MemoCloudIngest,MemoCloudReconciler,UploadService,MacMemoAuthor}.swift` and `Pipeline/MirroredNoteFields.swift`. `MemoPhotoMaterializer.swift` and `MacNoteAttachments.materializeMissing` stay: the unrated-note projection (C187) heals media through them at view time.
+
+No test was deleted. Every test that drove v1 now drives v2 through `SkriftDesktopTests/ReconcileV2TestSupport.swift` (`V2.ingest`, `reflect`, `upsert`, `sweep`, `author`, `backfill`, `pass`), each a thin call into the app's own v2 path. Test class names stay (SPEC cites `MacCloudWriteBackTests`, `MemoCloudUpdateTests`, `MemoCloudReconcilerTests`). `ReconcileDiffHarnessTests` runs v2 only; the `v1-rows` goldens stay as the frozen C5 reference, and a new stored field is added to them by hand.
+
+Ported tests whose assertion changed with v2's rules:
+
+| test | v1 | v2 | why |
+|---|---|---|---|
+| `MacCloudWriteBackTests.testUpsertIsIdempotentAndUpdatesInPlace` | a second Mac (`mac-2`) overwrote `mac-1`'s polish | re-run on `mac-1` | R44: another device's unseen polish is refused |
+| `ReconcileV2Tests` R44 | asserted v1 refused | v1 contrast removed | v1 gone |
+| `UploadServiceTests` / `CaptureIngestTests` ingest cases | unrated memos got rows (UploadService had no rating gate) | memos rated 0.5 | C41: an unrated memo never gets a row |
+| `MemoCloudIngestTests.testDedupsAgainstBonjourIngestedFilename` | `ingest` matched a legacy row by filename | the sweep's `RowMatcher` does | C188: filename match lives in the sweep |
+| untrusted-transcript checks (`MemoCloudIngestTests`, `UploadServiceTests`, `CorpusSeedTests`) | row transcript nil | `Ingest.prepare` transcript nil; row stays pending | see finding |
+
+Fixed in v2: a failed store read now reports `error.localizedDescription` (v1's text, C168), not `String(describing:)`. The R40 harness test caught it once v1's sweep no longer stood in.
+
+Finding: the C42 trust gate holds only in `Ingest.prepare`. The fresh-row reflect then copies `memo.transcript` onto the row, so an untrusted transcript still lands on it (status stays pending, the Mac re-transcribes). v1's sweep did the same; golden `voice-en-untrusted` records it.

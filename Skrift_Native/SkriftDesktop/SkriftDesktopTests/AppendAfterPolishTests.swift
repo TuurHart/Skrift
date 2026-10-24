@@ -5,6 +5,7 @@ import Foundation
 /// Q481 (C152, C223): text appended to a polished note shows in the body he sees, and the pass
 /// it sends the note back for polishes ONLY the new block — the earlier copy-edit, title and
 /// summary stay. Fixture: corpus `voice-en-append-after-polish`.
+@MainActor
 final class AppendAfterPolishTests: XCTestCase {
 
     private struct Fixture: Decodable {
@@ -159,8 +160,7 @@ final class AppendAfterPolishTests: XCTestCase {
         pf.enhancedTitle = f.enhancement.title
         pf.enhancedSummary = f.enhancement.summary
         pf.enhanceStatus = .done
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: memo, enhancement: enh, to: pf, people: [], author: "",
-                                            thisDeviceID: "mac-1"))
+        XCTAssertTrue(V2.reflect(memo, enhancement: enh, to: pf, people: [], author: "", device: "mac-1"))
         XCTAssertEqual(pf.enhancedCopyedit, f.expect.bodyAfterAppend, "the Mac shows the new words at once")
         XCTAssertEqual(pf.pendingPolishBlock, f.expect.appendRaw)
         XCTAssertEqual(pf.enhanceStatus, .pending, "marked for a pass")
@@ -170,7 +170,7 @@ final class AppendAfterPolishTests: XCTestCase {
                                  enhancer: TableEnhancer([f.expect.appendRaw: f.expect.appendPolished]),
                                  settings: .default, people: [], tagWhitelist: [])
         try await runner.run(pf, audioURL: nil)
-        let written = try XCTUnwrap(MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-1", passRan: true))
+        let written = try XCTUnwrap(V2.upsert(pf, into: ctx, device: "mac-1", passRan: true))
         XCTAssertEqual(written.copyedit, f.expect.bodyAfterPass)
         XCTAssertEqual(written.pendingBlock, "", "nothing pending once the pass ran")
         XCTAssertEqual(written.title, f.enhancement.title)

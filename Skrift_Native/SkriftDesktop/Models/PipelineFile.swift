@@ -62,12 +62,12 @@ final class PipelineFile {
 
     /// Live bidirectional sync: the source `Memo`'s `lastEditedAt` (or a phone-authored
     /// `MemoEnhancement.enhancedAt`) that this row last reflected. Set at ingest, then bumped
-    /// by `MemoCloudUpdate` when a NEWER phone edit arrives over CloudKit — the watermark that
+    /// by `ReconcileV2.Reflect` when a NEWER phone edit arrives over CloudKit — the watermark that
     /// tells "the phone changed this after I ingested it" apart from "already up to date", so
     /// re-link+recompile runs once per edit and never loops. Additive/optional → lightweight
     /// migration; nil on rows ingested before this shipped (treated as "reflect the next edit").
     var syncedSourceEditedAt: Date?
-    /// C284: the synced `Memo.editedAt` (nil = never edited), mirrored by `MirroredNoteFields`
+    /// C284: the synced `Memo.editedAt` (nil = never edited), mirrored by `ReconcileV2.Fields`
     /// so the Mac's export writes the same `editedAt:` as the phone's. ADDITIVE, nil default.
     var memoEditedAt: Date? = nil
     /// D12 (Q511): the synced `Memo.createdAt`, mirrored pull-only for export v2's `created:`.
@@ -88,7 +88,7 @@ final class PipelineFile {
     /// EXCLUDED from vault export (the vault is plaintext — `VaultExporter` refuses) and its
     /// body/copy actions are gated behind device-owner auth (`LockGate`). Processing keeps
     /// working (v1 = auth-gated UI, not encryption — same as the phone). Set at ingest,
-    /// kept fresh by `MemoCloudUpdate`. ADDITIVE default → lightweight migration.
+    /// kept fresh by `ReconcileV2.Reflect`. ADDITIVE default → lightweight migration.
     var locked: Bool = false
 
     /// Mirror of the synced `Memo.remindAt`. D185: unused, kept for CloudKit + older builds —
@@ -197,7 +197,7 @@ final class PipelineFile {
     /// It has to be a stored fact rather than a call-site argument, because the two things
     /// that act on it run on different clocks: the arrival path authors the Memo immediately,
     /// and `MemoCloudReconciler`'s sweep authors one for any local row that still lacks it.
-    /// Whichever gets there first wins (`MacMemoAuthor.author` is idempotent) — and on
+    /// Whichever gets there first wins (`ReconcileV2.Author.author` is idempotent) — and on
     /// 2026-07-28 the sweep won, floored a real Mac take to 0.1, and put a note nobody had
     /// judged into the queue on both devices. Written on the row, both callers agree no
     /// matter who arrives first. Additive + defaulted → existing stores migrate lightweight.
@@ -401,7 +401,7 @@ extension PipelineFile {
     /// Audio duration in seconds from the phone metadata blob (0 when absent).
     ///
     /// Reads BOTH shapes that blob has carried, because both are in live stores:
-    /// `MemoCloudIngest.metadataJSON` writes `duration` as a **number of seconds**
+    /// `ReconcileV2.Ingest.metadataJSON` writes `duration` as a **number of seconds**
     /// (`memo.duration`, a `TimeInterval`), while the HTTP-era uploads and the
     /// demo/snapshot seeds write an **`"HH:MM:SS"` string**.
     ///

@@ -61,7 +61,7 @@ final class RosterReexportTests: XCTestCase {
             pf.enhancedTitle = note.title
             pf.enhanceStatus = .done
             pf.uploadedAt = try XCTUnwrap(ISO8601DateFormatter().date(from: note.recordedAt))
-            MemoCloudUpdate.resanitiseAndCompile(pf, people: rosters.before, author: settings().authorName)
+            ReconcileV2.Reflect.recompile(pf, people: rosters.before, author: settings().authorName)
             let r = try export(pf, people: rosters.before)
             XCTAssertTrue(r.outcome.isWrittenOrCurrent, slug)
             pf.exportStatus = .done

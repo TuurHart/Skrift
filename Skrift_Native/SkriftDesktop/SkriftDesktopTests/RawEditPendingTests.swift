@@ -3,6 +3,7 @@ import Foundation
 
 /// C153 / Q486: a raw edit newer than the polish sends the Mac row back to pending and the edit
 /// shows until the next pass lands; an edit that lands while a pass runs discards the pass (C38).
+@MainActor
 final class RawEditPendingTests: XCTestCase {
 
     private let mac = "mac-1"
@@ -42,8 +43,7 @@ final class RawEditPendingTests: XCTestCase {
         let m = memo(id, transcript: "Edited words.", editedAt: t0.addingTimeInterval(60),
                      rawEditedAt: t0.addingTimeInterval(60))
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: macPolish(id, at: t0.addingTimeInterval(30)),
-                                            to: pf, people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: macPolish(id, at: t0.addingTimeInterval(30)), to: pf, people: [], author: "", device: mac))
         XCTAssertEqual(pf.enhanceStatus, .pending, "the next pass re-polishes what he wrote")
         XCTAssertNil(pf.enhancedCopyedit, "the stale copy-edit no longer wins the body")
         XCTAssertEqual(pf.sanitised, "Edited words.", "the Mac shows the raw edit until the pass lands")
@@ -56,8 +56,7 @@ final class RawEditPendingTests: XCTestCase {
         let pf = polishedRow(id, at: t0)
         let m = memo(id, transcript: "Edited words.", editedAt: t0.addingTimeInterval(60), rawEditedAt: nil)
 
-        MemoCloudUpdate.apply(memo: m, enhancement: macPolish(id, at: t0.addingTimeInterval(30)),
-                              to: pf, people: [], author: "", thisDeviceID: mac)
+        V2.reflect(m, enhancement: macPolish(id, at: t0.addingTimeInterval(30)), to: pf, people: [], author: "", device: mac)
         XCTAssertEqual(pf.enhanceStatus, .pending)
     }
 
@@ -67,8 +66,7 @@ final class RawEditPendingTests: XCTestCase {
         let m = memo(id, transcript: "Edited words.", editedAt: t0.addingTimeInterval(10),
                      rawEditedAt: t0.addingTimeInterval(10))
 
-        MemoCloudUpdate.apply(memo: m, enhancement: macPolish(id, at: t0.addingTimeInterval(30)),
-                              to: pf, people: [], author: "", thisDeviceID: mac)
+        V2.reflect(m, enhancement: macPolish(id, at: t0.addingTimeInterval(30)), to: pf, people: [], author: "", device: mac)
         XCTAssertEqual(pf.enhanceStatus, .done, "the polish is newer than the edit: it stays")
         XCTAssertEqual(pf.enhancedCopyedit, "Polished original words.")
     }
@@ -82,8 +80,7 @@ final class RawEditPendingTests: XCTestCase {
         let phone = MemoEnhancement(memoID: id, copyedit: "Phone-fixed polish.", enhancedByDeviceID: "phone-9",
                                     enhancedAt: t0.addingTimeInterval(30))
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: phone, to: pf, people: [], author: "",
-                                            thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: phone, to: pf, people: [], author: "", device: mac))
         XCTAssertEqual(pf.enhanceStatus, .done)
         XCTAssertEqual(pf.enhancedCopyedit, "Phone-fixed polish.")
     }
@@ -96,8 +93,8 @@ final class RawEditPendingTests: XCTestCase {
         let phone = MemoEnhancement(memoID: id, copyedit: "Polished original words.", enhancedByDeviceID: "phone-9",
                                     enhancedAt: t0.addingTimeInterval(30))
 
-        MemoCloudUpdate.apply(memo: m, enhancement: phone, to: pf, people: [], author: "", thisDeviceID: mac)
-        MemoCloudUpdate.apply(memo: m, enhancement: phone, to: pf, people: [], author: "", thisDeviceID: mac)
+        V2.reflect(m, enhancement: phone, to: pf, people: [], author: "", device: mac)
+        V2.reflect(m, enhancement: phone, to: pf, people: [], author: "", device: mac)
         XCTAssertNil(pf.enhancedCopyedit, "the second sweep must not bring the stale copy-edit back")
         XCTAssertEqual(pf.enhanceStatus, .pending)
     }
@@ -154,7 +151,7 @@ final class RawEditPendingTests: XCTestCase {
         let edit = MidRunEdit()
         let m = memo(id, transcript: "Edited words.", editedAt: t0.addingTimeInterval(5),
                      rawEditedAt: t0.addingTimeInterval(5))
-        edit.land = { MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf, people: [], author: "", thisDeviceID: self.mac) }
+        edit.land = { V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: self.mac) }
         let runner = BatchRunner(transcriber: NoTranscriber(), enhancer: EditingEnhancer(edit: edit, during: step),
                                  settings: AppSettings.default, people: [], tagWhitelist: [])
         try await runner.run(pf, audioURL: nil)

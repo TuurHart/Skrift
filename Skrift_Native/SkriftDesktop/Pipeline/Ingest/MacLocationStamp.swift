@@ -6,7 +6,7 @@ import os
 /// *"I think Mac should also have location, same as the phone and iPad."*
 ///
 /// Why it was missing: `MetadataService` (place, weather, steps, daylight) is an iOS file,
-/// and `MacMemoAuthor` never wrote any `MemoMetadata` at all. So a Mac recording exported
+/// and `ReconcileV2.Author` never wrote any `MemoMetadata` at all. So a Mac recording exported
 /// with an empty `location:` while the same words recorded on the phone carried a place.
 /// The one-shot fix itself now lives in `Shared/Metadata/LocationOneShot.swift`; this is the
 /// Mac's caller.
@@ -35,7 +35,7 @@ enum MacLocationStamp {
     /// only `Memo.metadata`, so the place synced to the phone and never reached the Mac's own
     /// export — which compiles from `PipelineFile.audioMetadataJSON`. Tuur recorded on the Mac,
     /// granted the permission, and still got an empty `location:`. It is exactly the
-    /// PipelineFile⇄Memo seam `MirroredNoteFields` exists for: a value written to one side is
+    /// PipelineFile⇄Memo seam `ReconcileV2.Fields` exists for: a value written to one side is
     /// invisible on the other until someone says so.
     ///
     /// Q326 (D182): the stamp is no longer place-only. `capture` is the context source —
@@ -54,7 +54,7 @@ enum MacLocationStamp {
             var context = await capture()
             // The recording's date stays what the file says; this is only the ambient context.
             context.capturedAt = nil
-            // Q139: `MacMemoAuthor` may already have written a blob (picture or clip
+            // Q139: `ReconcileV2.Author` may already have written a blob (picture or clip
             // manifest, media marker), so "never overwrites" means never overwrite a PLACE;
             // the other keys survive the merge.
             guard memo.metadata?.location == nil else { return }

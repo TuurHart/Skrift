@@ -3,6 +3,7 @@ import SwiftData
 
 /// The synthetic corpus loads, and the Mac's reconcile bridge gives EVERY rated, un-trashed
 /// note a row — the rate→row invariant (2026-08-20) run over all ~100 shapes at once.
+@MainActor
 final class CorpusSeedTests: XCTestCase {
 
     static var corpusRoot: URL {
@@ -43,24 +44,29 @@ final class CorpusSeedTests: XCTestCase {
         let cloud = try cloudContext()
         try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: makeTempDir())
         let pipeline = try pipelineContext()
-        let upload = UploadService(outputDir: makeTempDir())
+        let upload = makeTempDir()
 
         let memos = try cloud.fetch(FetchDescriptor<Memo>())
         let assets = try cloud.fetch(FetchDescriptor<MemoAsset>())
         var rows = 0, expectedRows = 0
         for memo in memos {
             let mine = assets.filter { $0.memoID == memo.id }
-            let row = try MemoCloudIngest.ingest(memo: memo, assets: mine, upload: upload, into: pipeline)
+            let row = try V2.ingest(memo, assets: mine, outputDir: upload, into: pipeline)
             let shouldHaveRow = memo.deletedAt == nil && NoteConsent.isRated(memo)
             if shouldHaveRow { expectedRows += 1 }
             XCTAssertEqual(row != nil, shouldHaveRow,
                            "\(memo.title ?? memo.id.uuidString): rated=\(NoteConsent.isRated(memo)) trashed=\(memo.deletedAt != nil) row=\(row != nil)")
             if let row { rows += 1; XCTAssertEqual(row.id, memo.id.uuidString, "the row id IS the memo id") }
-            // Trust gate on the bridge: a trusted transcript lands verbatim, an untrusted one never.
+            // Trust gate on the bridge (`Ingest.prepare`): a trusted transcript lands verbatim, an
+            // untrusted one never; the row then stays pending so the Mac re-transcribes.
             if let row, let t = memo.transcript, memo.transcriptStatus == .done, !t.isEmpty {
                 let trusted = memo.transcriptUserEdited || (memo.transcriptConfidence ?? 0) >= 0.7
                     || memo.audioFilename.isEmpty
-                if trusted { XCTAssertEqual(row.transcript, t) } else { XCTAssertNil(row.transcript) }
+                let prepared = try ReconcileV2.Ingest.prepare(memo, assets: mine, outputDir: makeTempDir())
+                if trusted { XCTAssertEqual(row.transcript, t) } else {
+                    XCTAssertNil(prepared?.transcript)
+                    XCTAssertEqual(row.transcribeStatus, .pending)
+                }
             }
         }
         XCTAssertEqual(rows, expectedRows)

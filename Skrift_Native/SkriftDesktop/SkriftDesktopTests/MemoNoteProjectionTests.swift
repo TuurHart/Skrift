@@ -8,6 +8,7 @@ import Foundation
 /// it's the two claims the projection makes: that it maps a memo faithfully into the
 /// type the note view reads, and that it stays OUT of the pipeline store — which is
 /// what keeps "the rating IS the flag" true.
+@MainActor
 final class MemoNoteProjectionTests: XCTestCase {
 
     private func memo(significance: Double = 0,
@@ -29,7 +30,7 @@ final class MemoNoteProjectionTests: XCTestCase {
         // The id IS the memo UUID — the contract spine, and what lets the Mac→phone
         // write-back resolve the memo back out of a projection.
         XCTAssertEqual(pf.id, m.id.uuidString)
-        XCTAssertEqual(MacCloudWriteBack.memoID(for: pf), m.id)
+        XCTAssertEqual(ReconcileV2.Writers.memoID(for: pf), m.id)
         XCTAssertEqual(pf.enhancedTitle, "A real title")
         XCTAssertEqual(pf.transcript, "Body text.")
         XCTAssertEqual(pf.tags, ["export"])

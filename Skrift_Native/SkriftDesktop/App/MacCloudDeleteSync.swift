@@ -3,7 +3,7 @@ import SwiftData
 import os
 
 /// Mac→phone TRASH write-back (delete-sync, both directions). The reconciler mirrors a phone
-/// trash/restore DOWN onto the local row (`MemoCloudUpdate`); this pushes a MAC trash/restore UP
+/// trash/restore DOWN onto the local row (`ReconcileV2.Reflect`); this pushes a MAC trash/restore UP
 /// to the shared `Memo.deletedAt`, so the phone hides/shows it too. `Memo.deletedAt` is the one
 /// synced carrier both apps already use for soft-delete (14-day retention), so writing it here is
 /// exactly the phone's own trash gesture — nothing new on the phone side.

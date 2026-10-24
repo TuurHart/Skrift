@@ -3162,7 +3162,7 @@ needs: Q430 Q510
 do: Point `MemoCloudReconciler`'s callers (launch, activation, CloudKit import, `CloudFirstImport`, `MacNoteOpenWork`) at reconcile v2. The v1 code stays in place for Q432 to delete.
 check: `grep -rqE "ReconcileV2" Skrift_Native/SkriftDesktop/App Skrift_Native/SkriftDesktop/Pipeline`
 
-### Q432 [tuur] (todo) delete v1 reconcile after the tag
+### Q432 [tuur] (done) delete v1 reconcile after the tag
 spec: C2 C252
 needs: Q431 Q512
 do: Tag the current commit `v1-reconcile`, then in ONE commit delete v1's sweep code in `MemoCloudReconciler` and the tests that pin it. Touches protected tests, so accept parks it stuck; Tuur approves the diff in the sitting.
@@ -3182,7 +3182,7 @@ gate+: yes
 do: Write the export compiler v2 in `Skrift_Native/Shared/ExportV2/` per the export and portfolio clauses as re-baselined to two destinations (D189): a pure compiler (C56), `VaultLayout.home` (C53, C192), ownership and stamp rules (C54, C55, C193), images and attachments (C57, C58), memo-links (C59), quotes (C60), export gates (C61), Personal → vault and Portfolio → `_inbox/` (C62, C133), video and audio (C63, C136, C195), dates (C64). Register it in the Q433 harness; the app keeps calling `Shared/Export/Compiler.swift`. At most 1,094 lines (40% of 2,734, C3). Write `plan/reads/export-v2.md` with every export that changed.
 check: `test $(cat Skrift_Native/Shared/ExportV2/*.swift | wc -l) -le 1094 && test -s plan/reads/export-v2.md`
 
-### Q435 [tuur] (todo) read the export v2 output
+### Q435 [tuur] (done) read the export v2 output
 spec: C8 C131
 needs: Q434
 do: -
@@ -3513,7 +3513,7 @@ gate+: yes
 do: By rule, never the model: "hashtag motivation" / "hashtag motivatie" → `#motivation` / `#motivatie` in the shown body; a run of spoken hashtags at the end becomes one tag line and a trailing "Okay" after them is dropped; the raw transcript keeps the words; custom vocab applies ("C and C" → CNC when CNC is a vocab word). One shared function in Skrift_Native/Shared used on both apps. Add synthetic corpus fixture `voice-spoken-hashtags` (EN + NL, including "Hashtag production. C and C hashtag design hashtag GFR. Okay." → `#production #cnc #design #gfr`). Test `SpokenHashtagTests` (desktop).
 check: `grep -rqE "class SpokenHashtagTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q484 [tuur] (todo) B: mockup: sync health on the list and the note
+### Q484 [tuur] (done) B: mockup: sync health on the list and the note
 spec: C155 D48 R47
 needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q484-sync-health.html`, phone + Mac frames drawn from source: a CloudKit quota or sign-in failure showing on the notes list within a minute, a note marked "not synced yet", and an iCloud account switch noticed (syncing stops, it says so). Reuse existing banner/pill styles. One agent writes this file.
@@ -3714,12 +3714,19 @@ gate+: yes
 do: After Q431 the app still calls v1 reconcile files: MacCloudWriteBack (resolve/upsert/memoID; MetaSync, EditSync, ProcessingCoordinator write-back, NoteBody, VaultExporter, LiveRecordingSession, MacAppendRecording, WayOutRules, MacEmbeddingSnapshot, PipelineFile+BodyNormalise), MirroredNoteFields (MetaSync push), MemoCloudUpdate.resanitiseAndCompile (BatchRunner, RosterRelink, MacAppendRecording), MemoCloudIngest.metadataJSON/ocrText (MemoNoteProjection, MacLocationStamp), and the MemoCloudReconciler statics in ReconcileTriggers.swift. Route each to its reconcile v2 equivalent (Writers, Reflect.recompile, Ingest) or move the static into ReconcileV2, so Q432 can delete v1 without touching app code. Keep the harness green and Shared/ReconcileV2 within 2,119 lines. Write the list of v1 files no app code references any more into plan/reads/reconcile-v2.md.
 check: `! grep -rqE "MacCloudWriteBack\.|MemoCloudUpdate\.|MemoCloudIngest\." Skrift_Native/SkriftDesktop/App Skrift_Native/SkriftDesktop/Features && test $(cat Skrift_Native/Shared/ReconcileV2/*.swift | wc -l) -le 2119`
 
-### Q513 [auto] (todo) B: export v2 swap gaps (iPad document captures, unchanged-skip before placing pictures)
+### Q513 [auto] (done) B: export v2 swap gaps (iPad document captures, unchanged-skip before placing pictures)
 spec: C57 C58 C2
 needs: Q511
 gate+: yes
 do: Two gaps Q511 found in the export v2 path that the swap (Q436) must not inherit: (1) on the iPad v2 path a .file capture's document is not exported (no document provider there yet) — give ObsidianPublisher's v2 branch the same document placement the Mac has; (2) VaultExporter.exportV2 lacks v1's Q365 unchanged-skip before placing pictures (it relies on the writer's unchanged check after placing, so a re-export of 50 unchanged notes reads image bytes) — restore the skip so MacExportWorkTests' counts hold with ExportV2.isLive true. Test `ExportV2SwapGapsTests` (desktop) runs both with isLive forced on in the test.
 check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q514 [auto] (done) A: an untrusted phone transcript never lands on the Mac row
+spec: C42
+needs: Q512
+gate+: yes
+do: C42 says an untrusted `.done` phone transcript (not userEdited, confidence < 0.7) is not adopted and the Mac re-transcribes. Today (v1 and v2 alike) the gate holds only in Ingest.prepare: the fresh-row reflect then copies memo.transcript onto the row, so the untrusted words sit on the Mac row (and show in its body) until the Mac re-transcribes; golden v1-rows/voice-en-untrusted.json records it. Make the reflect honour the same trust rule (one shared predicate), leave the row's transcript empty and pending until the Mac's own ASR fills it. The v2 row golden for voice-en-untrusted changes: register it in expected-differences-rows.json with C42 (hand-merge). Test `UntrustedTranscriptRowTests` (desktop).
+check: `grep -rqE "class UntrustedTranscriptRowTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5370,3 +5377,9 @@ check: `grep -rqE "class ExportV2SwapGapsTests\\b" Skrift_Native/SkriftDesktop/S
 - 2026-10-23 22:10 Q431 -> todo
 - 2026-10-23 22:15 Q431 -> done — gate 130s @7644128d
 - 2026-10-23 22:20 Q512 -> done — gate 131s @722c50cb
+- 2026-10-23 22:35 Q513 -> done — gate 94s @83d0605d
+- 2026-10-23 22:40 Q514 added
+- 2026-10-23 23:03 Q514 -> done — hand-merged (Q514's own registration: expected-differences-rows.json gains voice-en-untrusted C42 for the v2 row (C42 trust gate now holds in the reflect))
+- 2026-10-24 08:04 Q432 -> done — hand-merged (Tuur said yes 2026-10-24 to deleting v1 reconcile (tag v1-reconcile); ports ~40 protected tests with the assertion changes in its report; 3 v1-export goldens re-recorded for Q514)
+- 2026-10-24 08:06 Q435 -> done
+- 2026-10-24 08:06 Q484 -> done

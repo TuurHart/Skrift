@@ -47,9 +47,9 @@ final class OrphanedTranscribingTests: XCTestCase {
 
     private func plan(_ ctx: ModelContext) throws -> MacOrphanTranscription.Plan {
         let memos = try ctx.fetch(FetchDescriptor<Memo>())
-        let kinds = AssetKindIndex(ctx)
+        let assets = ReconcileV2.AssetIndex(ctx)
         return MacOrphanTranscription.plan(memos: memos,
-                                           hasAudio: { kinds.kinds($0).contains(MemoAsset.Kind.audio) },
+                                           hasAudio: { assets.has($0, MemoAsset.Kind.audio, minBytes: 0) },
                                            thisDevice: mac, now: now)
     }
 

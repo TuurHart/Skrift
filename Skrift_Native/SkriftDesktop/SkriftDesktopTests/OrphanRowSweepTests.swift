@@ -8,7 +8,7 @@ import Foundation
 final class OrphanRowSweepTests: XCTestCase {
 
     private var scratch: URL!
-    private lazy var upload = UploadService(outputDir: scratch.appendingPathComponent("out", isDirectory: true))
+    private lazy var upload = scratch.appendingPathComponent("out", isDirectory: true)
 
     override func setUpWithError() throws {
         scratch = FileManager.default.temporaryDirectory
@@ -36,14 +36,13 @@ final class OrphanRowSweepTests: XCTestCase {
                         transcriptConfidence: 0.9, significance: 0.6)
         cloud.insert(memo)
         cloud.insert(MemoAsset(memoID: id, kind: MemoAsset.Kind.audio,
-                               filename: MemoCloudIngest.audioFilename(for: memo), blob: Data("AUDIO".utf8)))
+                               filename: ReconcileV2.Ingest.audioFilename(for: memo), blob: Data("AUDIO".utf8)))
         return memo
     }
 
     private func pass(_ s: (cloud: ModelContext, local: ModelContext), firstImportDone: Bool = true,
-                      now: Date = Date()) throws -> MemoCloudReconciler.PassOutcome {
-        try MemoCloudReconciler.pass(from: s.cloud, into: s.local, thisDeviceID: "mac-test", now: now,
-                                     upload: upload, firstImportDone: firstImportDone)
+                      now: Date = Date()) throws -> ReconcileV2.PassOutcome {
+        V2.pass(s.cloud, into: s.local, device: "mac-test", now: now, outputDir: upload, firstImportDone: firstImportDone)
     }
 
     private func rows(_ s: (cloud: ModelContext, local: ModelContext)) throws -> [String: PipelineFile] {

@@ -1,8 +1,8 @@
 import Foundation
 
-/// Heals a Mac note whose photos arrived AFTER its first ingest. `MemoCloudIngest`
+/// Heals a Mac note whose photos arrived AFTER its first ingest. `ReconcileV2.Ingest`
 /// writes a memo's photo files (+ `image_manifest.json`) only on the FIRST sync;
-/// `MemoCloudUpdate` reflects later text/metadata edits but never wrote the image
+/// `ReconcileV2.Reflect` reflects later text/metadata edits but never wrote the image
 /// files — so a photo inserted while EDITING an already-synced note left its
 /// `[[img_NNN]]` marker unresolved on the Mac (rendered as literal text, and its
 /// image never reached the vault on export). This writes any missing photo blobs

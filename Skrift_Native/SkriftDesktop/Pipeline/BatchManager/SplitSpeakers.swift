@@ -131,9 +131,9 @@ enum SplitSpeakers {
     // MARK: sync
 
     /// The split (or flatten) is a deliberate structural change of the note's words, so the
-    /// synced `Memo` must carry it — otherwise `MemoCloudUpdate` path 3 sees the memo's old
+    /// synced `Memo` must carry it — otherwise `ReconcileV2.Reflect` (a raw transcript edit) sees the memo's old
     /// text differ from the row and puts the flat transcript back on the next sweep, and the
-    /// phone never sees the turns. No `editedAt` bump: echo-quiet, like `MacMemoAuthor`.
+    /// phone never sees the turns. No `editedAt` bump: echo-quiet, like `ReconcileV2.Author`.
     @discardableResult
     static func reflectTranscript(of pf: PipelineFile, into ctx: ModelContext) -> Bool {
         guard let text = pf.transcript, !text.isEmpty, let id = UUID(uuidString: pf.id),

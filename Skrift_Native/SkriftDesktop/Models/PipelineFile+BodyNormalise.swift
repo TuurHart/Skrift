@@ -13,7 +13,7 @@ import SwiftData
 /// (when the body pass has not already fixed it) and — when the CloudKit store is at hand — the
 /// synced `MemoEnhancement.copyedit`. On the synced row ONLY `copyedit` is written:
 /// `enhancedAt` / `enhancedByDeviceID` / `processedAt` stay, so the rewrite never wins an LWW
-/// race against another device's newer polish and never claims authorship; `MacCloudWriteBack`
+/// race against another device's newer polish and never claims authorship; `ReconcileV2.Writers`
 /// (which stamps `enhancedAt = now`) is deliberately NOT used. It is not a words edit either: no
 /// `EditConflicts.recordEdit`, so no edit vector or `MemoEditHead` moves.
 extension PipelineFile {
