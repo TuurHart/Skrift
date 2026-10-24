@@ -9,6 +9,7 @@ import AVFoundation
 ///   -snapshot <path>            → the review surface (sidebar | note)
 ///   -snapshot-light <path>      → the review surface in LIGHT
 ///   -snapshot-settings-light p  → the Settings panel in LIGHT
+///   -snapshot-export-all <prefix> → the Sync card's Export-all row, ready/building/failed (Q516)
 ///   -snapshot-noterun <path>    → the note bar in its run states: idle, queued, transcribing, polishing, failed (Q118)
 ///   -snapshot-naming <path>     → the opt-out naming tiers + popovers (mocks/naming-review.html)
 ///   -snapshot-capture <path>    → review surface with the C3 url capture selected
@@ -101,6 +102,9 @@ enum Snapshot {
         if let p = path("-snapshot-sidebar-selection") {
             let light = args.contains("-light")
             MainActor.assumeIsolated { renderSidebarSelection(to: p, scheme: light ? .light : .dark); exit(0) }
+        }
+        if let p = path("-snapshot-export-all") {
+            MainActor.assumeIsolated { renderExportAll(prefix: p); exit(0) }
         }
         if let p = path("-snapshot-sync") {
             let light = args.contains("-light")
@@ -1458,6 +1462,22 @@ enum Snapshot {
                 .frame(width: 560)
                 .background(Theme.bg)
             writePNG(view, to: "\(prefix)-\(s).png", scheme: scheme)
+        }
+    }
+
+    /// Q516: the Sync card with the Export-all row, ready and building, dark and light
+    /// (mock Q515). `-snapshot-export-all <prefix>` → `<prefix>-ready-dark.png` etc.
+    @MainActor private static func renderExportAll(prefix: String) {
+        let states: [(String, ExportAllRun.State)] = [("ready", .ready), ("building", .building(done: 128, total: 312)),
+                                                       ("failed", .failed("Couldn't build the zip: The disk is full."))]
+        for (name, state) in states {
+            for scheme in [ColorScheme.dark, .light] {
+                let view = SettingsView(interactive: false, syncStateOverride: .upToDate, onlySync: true,
+                                        exportAllPreview: (state, 312))
+                    .frame(width: 560)
+                    .background(Theme.bg)
+                writePNG(view, to: "\(prefix)-\(name)-\(scheme == .dark ? "dark" : "light").png", scheme: scheme)
+            }
         }
     }
 

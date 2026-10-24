@@ -32,6 +32,7 @@ final class ExportAllZip: ExportAll.Sink, @unchecked Sendable {
 /// One "Export all notes…" run, for the Settings row on both apps: Ready → Building (done of
 /// total, Cancel) → Finished (the share sheet / save panel takes the file) → Ready. The zip
 /// lives in a temp folder only Skrift writes; Cancel, a failure and `finish()` all delete it.
+/// `shared` outlives Settings, so closing it never stops a build (mock Q515, state 2).
 @MainActor
 final class ExportAllRun: ObservableObject {
     enum State: Equatable {
@@ -41,22 +42,29 @@ final class ExportAllRun: ObservableObject {
         case failed(String)
     }
 
+    static let shared = ExportAllRun()
+
     @Published private(set) var state: State = .ready
     private var cancelled = false
     private var task: Task<Void, Never>?
 
     init(state: State = .ready) { self.state = state }
 
+    /// Per app (Dev and prod never share it), inside the OS temp folder.
     static var tempFolder: URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("ExportAll", isDirectory: true)
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("ExportAll-" + (Bundle.main.bundleIdentifier ?? "Skrift"), isDirectory: true)
     }
 
     var isBuilding: Bool { if case .building = state { return true } else { return false } }
 
-    /// Gather the notes (on the main actor) and build the zip.
-    func start(gather: @escaping @MainActor () -> [ExportAll.Item]) {
+    /// Gather the notes (on the main actor) and build the zip; `onFinished` hands the file to the
+    /// share sheet / save panel, which calls `finish()` when it is done with it.
+    func start(gather: @escaping @MainActor () -> [ExportAll.Item],
+               onFinished: @escaping @MainActor (URL) -> Void) {
         guard !isBuilding else { return }
         cancelled = false
+        state = .building(done: 0, total: 0)
         let now = Date()
         let root = ExportAll.rootName(on: now)
         task = Task { [weak self] in
@@ -73,6 +81,7 @@ final class ExportAllRun: ObservableObject {
                                               progress: { done, total in self.state = .building(done: done, total: total) },
                                               isCancelled: { self.cancelled })
                 self.state = .finished(url)
+                onFinished(url)
             } catch {
                 try? fm.removeItem(at: Self.tempFolder)
                 self.state = error is ExportAll.Cancelled
@@ -87,5 +96,11 @@ final class ExportAllRun: ObservableObject {
     func finish() {
         try? FileManager.default.removeItem(at: Self.tempFolder)
         state = .ready
+    }
+
+    /// The file could not be handed on: delete it and say why in the row.
+    func fail(_ message: String) {
+        try? FileManager.default.removeItem(at: Self.tempFolder)
+        state = .failed(message)
     }
 }
