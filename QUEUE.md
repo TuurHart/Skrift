@@ -3748,7 +3748,7 @@ gate+: yes
 do: After Q485 the Mac Settings iCloud row still reads "Up to date" while SyncStopFlag is set (account switch) or the banner shows iCloud full / signed out — bad info (feedback: better no info than bad info). Add the stopped / failing states to MacSyncState with the same wording as the banner; MacSyncStateTests' allCases list grows by the new cases (additive; report it for hand-merge). Test `MacSyncStateStoppedTests` (desktop).
 check: `grep -rqE "class MacSyncStateStoppedTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q518 [auto] (todo) B: a shared image capture's picture shows in the vault (no dangling embed)
+### Q518 [auto] (done) B: a shared image capture's picture shows in the vault (no dangling embed)
 spec: C57 C58
 needs: Q516
 gate+: yes
@@ -5429,3 +5429,4 @@ check: `grep -rqE "class PhoneMissingPictureTests\\b" Skrift_Native/SkriftMobile
 - 2026-10-24 09:23 Q518 added
 - 2026-10-24 09:23 Q519 added
 - 2026-10-24 09:25 Q516 -> done — gate 104s @7a27d37a
+- 2026-10-24 09:42 Q518 -> done — hand-merged (Q518 fixes the dangling capture embed per C57 (one picture naming rule): ExportAllZipTests' recorded dangling case removed, VaultExporterTests legacy-capture name now pictureName, C57 registered on 6 cap-image rows)
