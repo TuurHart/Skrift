@@ -3748,6 +3748,20 @@ gate+: yes
 do: After Q485 the Mac Settings iCloud row still reads "Up to date" while SyncStopFlag is set (account switch) or the banner shows iCloud full / signed out — bad info (feedback: better no info than bad info). Add the stopped / failing states to MacSyncState with the same wording as the banner; MacSyncStateTests' allCases list grows by the new cases (additive; report it for hand-merge). Test `MacSyncStateStoppedTests` (desktop).
 check: `grep -rqE "class MacSyncStateStoppedTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q518 [auto] (todo) B: a shared image capture's picture shows in the vault (no dangling embed)
+spec: C57 C58
+needs: Q516
+gate+: yes
+do: Export v2 (and v1 before it) embeds a marker-less image capture as `![[IMG_4471.jpg]]` (the shared file's name) while the picture is copied as `photo_<memoid>_001.jpg`, so the embed points at nothing in the vault and in the Export all zip. Corpus: cap-image-no-words, cap-image-voice-ramble, cap-image-typed-note. Make the embed and the copied file use the one name (ExportProfile.pictureName). Register the changed export goldens (C57) in expected-differences-export.json and update ExportAllZipTests' recorded dangling case (hand-merge). Test `ImageCaptureEmbedTests` (desktop): every embed in those notes resolves to a file in the export.
+check: `grep -rqE "class ImageCaptureEmbedTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
+### Q519 [auto] (todo) B: the phone's vault publish drops a picture it doesn't have, like the Mac
+spec: C196 C57
+needs: Q516
+gate+: yes
+do: ObsidianPublisher's v2 branch uses the default placePicture, so a picture whose blob is not on the device keeps its embed and the vault shows a broken image; the Mac drops it (C196) and Q516 fixed it only in the zip path. Use the same placement rule as the zip/Mac for the phone vault publish. Corpus: pic-missing-file. Test `PhoneMissingPictureTests` (phone, plan/mtest.sh).
+check: `grep -rqE "class PhoneMissingPictureTests\\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh PhoneMissingPictureTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5412,3 +5426,5 @@ check: `grep -rqE "class MacSyncStateStoppedTests\\b" Skrift_Native/SkriftDeskto
 - 2026-10-24 09:01 Q485 -> done — gate 147s @d5456150
 - 2026-10-24 09:10 Q436 -> done — hand-merged (Tuur's D216 (2026-10-24) changes the asserted export: HH:MM:SS duration and unresolved links kept; ExportV2HarnessTests/ExportV2PhoneInputsTests/ExportV2InputsTests/ExportV2SwapGapsTests/VaultExporterTests/PortfolioExportTests/ExportDiffHarnessTests ported)
 - 2026-10-24 09:18 Q517 -> done — hand-merged (Q517 asked for it: MacSyncStateTests allCases assertions gain the two new states (additive only))
+- 2026-10-24 09:23 Q518 added
+- 2026-10-24 09:23 Q519 added
