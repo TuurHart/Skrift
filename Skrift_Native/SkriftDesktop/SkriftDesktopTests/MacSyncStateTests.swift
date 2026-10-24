@@ -41,7 +41,7 @@ final class MacSyncStateTests: XCTestCase {
 
     func testOnlySignedOutAndFailedRowsAreAmber() {
         for s in MacSyncState.allCases {
-            XCTAssertEqual(s.rowIsWarning, s == .signedOut || s == .failed, "\(s)")
+            XCTAssertEqual(s.rowIsWarning, s == .signedOut || s == .failed || s == .stopped || s == .full, "\(s)")
         }
     }
 
@@ -72,7 +72,7 @@ final class MacSyncStateTests: XCTestCase {
 
     func testAlertsOnlyForSignedOutAndFailed() {
         for s in MacSyncState.allCases {
-            XCTAssertEqual(s.alertText != nil, s == .signedOut || s == .failed, "\(s)")
+            XCTAssertEqual(s.alertText != nil, s == .signedOut || s == .failed || s == .stopped || s == .full, "\(s)")
         }
         XCTAssertTrue(MacSyncState.signedOut.alertText!.hasPrefix("This Mac isn't signed in to iCloud."))
         XCTAssertTrue(MacSyncState.failed.alertText!.contains("Your notes on this Mac are safe."))
