@@ -3188,7 +3188,7 @@ needs: Q434
 do: -
 check: Tuur read `plan/reads/export-v2.md` and said go.
 
-### Q436 [auto] (todo) swap: iPad and Mac export call the v2 compiler
+### Q436 [auto] (done) swap: iPad and Mac export call the v2 compiler
 spec: C2 C61
 needs: Q435 Q511 Q513
 do: Point the shared export engine (iPad and Mac) at the v2 compiler. `Shared/Export/Compiler.swift` stays in place for Q437 to delete.
@@ -5410,3 +5410,4 @@ check: `grep -rqE "class MacSyncStateStoppedTests\\b" Skrift_Native/SkriftDeskto
 - 2026-10-24 08:57 Q485 -> stuck — gate failed — .queue/Q485.gate.log
 - 2026-10-24 08:58 Q485 -> todo
 - 2026-10-24 09:01 Q485 -> done — gate 147s @d5456150
+- 2026-10-24 09:10 Q436 -> done — hand-merged (Tuur's D216 (2026-10-24) changes the asserted export: HH:MM:SS duration and unresolved links kept; ExportV2HarnessTests/ExportV2PhoneInputsTests/ExportV2InputsTests/ExportV2SwapGapsTests/VaultExporterTests/PortfolioExportTests/ExportDiffHarnessTests ported)
