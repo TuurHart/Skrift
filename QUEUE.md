@@ -5407,3 +5407,5 @@ check: `grep -rqE "class MacSyncStateStoppedTests\\b" Skrift_Native/SkriftDeskto
 - 2026-10-24 08:22 Q516 added
 - 2026-10-24 08:28 Q515 -> done
 - 2026-10-24 08:57 Q517 added
+- 2026-10-24 08:57 Q485 -> stuck — gate failed — .queue/Q485.gate.log
+- 2026-10-24 08:58 Q485 -> todo
