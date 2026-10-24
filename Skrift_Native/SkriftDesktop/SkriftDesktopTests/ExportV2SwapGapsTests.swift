@@ -1,10 +1,9 @@
 import XCTest
 
-/// Q513 (C57, C58, C2): the gaps export v2 must close before the swap (Q436), with the routing
-/// forced on (`ExportV2.routingOverride`): `VaultExporter.export` goes through v2 and keeps v1's
-/// Q365 work counters — one ledger decode and one write per run, and a re-export of unchanged
-/// notes reads no image bytes — while a real change still rewrites. And a shared document is
-/// named by the one rule both apps use. The iPad half is `ExportV2DocumentPhoneTests`.
+/// Q513 (C57, C58, C2): the gaps export v2 had to close before the swap (Q436). `VaultExporter.export`
+/// keeps v1's Q365 work counters — one ledger decode and one write per run, and a re-export of
+/// unchanged notes reads no image bytes — while a real change still rewrites. And a shared
+/// document is named by the one rule both apps use. The iPad half is `ExportV2DocumentPhoneTests`.
 final class ExportV2SwapGapsTests: XCTestCase {
     private var work: URL!
 
@@ -13,11 +12,9 @@ final class ExportV2SwapGapsTests: XCTestCase {
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         ExportLedger.resetWork()
         VaultAttachmentOwnership.resetWork()
-        ExportV2.routingOverride = true
     }
 
     override func tearDownWithError() throws {
-        ExportV2.routingOverride = nil
         try? FileManager.default.removeItem(at: work)
     }
 
@@ -64,7 +61,7 @@ final class ExportV2SwapGapsTests: XCTestCase {
         return out
     }
 
-    func testExportRoutesThroughV2WhenForced() throws {
+    func testExportRoutesThroughV2() throws {
         let r = try exportRun([try note(0)])
         let md = try String(contentsOf: r[0].markdownURL, encoding: .utf8)
         XCTAssertTrue(md.contains("\ncreated:"), "v2's frontmatter (D12): the routing reached v2\n\(md)")
@@ -114,9 +111,5 @@ final class ExportV2SwapGapsTests: XCTestCase {
         XCTAssertEqual(ExportV2.documentName(stem: "Marco's quote", sourceName: "Offerte kiln lijn.pdf"), "Marco's quote.pdf")
         XCTAssertEqual(ExportV2.documentName(stem: "blue-3.txt", sourceName: "blue-3.txt"), "blue-3.txt")
         XCTAssertEqual(ExportV2.documentName(stem: "Notes", sourceName: "scan"), "Notes.pdf")
-    }
-
-    func testTheSwitchIsOn() {
-        XCTAssertTrue(ExportV2.isLive, "Q436")
     }
 }

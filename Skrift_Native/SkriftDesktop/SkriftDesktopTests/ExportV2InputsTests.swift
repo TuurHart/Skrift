@@ -56,8 +56,8 @@ final class ExportV2InputsTests: XCTestCase {
         memo.title = "Kiln wiring"
         XCTAssertTrue(v1["titleIsHis"]!.pull(memo, pf))
         XCTAssertTrue(pf.memoTitleIsHis)
-        XCTAssertEqual(v1["titleIsHis"]!.recompiles, ExportV2.isLive, "in the frontmatter only through v2")
-        XCTAssertEqual(v1["createdAt"]!.recompiles, ExportV2.isLive)
+        XCTAssertTrue(v1["titleIsHis"]!.recompiles, "in the frontmatter (C130)")
+        XCTAssertTrue(v1["createdAt"]!.recompiles)
         memo.title = "  "
         XCTAssertTrue(v1["titleIsHis"]!.pull(memo, pf))
         XCTAssertFalse(pf.memoTitleIsHis, "a blank title is no title")
@@ -84,9 +84,5 @@ final class ExportV2InputsTests: XCTestCase {
         let vault = ExportV2.compile(note, profile: .obsidian, stem: "s").markdown
         XCTAssertTrue(vault.contains("\ncreated: " + ExportNaming.localDateTime(pf.memoCreatedAt!) + "\n"), vault)
         XCTAssertTrue(ExportV2.compile(note, profile: .portfolio, stem: "s").markdown.contains("title: \"Kiln wiring\""))
-    }
-
-    func testTheSwapSwitchIsOn() {
-        XCTAssertTrue(ExportV2.isLive, "Q436")
     }
 }

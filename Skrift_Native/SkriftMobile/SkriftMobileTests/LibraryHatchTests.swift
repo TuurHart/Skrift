@@ -175,7 +175,7 @@ final class LibraryHatchTests: XCTestCase {
         let pdf = book("GFR grant application, draft 3", author: "", kind: .pdf, duration: 18, position: 4)
         let id = try XCTUnwrap(LibraryPDF.saveCapture(quote: "Sensor integration: €18,000", book: pdf, page: 4,
                                                       significance: 0.4, repository: repo))
-        let md = MemoExporter.markdown(for: try XCTUnwrap(repo.memo(id: id)), people: [])
+        let md = ExportV2Test.markdown(for: try XCTUnwrap(repo.memo(id: id)), people: [])
         XCTAssertTrue(md.contains("source: PDF-quote"), md)
         XCTAssertFalse(md.contains("Audiobook-quote"), md)
         XCTAssertTrue(md.contains("> — *GFR grant application, draft 3*, p. 4"), md)

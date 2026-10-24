@@ -34,16 +34,16 @@ final class ExportSourceFieldTests: XCTestCase {
     func testTypedNoteSaysTypedNoteOnTheMac() {
         let pf = MemoNoteProjection.file(for: typedMemo())
         XCTAssertEqual(pf.sourceType, .note, "the Mac row rides typed as a text-born note")
-        let md = Compiler.compile(file: pf, author: "Me", date: "2026-10-03")
+        let md = ExportV2Test.markdown(pf, author: "Me", date: "2026-10-03")
         XCTAssertEqual(sourceLine(md), "source: Typed-note", md)
         XCTAssertFalse(md.contains("Apple-Note"), md)
     }
 
     func testTypedNoteSaysTheSameThingFromPhoneAndMac() {
         let m = typedMemo()
-        let phone = Compiler.compile(phoneInput(m), author: "Me", date: "2026-10-03")
-        let mac = Compiler.compile(file: MemoNoteProjection.file(for: m), author: "Me", date: "2026-10-03")
-        XCTAssertEqual(sourceLine(phone), "source: \(Compiler.typedSource)", phone)
+        let phone = ExportV2Test.markdown(phoneInput(m), author: "Me", date: "2026-10-03")
+        let mac = ExportV2Test.markdown(MemoNoteProjection.file(for: m), author: "Me", date: "2026-10-03")
+        XCTAssertEqual(sourceLine(phone), "source: \(ExportV2.Frontmatter.typedSource)", phone)
         XCTAssertEqual(sourceLine(phone), sourceLine(mac))
         XCTAssertFalse(phone.contains("Voice-memo"), phone)
     }
@@ -52,7 +52,7 @@ final class ExportSourceFieldTests: XCTestCase {
     func testPortfolioCaptureKeyCarriesTheTypedValue() {
         let pf = MemoNoteProjection.file(for: typedMemo())
         pf.destination = .portfolio
-        let md = Compiler.compile(file: pf, author: "Me", date: "2026-10-03", profile: .portfolio)
+        let md = ExportV2Test.markdown(pf, author: "Me", date: "2026-10-03", profile: .portfolio)
         XCTAssertEqual(sourceLine(md), "capture: Typed-note", md)
     }
 
@@ -60,11 +60,11 @@ final class ExportSourceFieldTests: XCTestCase {
     func testOtherKindsAreUnchanged() {
         let note = PipelineFile(id: UUID().uuidString, filename: "n.md", sourceType: .note)
         note.transcript = "From Notes."
-        XCTAssertEqual(sourceLine(Compiler.compile(file: note, author: "Me")), "source: Apple-Note")
+        XCTAssertEqual(sourceLine(ExportV2Test.markdown(note, author: "Me")), "source: Apple-Note")
 
         let voice = PipelineFile(id: UUID().uuidString, filename: "v.m4a", sourceType: .audio)
         voice.path = "/tmp/v.m4a"
         voice.transcript = "Said aloud."
-        XCTAssertEqual(sourceLine(Compiler.compile(file: voice, author: "Me")), "source: Voice-memo")
+        XCTAssertEqual(sourceLine(ExportV2Test.markdown(voice, author: "Me")), "source: Voice-memo")
     }
 }

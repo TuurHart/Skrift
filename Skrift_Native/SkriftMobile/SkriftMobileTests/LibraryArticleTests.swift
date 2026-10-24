@@ -331,7 +331,7 @@ final class LibraryArticleTests: XCTestCase {
         let id = try XCTUnwrap(LibraryArticle.saveCapture(quote: "Neither is true any more.", book: book,
                                                           wordOffset: 40, significance: 0, repository: repo))
         let memo = try XCTUnwrap(repo.memo(id: id))
-        let out = Compiler.compile(MemoExporter.compilerInput(for: memo, people: []), author: "Tuur")
+        let out = ExportV2Test.markdown(MemoExporter.compilerInput(for: memo, people: []), author: "Tuur")
         XCTAssertTrue(out.contains("\nsource: https://www.inkandswitch.com/local-first/\n"), out)
         XCTAssertTrue(out.contains("> — *Local-first software*, [inkandswitch.com](https://www.inkandswitch.com/local-first/)"), out)
     }

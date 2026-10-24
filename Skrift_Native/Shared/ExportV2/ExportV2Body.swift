@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Body (C56, C59, C60, C129, C196, R38, R49)
+// MARK: - Body (C56, C59, C60, C129, C196, R38)
 
 extension ExportV2 {
     enum Body {
@@ -15,10 +15,8 @@ extension ExportV2 {
                 body = keepingOnlyPeople(MemoLinkSyntax.exportRewrite(body, resolveStem: input.memoLinkResolver),
                                          people: note.people)
             } else {
-                // `escapesUnknownLinks` (off, D216) before the memo-links leave as `[[stem|Title]]` (C59).
-                body = MemoLinkSyntax.exportRewrite(
-                    escapesUnknownLinks ? escapingUnresolved(body, people: note.people) : body,
-                    resolveStem: input.memoLinkResolver)
+                // Memo-links leave as `[[stem|Title]]` (C59); any other `[[word]]` stays a link (D216).
+                body = MemoLinkSyntax.exportRewrite(body, resolveStem: input.memoLinkResolver)
             }
             // A body stored before body v2 reads as it shows (Q13); a v2 body passes unchanged (C65).
             body = BodyV2Legacy.shown(body).text
@@ -38,25 +36,14 @@ extension ExportV2 {
             return quoted(body, book: book, author: author, chapter: chapter, url: Frontmatter.trimmed(meta?.bookURL))
         }
 
-        /// The dropped R49, behind `escapesUnknownLinks`: a hand-typed `[[word]]` that is no memo-link, no marker and no roster entry is
-        /// written escaped, so it reads as he typed it and never becomes a link to nothing.
-        static func escapingUnresolved(_ body: String, people: [Person]) -> String {
-            let roster = rosterKeys(people)
-            let edits: [(NSRange, String)] = Sanitiser.bodyLinks(in: body).compactMap { link in
-                let core = link.core
-                guard !core.hasPrefix("memo:"), core.range(of: #"^(img|vid|file)_\d+$"#, options: .regularExpression) == nil,
-                      !roster.contains(Sanitiser.linkTarget(core).lowercased()) else { return nil }
-                return (link.range, "\\[\\[\(core)\\]\\]")
-            }
-            return Sanitiser.nsReplace(body, edits: edits)
-        }
-
-        /// Every link whose target is not a roster person becomes the text it shows.
+        /// Every link whose target is not a roster person becomes the text it shows. A video or
+        /// file marker (`[[vid_NNN]]`, `[[file_NNN]]`) is no link: it stays for its embed (C63, D199).
         static func keepingOnlyPeople(_ body: String, people: [Person]) -> String {
             let roster = rosterKeys(people)
             let edits: [(NSRange, String)] = Sanitiser.bodyLinks(in: body).compactMap { link in
                 let target = Sanitiser.linkTarget(link.core)
-                guard !target.isEmpty, !roster.contains(target.lowercased()) else { return nil }
+                guard !target.isEmpty, !roster.contains(target.lowercased()),
+                      link.core.range(of: #"^(vid|file)_\d+$"#, options: .regularExpression) == nil else { return nil }
                 return (link.range, Sanitiser.linkDisplay(link.core) ?? target)
             }
             return Sanitiser.nsReplace(body, edits: edits)

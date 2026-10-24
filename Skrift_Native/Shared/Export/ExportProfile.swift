@@ -40,17 +40,6 @@ enum ExportProfile: Sendable {
     /// `![[name]]` (Obsidian) vs `![](name)` (portable, and still rendered by Obsidian).
     var usesWikiEmbeds: Bool { self == .obsidian }
 
-    /// Weather, pressure, day period, daylight, steps, and the importance rating —
-    /// personal-notes furniture with nothing to say in a portfolio entry.
-    var keepsSensorFrontmatter: Bool { self == .obsidian }
-
-    /// PLACE wiki-links in the body (`[[Hotel Du Vin]]`). People links are kept in BOTH
-    /// profiles — Tuur's call, 2026-08-26, and a deliberate reversal of my privacy advice:
-    /// the portfolio becomes a public website and he wants to credit his friends by name.
-    /// Places carry no such intent, and a dangling place link on a website is just a
-    /// broken link, so they degrade to plain text.
-    var keepsPlaceLinks: Bool { self == .obsidian }
-
     /// The portfolio's filename stem: `the-bench-outside-cafe-garrett`. Flat — no date folder
     /// either (Tuur, 2026-08-28: *"yes we dont need the month either"*), so an entry is
     /// `_ideas/<name>.md` exactly the way his 148 items are `Lamps/<name>/item.md`.
@@ -122,40 +111,6 @@ struct PlacedPicture: Equatable, Sendable {
 }
 
 extension ExportProfile {
-    /// THE picture-marker converter, shared by the phone's `ObsidianPublisher` and the Mac's
-    /// `VaultExporter` so both write the same note. `[[img_NNN]]` resolves through the
-    /// manifest (the N-th entry's filename, the same rule as the body rendering on both apps)
-    /// and becomes this profile's embed of `<stem>_NNN.<ext>` (`![[x]]` vault, `![](x)`
-    /// portfolio). A marker with no manifest entry, or whose picture `place` cannot put
-    /// down (missing file, failed copy), is DROPPED — never printed literally (C196).
-    ///
-    /// `place(source, preferredName)` returns the name actually written (the Mac may
-    /// disambiguate around a foreign file, C58) or nil to drop the marker. The phone writes
-    /// its blobs later through the engine, so its default accepts the preferred name.
-    func convertPictureMarkers(_ markdown: String, manifest: [String], stem: String,
-                               place: (_ source: String, _ preferredName: String) -> String? = { _, name in name })
-        -> (markdown: String, placed: [PlacedPicture]) {
-        let ns = markdown as NSString
-        var replacements: [(NSRange, String)] = []
-        var placed: [PlacedPicture] = []
-        for m in BodyV2Marker.regex.matches(in: markdown, range: NSRange(location: 0, length: ns.length)) {
-            let nnn = ns.substring(with: m.range(at: 1))
-            guard let n = Int(nnn), n >= 1, n <= manifest.count, !manifest[n - 1].isEmpty else {
-                replacements.append((m.range, ""))   // dangling marker → drop
-                continue
-            }
-            let source = manifest[n - 1]
-            let preferred = Self.pictureName(stem: stem, number: n, source: source)
-            guard let written = place(source, preferred) else {
-                replacements.append((m.range, ""))   // picture could not be placed → drop
-                continue
-            }
-            placed.append(PlacedPicture(source: source, embedName: written))
-            replacements.append((m.range, imageMarkdown(written)))
-        }
-        return (Sanitiser.nsReplace(markdown, edits: replacements), placed)
-    }
-
     /// The vault name of manifest picture `number` (1-based): `<stem>_NNN.<ext>`, jpg when the
     /// source has no extension. The one naming rule for placing a picture and for removing it.
     static func pictureName(stem: String, number: Int, source: String) -> String {

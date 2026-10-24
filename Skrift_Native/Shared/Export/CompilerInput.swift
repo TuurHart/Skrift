@@ -1,9 +1,9 @@
 import Foundation
 
-// Neutral, already-decoded input to the shared `Compiler` — the seam that lets BOTH apps
+// Neutral, already-decoded input to export v2 (`ExportV2`) — the seam that lets BOTH apps
 // compile Obsidian markdown from ONE engine without sharing their storage models (desktop
 // `PipelineFile`, mobile `Memo`). Each app maps its own model + metadata into this DTO
-// (desktop via `PipelineFile.compilerInput`; mobile via `MemoExporter`), so the Compiler
+// (desktop via `PipelineFile.compilerInput`; mobile via `MemoExporter`), so the compile
 // stays pure + `PipelineFile`-free → no phone↔Mac drift (standalone Phase 2, hoisted out
 // of Phase 0). The type names are deliberately neutral (`Compiler*` / `NoteSourceType`) to
 // avoid colliding with each app's own `SharedContent` / metadata types — both apps compile
@@ -28,10 +28,10 @@ enum NoteVoice: String, Sendable {
     case raw
 }
 
-/// Sensor / audiobook metadata the Compiler renders into frontmatter — already decoded from
+/// Sensor / audiobook metadata export v2 renders into frontmatter — already decoded from
 /// whatever blob each app stores (desktop: `PipelineFile.audioMetadataJSON` via
 /// `PhoneMetadata`; mobile: `MemoMetadata`). All optional / lenient. Only the fields the
-/// Compiler actually reads are carried.
+/// compile actually reads are carried.
 struct CompilerMetadata: Sendable {
     struct Location: Sendable { var placeName: String? = nil }
     struct Weather: Sendable { var conditions: String? = nil; var temperature: Double? = nil; var temperatureUnit: String? = nil }
@@ -54,8 +54,8 @@ struct CompilerMetadata: Sendable {
     /// Q355: the page address of a quote from a Library article (`— *Title*, [site](URL)`, `source: URL`).
     var bookURL: String? = nil
 }
-/// Everything the shared `Compiler.compile(_:)` needs from a note. Each app fills this from
-/// its own model; the Compiler never sees `PipelineFile`/`Memo`.
+/// Everything export v2 (`ExportV2.Note.input`) needs from a note. Each app fills this from
+/// its own model; the compile never sees `PipelineFile`/`Memo`.
 struct CompilerInput: Sendable {
     /// Memo↔memo link resolver (chunk 5): maps a linked memo's UUID to its
     /// exported note stem. nil (the default everywhere but the phone's publish
@@ -79,15 +79,15 @@ struct CompilerInput: Sendable {
     /// C284: the note's last content edit (`Memo.editedAt`; the Mac mirrors it onto its row).
     /// nil = never edited → `editedAt:` written empty.
     var editedAt: Date? = nil
-    /// WHERE this note is going. Decides the portfolio-only frontmatter — see the Compiler.
+    /// WHERE this note is going. Decides the portfolio-only frontmatter — see `ExportV2.Frontmatter`.
     var destination: NoteDestination = .personal
     /// HOW the words got here — the portfolio's `voice:` key. Set EXPLICITLY by each app, never
-    /// derived in the Compiler: the two apps carry the polished body in different fields (the
-    /// Mac in `enhancedCopyedit`, the phone re-linked into `sanitised`), so a Compiler-side
+    /// derived in the compile: the two apps carry the polished body in different fields (the
+    /// Mac in `enhancedCopyedit`, the phone re-linked into `sanitised`), so a compile-side
     /// guess reads `raw` on one device and `cleaned` on the other for the same note.
     var voice: NoteVoice = .raw
     /// The note's kind from the ONE classifier (`SourceKind`), set by both exporters (Q142).
-    /// The Compiler reads it for the kinds `sourceType` cannot tell apart — a typed note rides
+    /// Export v2 reads it for the kinds `sourceType` cannot tell apart — a typed note rides
     /// `.audio` on the phone and `.note` on the Mac. nil = engine tests / unclassified.
     var kind: SourceKind? = nil
 }

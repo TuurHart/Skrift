@@ -120,7 +120,7 @@ final class AttachmentOwnershipTests: XCTestCase {
 
     // MARK: - VaultExporter attachment lanes (R7)
 
-    /// `convertImageMarkers` — a foreign file already sits at the name the exporter
+    /// The export's picture placing (`VaultExporter.owned`) — a foreign file already sits at the name the exporter
     /// would use for the note's own image; it is left alone, ours is written under a
     /// disambiguated name, and the embed in the exported markdown is rewritten to match.
     func testConvertImageMarkersNeverDeletesAForeignFile() throws {
@@ -152,7 +152,7 @@ final class AttachmentOwnershipTests: XCTestCase {
 
         // The foreign file is untouched.
         XCTAssertEqual(try Data(contentsOf: foreignPath), foreignBytes,
-                       "convertImageMarkers must never remove a file it doesn't own")
+                       "placing a picture must never remove a file it doesn't own")
         // The note's image landed under a disambiguated name, and the embed matches it.
         let md = try String(contentsOf: r.markdownURL, encoding: .utf8)
         XCTAssertFalse(md.contains("![[Trip_001.jpg]]"), "must not claim the foreign file as its own embed")

@@ -2,7 +2,7 @@ import XCTest
 import SwiftData
 @testable import SkriftMobile
 
-/// Q519 (C196, C57): with export v2 routed, the phone's vault publish drops the embed of a picture
+/// Q519 (C196, C57): the phone's vault publish drops the embed of a picture
 /// this device does not hold, as the Mac and the Export all zip do (corpus `pic-missing-file`:
 /// a manifest entry whose photo never synced). The words stay; no file is written for it.
 final class PhoneMissingPictureTests: XCTestCase {
@@ -13,14 +13,12 @@ final class PhoneMissingPictureTests: XCTestCase {
     private let missingID = UUID(uuidString: "177D06AE-6E17-55D4-A5E4-571A82F8AC69")!
 
     override func setUpWithError() throws {
-        ExportV2.routingOverride = true
         sandbox = FileManager.default.temporaryDirectory.appendingPathComponent("q519-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: sandbox.appendingPathComponent("vault"), withIntermediateDirectories: true)
         ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("ledger.json"))
     }
 
     override func tearDownWithError() throws {
-        ExportV2.routingOverride = nil
         try? FileManager.default.removeItem(at: sandbox)
     }
 

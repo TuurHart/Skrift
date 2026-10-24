@@ -2,7 +2,7 @@ import XCTest
 @testable import SkriftMobile
 
 /// Q433 (C64, R15), the phone's half: a note recorded at 23:30 local exports `date:` = that
-/// local day through the real phone path (`MemoExporter.markdown`). The Mac's half
+/// local day through the real phone path (`ObsidianPublisher.v2Note`, `ExportV2Test`). The Mac's half
 /// (`ExportDiffHarnessTests.testLateNightNoteHasOneDateOnPhoneAndMac`) pins the SAME literals on
 /// the Mac path (sweep → `PipelineFile` → compile), so the two devices agree.
 final class ExportDateC64Tests: XCTestCase {
@@ -27,10 +27,10 @@ final class ExportDateC64Tests: XCTestCase {
             let recorded = try XCTUnwrap(iso.date(from: c.recorded))
             let memo = Memo(recordedAt: recorded, title: "Late note", transcript: "Written just before midnight.",
                             transcriptStatus: .done, significance: 0.5)
-            let md = MemoExporter.markdown(for: memo, people: [])
+            let md = ExportV2Test.markdown(for: memo, people: [])
             let day = md.components(separatedBy: "\n").first { $0.hasPrefix("date: ") }.map { String($0.dropFirst(6)) }
             XCTAssertEqual(day, c.day, "\(c.zone): phone date")
-            XCTAssertEqual(MemoExporter.markdown(for: memo, people: [], profile: .portfolio)
+            XCTAssertEqual(ExportV2Test.markdown(for: memo, people: [], profile: .portfolio)
                 .components(separatedBy: "\n").first { $0.hasPrefix("date: ") }, "date: \(c.day)",
                            "\(c.zone): portfolio profile, same rule")
         }

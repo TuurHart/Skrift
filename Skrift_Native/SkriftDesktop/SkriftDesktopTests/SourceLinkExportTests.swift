@@ -35,7 +35,7 @@ final class SourceLinkExportTests: XCTestCase {
     }
 
     private func macMarkdown(_ m: Memo) -> String {
-        Compiler.compile(file: MemoNoteProjection.file(for: m), author: "Me", date: "2026-10-13")
+        ExportV2Test.markdown(MemoNoteProjection.file(for: m), author: "Me", date: "2026-10-13")
     }
 
     private func sourceLine(_ md: String) -> String? {
@@ -114,7 +114,7 @@ final class SourceLinkExportTests: XCTestCase {
     /// The phone's exporter feeds the same Compiler with `SourceKind.of(memo)`; the line matches.
     func testPhoneAndMacInputsAgree() {
         let m = pdfLink(words: "Words.")
-        let phone = Compiler.compile(CompilerInput.make(
+        let phone = ExportV2Test.markdown(CompilerInput.make(
             filename: "memo", raw: m.transcript, copyedit: nil, title: m.title, summary: nil,
             tags: m.tags, significance: m.significance, sourceType: .audio, mediaSource: nil,
             metadata: CompilerMetadata(bookTitle: "GFR grant application, draft 3", bookChapter: "p. 4",

@@ -68,14 +68,11 @@ final class SharedVideoAttachmentMacTests: XCTestCase {
         try FileManager.default.createDirectory(at: MacNoteAttachments.folder(in: work), withIntermediateDirectories: true)
         try Data("MOVIE".utf8).write(to: MacNoteAttachments.folder(in: work).appendingPathComponent(entry.filename))
 
-        var placed: [String] = []
-        let (md, count) = MacNoteAttachments.convertMarkers(
-            "[[vid_001]]\n\nwords", working: work, safe: "Note", into: work.appendingPathComponent("att"),
-            profile: .obsidian, place: { src, _, _ in placed.append(src.lastPathComponent); return src })
-        XCTAssertEqual(count, 0)
-        XCTAssertTrue(placed.isEmpty, "C63: no video goes to the Obsidian vault")
-        XCTAssertFalse(md.contains("vid_001"))
-        XCTAssertTrue(md.contains("words"))
+        let out = try ExportV2Test.export(body: "[[vid_001]]\n\nwords", working: work, title: "Note")
+        XCTAssertEqual(out.result.imageCount, 0)
+        XCTAssertTrue(out.files.isEmpty, "C63: no video goes to the Obsidian vault: \(out.files)")
+        XCTAssertFalse(out.body.contains("vid_001"))
+        XCTAssertTrue(out.body.contains("words"))
     }
 
     // MARK: - tiny real video (copied from VideoIngestTests)

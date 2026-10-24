@@ -1,9 +1,13 @@
 {
   "_schema": "Q428: slug -> array of SPEC.md ids (R# / C#) for which a sweep engine's Mac row is EXPECTED to differ from v1's recorded row golden (goldens/v1-rows/<slug>.json). ReconcileDiffHarnessTests (C5): a diff on a slug listed here is expected-different (pass); the SAME slug with no diff is a matched bug (fail); a diff on an unlisted slug is unexplained (fail).",
+  "_C2": "Q437: the row's `compiledText` (the Mac's review draft and copy-as-markdown) is export v2's compile since v1's compiler was deleted: `created:` / `duration:` (D12, D216) and v2's frontmatter, where v1 wrote its own.",
   "pic-missing-file": [
     "C41"
   ],
   "voice-en-untrusted": [
     "C42"
+  ],
+  "voice-en-with-mac-polish": [
+    "C2"
   ]
 }

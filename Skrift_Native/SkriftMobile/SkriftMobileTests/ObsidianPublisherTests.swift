@@ -200,7 +200,7 @@ final class ObsidianPublisherTests: XCTestCase {
     func testConvertPhotoMarkersResolvesThroughTheManifest() {
         let manifest = [ImageManifestEntry(filename: "a.jpg", offsetSeconds: 0),
                         ImageManifestEntry(filename: "b.png", offsetSeconds: 5)]
-        let (out, resolved) = ObsidianPublisher.convertPhotoMarkers(
+        let (out, resolved) = ExportV2Test.convertPictures(
             "One [[img_002]] two [[img_001]] dangling [[img_009]].", manifest: manifest, stem: "Note")
         XCTAssertEqual(out, "One ![[Note_002.png]] two ![[Note_001.jpg]] dangling .")
         XCTAssertEqual(resolved.map(\.0), ["b.png", "a.jpg"])

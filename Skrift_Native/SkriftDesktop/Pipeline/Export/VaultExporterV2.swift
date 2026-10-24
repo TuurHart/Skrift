@@ -1,12 +1,21 @@
 import Foundation
 
-/// Q434 (C2): the Mac's export through export v2 (`Shared/ExportV2`). The same write path as
-/// `VaultExporter.export` — the gate, the destination move, the writer's assess and commit, the
-/// ownership-safe asset copies — with v2 compiling the note. `export` routes here when
-/// `ExportV2.routes` (on since the swap, Q436); the export harness calls it directly.
+/// Q434 (C2): the Mac's export, compiled by export v2 (`Shared/ExportV2`); v1's was deleted in
+/// Q437 (tag `v1-export`).
 extension VaultExporter {
+    /// Export through the SHARED engine (`VaultWriter`, 2026-07-26): this file keeps
+    /// only the Mac's asset sourcing (working-folder images, Apple-Note attachments);
+    /// naming, the stamp, the edit guard, collision handling, atomic+coordinated
+    /// writes and the ledger are the one cross-app implementation. The engine is
+    /// asked FIRST (`assess`) so a refused note copies zero images and touches
+    /// nothing — the old path wrote `<title>.md` unconditionally over whatever was
+    /// there, with a bare non-atomic write, into a folder that lives in iCloud.
+    ///
+    /// `session` (Q365): an export RUN shares one decoded ledger per destination and one names
+    /// snapshot across its notes, and folds the ledger to disk once at `finish()`. nil = a
+    /// one-off export, exactly as before (its own ledger, written on change).
     @discardableResult
-    static func exportV2(_ pf: PipelineFile, settings: AppSettings, session: ExportSession? = nil) throws -> Result {
+    static func export(_ pf: PipelineFile, settings: AppSettings, session: ExportSession? = nil) throws -> Result {
         if let failure = ExportGate.check(gateFacts(for: pf, settings: settings, processed: true),
                                           device: .mac, scope: .engine) {
             throw ExportError(failure)
@@ -81,7 +90,7 @@ extension VaultExporter {
             ? URL(fileURLWithPath: pf.path).deletingLastPathComponent().appendingPathComponent("Attachments") : nil
         let noteAttachments = noteAttachmentsDir.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
 
-        // Q365 (G9), as v1: the skip check BEFORE any picture is placed. The ledger says we wrote
+        // Q365 (G9): the skip check BEFORE any picture is placed. The ledger says we wrote
         // this very file, the dry compile equals what is there, and every asset already sits at its
         // name looking current → `.unchanged` without reading a single image byte. A legacy capture
         // and an Apple Note place assets outside the compile, so they always take the full path.
@@ -141,7 +150,7 @@ extension VaultExporter {
     static func v2Note(_ pf: PipelineFile, people: [Person], author: String,
                        linkLedger: ExportLedger? = nil) -> ExportV2.Note {
         var input = pf.compilerInput(people: people)
-        // Memo-links follow the files this vault's ledger holds (sticky across retitles), as v1's do.
+        // Memo-links follow the files this vault's ledger holds (sticky across retitles).
         let linked = input.sanitised ?? input.enhancedCopyedit ?? input.transcript ?? ""
         if !MemoLinkSyntax.occurrences(in: linked).isEmpty, let context = pf.modelContext {
             input.setLinkStems(MemoLinkStems.map(context, ledger: linkLedger))

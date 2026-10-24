@@ -23,7 +23,7 @@ final class CompilerInputParityTests: XCTestCase {
         let input = MemoExporter.compilerInput(for: m, people: [hendri], enhancement: enh)
         XCTAssertEqual(input.voice, .raw, "a title is not a copy-edit: the body is the transcript")
         m.destination = .portfolio
-        let md = MemoExporter.markdown(for: m, people: [hendri], enhancement: enh, profile: .portfolio)
+        let md = ExportV2Test.markdown(for: m, people: [hendri], enhancement: enh, profile: .portfolio)
         XCTAssertTrue(md.contains("voice: raw"), md)
         XCTAssertTrue(md.contains("um so i met [[Hendri van Niekerk]] today"), md)
     }
@@ -34,7 +34,7 @@ final class CompilerInputParityTests: XCTestCase {
                                   summary: "A note.")
         let input = MemoExporter.compilerInput(for: m, people: [hendri], enhancement: enh)
         XCTAssertEqual(input.voice, .cleaned)
-        let md = MemoExporter.markdown(for: m, people: [hendri], enhancement: enh)
+        let md = ExportV2Test.markdown(for: m, people: [hendri], enhancement: enh)
         XCTAssertTrue(md.contains("I met [[Hendri van Niekerk]] today."), md)
         XCTAssertFalse(md.contains("um so"), md)
     }
@@ -43,7 +43,7 @@ final class CompilerInputParityTests: XCTestCase {
     func testUnlinkDecisionIsHonoured() {
         var r = NameResolutions()
         r.unlinkedNames = ["Hendri van Niekerk"]
-        let md = MemoExporter.markdown(for: memo(r), people: [hendri])
+        let md = ExportV2Test.markdown(for: memo(r), people: [hendri])
         let body = md.components(separatedBy: "\n---\n").dropFirst().joined()
         XCTAssertFalse(body.contains("[["), "an unlinked person stays plain: \(md)")
         XCTAssertTrue(body.contains("hendri"), md)
@@ -53,7 +53,7 @@ final class CompilerInputParityTests: XCTestCase {
         let target = UUID()
         let m = Memo(audioFilename: "memo.m4a", recordedAt: Date(),
                      transcript: "see [[memo:\(target.uuidString)|Old]]", significance: 0.5)
-        let md = MemoExporter.markdown(for: m, people: [], linkStems: [target: "Linked note"])
+        let md = ExportV2Test.markdown(for: m, people: [], linkStems: [target: "Linked note"])
         XCTAssertTrue(md.contains("[[Linked note|Old]]"), md)
     }
 }

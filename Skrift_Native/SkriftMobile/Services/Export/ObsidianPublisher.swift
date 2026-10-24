@@ -305,71 +305,41 @@ struct ObsidianPublisher {
             }
         }
 
-        let manifest = memo.metadata?.imageManifest ?? []
         let attachmentEntries = memo.metadata?.attachmentManifest ?? []
         var attachmentPlan: [(entry: NoteAttachmentEntry, embedName: String)] = []
         // C63 / D210: the kept movie never goes to the vault; its poster frame does, in its place -
         // when this device has the movie to take the frame from, else the marker drops.
         var posterEmbed: String?
         let hasMovie = posterProvider != nil || movieProvider(memo) != nil
-        let converted: String
-        let embedNames: [(String, String)]
-        let removedPictures: [PlacedPicture]
         var document: VaultAsset?
-        if ExportV2.routes {
-            // Q511: export v2, the swap switch (off until Q436). Names come from the manifest alone.
-            var note = Self.v2Note(memo, people: people, author: author, enhancement: enhancement,
-                                   linkStems: stems, title: title)
-            // R38 (Q513): a `.file` capture's document goes with the note, as on the Mac.
-            if memo.isShareCapture, let sc = memo.sharedContent, sc.type == .file,
-               let source = sc.fileName ?? sc.filePath, let blob = documentProvider(memo) {
-                let name = ExportV2.documentName(stem: stem, sourceName: source)
-                note.documentName = name
-                document = VaultAsset(name: name, source: .data(blob))
-            }
-            // Q519 (C196): a picture this device does not hold drops its embed, as on the Mac.
-            let held = manifest.isEmpty ? [] : (photoNamesProvider?(memo.id) ?? Set(photosProvider(memo.id).keys))
-            let out = ExportV2.compile(note,
-                                       profile: profile, stem: stem,
-                                       placePicture: { source, name in held.contains(source) ? name : nil },
-                                       placeAttachment: { source, preferred in
-                guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
-                attachmentPlan.append((entry, preferred))
-                return preferred
-            }, poster: { _, preferred in
-                guard hasMovie else { return nil }
-                posterEmbed = preferred
-                return preferred
-            })
-            converted = out.markdown
-            embedNames = out.pictures.map { ($0.source, $0.embedName) }
-            removedPictures = out.removedPictures
-        } else {
-            let markdown = MemoExporter.markdown(for: memo, people: people, author: author,
-                                                 enhancement: enhancement,
-                                                 linkStems: stems, profile: profile)
-            // Photo markers → real embeds, names derived from the MANIFEST alone so the
-            // heavy blobs are only fetched when a write actually happens.
-            let photos = Self.convertPhotoMarkers(ExportBody.shown(markdown), manifest: manifest, stem: stem,
-                                                  profile: profile)
-            embedNames = photos.1
-            // D199 / C57: `[[vid_NNN]]` / `[[file_NNN]]` → embeds of the file copied beside the note,
-            // through the same shared conversion the Mac runs. Names come from the manifest alone.
-            converted = ExportBody.convertAttachmentMarkers(
-                photos.0, manifest: attachmentEntries, stem: stem, profile: profile,
-                poster: { _, preferred in
-                    guard hasMovie else { return nil }
-                    posterEmbed = preferred
-                    return preferred
-                }) { source, preferred in
-                guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
-                attachmentPlan.append((entry, preferred))
-                return preferred
-            }.markdown
-            // C158: a picture whose marker left the body has its vault copy removed (below).
-            removedPictures = profile.removedPictures(ExportBody.shown(markdown),
-                                                      manifest: manifest.map(\.filename), stem: stem)
+        var note = Self.v2Note(memo, people: people, author: author, enhancement: enhancement,
+                               linkStems: stems, title: title)
+        // R38 (Q513): a `.file` capture's document goes with the note, as on the Mac.
+        if memo.isShareCapture, let sc = memo.sharedContent, sc.type == .file,
+           let source = sc.fileName ?? sc.filePath, let blob = documentProvider(memo) {
+            let name = ExportV2.documentName(stem: stem, sourceName: source)
+            note.documentName = name
+            document = VaultAsset(name: name, source: .data(blob))
         }
+        // Export v2 (Q436). Picture and attachment names come from the manifest alone, so the
+        // heavy blobs are only fetched when a write actually happens.
+        // Q519 (C196): a picture this device does not hold drops its embed, as on the Mac.
+        let held = (memo.metadata?.imageManifest ?? []).isEmpty ? [] : (photoNamesProvider?(memo.id) ?? Set(photosProvider(memo.id).keys))
+        let out = ExportV2.compile(note, profile: profile, stem: stem,
+                                   placePicture: { source, name in held.contains(source) ? name : nil },
+                                   placeAttachment: { source, preferred in
+            guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
+            attachmentPlan.append((entry, preferred))
+            return preferred
+        }, poster: { _, preferred in
+            guard hasMovie else { return nil }
+            posterEmbed = preferred
+            return preferred
+        })
+        let converted = out.markdown
+        let embedNames = out.pictures.map { ($0.source, $0.embedName) }
+        // C158: a picture whose marker left the body has its vault copy removed (below).
+        let removedPictures = out.removedPictures
 
         // Cheap unchanged check BEFORE touching any blob: candidate vs on-disk,
         // volatile stamp lines aside.
@@ -444,16 +414,5 @@ struct ObsidianPublisher {
             e.text.map { (i + 1, $0) } })
         note.attachments = memo.metadata?.attachmentManifest ?? []
         return note
-    }
-
-    /// Replace `[[img_NNN]]` markers with this profile's embeds of `<stem>_NNN.ext`, through
-    /// the ONE shared converter (`ExportProfile.convertPictureMarkers`, the Mac's exporter
-    /// uses it too). Returns the rewritten markdown + (source filename → embed name) for the
-    /// markers that resolved; unresolvable markers are DROPPED, never printed literally.
-    static func convertPhotoMarkers(_ markdown: String, manifest: [ImageManifestEntry],
-                                    stem: String,
-                                    profile: ExportProfile = .obsidian) -> (String, [(String, String)]) {
-        let r = profile.convertPictureMarkers(markdown, manifest: manifest.map(\.filename), stem: stem)
-        return (r.markdown, r.placed.map { ($0.source, $0.embedName) })
     }
 }

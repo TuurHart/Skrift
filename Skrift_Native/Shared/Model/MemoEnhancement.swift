@@ -9,7 +9,7 @@ import SwiftData
 /// a paired Mac auto-upgrades the phone's standalone Obsidian export.
 ///
 /// Carries the enhanced **pieces** (copy-edit / title / summary), not a pre-compiled
-/// markdown blob — the phone re-compiles + re-links from them via the shared `Compiler` +
+/// markdown blob — the phone re-compiles + re-links from them via export v2 (`ExportV2`) +
 /// `MemoLinking` (deterministic, no drift). Any device may author one — the Mac's batch
 /// polisher and, since iPad wave 1 (2026-07-22), the iPad's on-demand `PolishCenter`
 /// (same model, same `PolishPrompts`); LWW by `enhancedAt` between writers.

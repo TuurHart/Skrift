@@ -1,7 +1,7 @@
 import XCTest
 
 /// Q154 (C57, C196, R51): picture markers become embeds the SAME way on both exporters,
-/// through the one shared `ExportProfile.convertPictureMarkers`. A portfolio note gets
+/// through export v2's one converter (`ExportV2.convertPictures`). A portfolio note gets
 /// `![](x)`, a vault note `![[x]]`; NNN resolves through the manifest; a dangling marker
 /// (no entry, no file) is dropped, never printed. The phone runs a twin class of this name.
 final class ExportImageMarkerParityTests: XCTestCase {
@@ -18,25 +18,31 @@ final class ExportImageMarkerParityTests: XCTestCase {
 
     // MARK: - The shared converter
 
+    /// `[[img_NNN]]` through export v2's converter, the manifest's pictures and nothing else.
+    private func convert(_ md: String, manifest: [String], stem: String, profile: ExportProfile,
+                         place: ExportV2.Place = { _, name in name }) -> (markdown: String, placed: [PlacedPicture]) {
+        var note = ExportV2.Note(input: CompilerInput(filename: "n.md", transcript: "", sourceType: .note), title: "N")
+        note.pictureManifest = manifest
+        return ExportV2.convertPictures(md, note: note, profile: profile, stem: stem, place: place)
+    }
+
     func testSharedConverterWritesEachProfilesSyntax() {
         let md = "Look [[img_001]] here."
-        let vault = ExportProfile.obsidian.convertPictureMarkers(md, manifest: ["a.jpg"], stem: "Trip")
+        let vault = convert(md, manifest: ["a.jpg"], stem: "Trip", profile: .obsidian)
         XCTAssertEqual(vault.markdown, "Look ![[Trip_001.jpg]] here.")
-        let portfolio = ExportProfile.portfolio.convertPictureMarkers(md, manifest: ["a.jpg"], stem: "trip")
+        let portfolio = convert(md, manifest: ["a.jpg"], stem: "trip", profile: .portfolio)
         XCTAssertEqual(portfolio.markdown, "Look ![](trip_001.jpg) here.")
         XCTAssertEqual(portfolio.placed, [PlacedPicture(source: "a.jpg", embedName: "trip_001.jpg")])
     }
 
     func testSharedConverterDropsADanglingMarker() {
-        let r = ExportProfile.obsidian.convertPictureMarkers("A [[img_001]] B [[img_002]] C",
-                                                             manifest: ["a.png"], stem: "N")
+        let r = convert("A [[img_001]] B [[img_002]] C", manifest: ["a.png"], stem: "N", profile: .obsidian)
         XCTAssertEqual(r.markdown, "A ![[N_001.png]] B  C")
         XCTAssertEqual(r.placed.map(\.source), ["a.png"])
     }
 
     func testSharedConverterDropsAMarkerItCannotPlace() {
-        let r = ExportProfile.portfolio.convertPictureMarkers("A [[img_001]] B", manifest: ["a.png"],
-                                                              stem: "n") { _, _ in nil }
+        let r = convert("A [[img_001]] B", manifest: ["a.png"], stem: "n", profile: .portfolio) { _, _ in nil }
         XCTAssertEqual(r.markdown, "A  B")
         XCTAssertTrue(r.placed.isEmpty)
     }
@@ -126,20 +132,5 @@ final class ExportImageMarkerParityTests: XCTestCase {
         let img = work.appendingPathComponent("vault/Skrift/Images/Order_001.jpg")
         XCTAssertEqual(try Data(contentsOf: img), Data([0xB]))
         XCTAssertEqual(r.imageCount, 1)
-    }
-
-    /// The Mac's converter writes exactly what the shared one does for the same note.
-    func testMacConverterMatchesTheSharedConverter() throws {
-        let audio = try noteFolder(images: ["p1.png": Data([1]), "p2.jpg": Data([2])], manifest: ["p1.png", "p2.jpg"])
-        let imagesDir = audio.deletingLastPathComponent().appendingPathComponent("images")
-        let md = "x [[img_002]] y [[img_001]] z [[img_003]]."
-        for profile in [ExportProfile.obsidian, .portfolio] {
-            let att = work.appendingPathComponent("att-\(UUID().uuidString)")
-            let (mac, copied) = VaultExporter.convertImageMarkers(md, imagesDir: imagesDir, safe: "S",
-                                                                  into: att, id: UUID(), profile: profile)
-            let shared = profile.convertPictureMarkers(md, manifest: ["p1.png", "p2.jpg"], stem: "S")
-            XCTAssertEqual(mac, shared.markdown)
-            XCTAssertEqual(copied, 2)
-        }
     }
 }

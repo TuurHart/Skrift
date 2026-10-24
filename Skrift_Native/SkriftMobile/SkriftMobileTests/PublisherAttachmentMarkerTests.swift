@@ -2,7 +2,7 @@ import XCTest
 @testable import SkriftMobile
 
 /// Q467 (C57, C58, C61, C239): the iPad/phone `ObsidianPublisher` converts `[[vid_NNN]]` and
-/// `[[file_NNN]]` markers through the same shared step as the Mac (`ExportBody`), copying the
+/// `[[file_NNN]]` markers through the same shared step as the Mac (`ExportV2.compile`), copying the
 /// file beside the note under the ownership rule. It used to print the markers as raw text.
 final class PublisherAttachmentMarkerTests: XCTestCase {
     private var sandbox: URL!

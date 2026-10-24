@@ -22,21 +22,21 @@ final class ExportSourceFieldTests: XCTestCase {
     func testTypedNoteSaysTypedNote() {
         let m = typedMemo()
         XCTAssertEqual(MemoExporter.compilerInput(for: m, people: []).kind, .typedNote)
-        let md = MemoExporter.markdown(for: m, people: [])
-        XCTAssertEqual(sourceLine(md), "source: \(Compiler.typedSource)", md)
+        let md = ExportV2Test.markdown(for: m, people: [])
+        XCTAssertEqual(sourceLine(md), "source: \(ExportV2.Frontmatter.typedSource)", md)
         XCTAssertFalse(md.contains("Voice-memo"), md)
     }
 
     func testPortfolioCaptureKeyCarriesTheTypedValue() {
         let m = typedMemo()
         m.destination = .portfolio
-        let md = MemoExporter.markdown(for: m, people: [], profile: .portfolio)
+        let md = ExportV2Test.markdown(for: m, people: [], profile: .portfolio)
         XCTAssertEqual(sourceLine(md), "capture: Typed-note", md)
     }
 
     func testAVoiceMemoStaysAVoiceMemo() {
         let m = Memo(audioFilename: "memo.m4a", recordedAt: Date(), transcript: "Said aloud.",
                      transcriptStatus: .done, significance: 0.5)
-        XCTAssertEqual(sourceLine(MemoExporter.markdown(for: m, people: [])), "source: Voice-memo")
+        XCTAssertEqual(sourceLine(ExportV2Test.markdown(for: m, people: [])), "source: Voice-memo")
     }
 }

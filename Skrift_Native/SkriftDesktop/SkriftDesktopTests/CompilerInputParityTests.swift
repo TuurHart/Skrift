@@ -49,7 +49,7 @@ final class CompilerInputParityTests: XCTestCase {
 
     /// Everything after the closing frontmatter fence.
     private func body(_ input: CompilerInput) -> String {
-        let md = Compiler.compile(input, author: "Me", date: "2026-08-19", knownPeople: [hendri])
+        let md = ExportV2Test.markdown(input, author: "Me", date: "2026-08-19", people: [hendri])
         let parts = md.components(separatedBy: "\n---\n")
         return parts.dropFirst().joined(separator: "\n---\n")
     }

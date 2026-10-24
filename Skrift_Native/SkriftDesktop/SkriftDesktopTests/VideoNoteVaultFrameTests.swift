@@ -18,41 +18,23 @@ final class VideoNoteVaultFrameTests: XCTestCase {
         return work
     }
 
-    /// A placer that copies like the real one and remembers what it was asked to place.
-    private final class Recorder {
-        var placed: [(source: String, name: String)] = []
-        func place(_ src: URL, _ name: String, _ dir: URL) -> URL? {
-            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            let dest = dir.appendingPathComponent(name)
-            guard (try? FileManager.default.copyItem(at: src, to: dest)) != nil else { return nil }
-            placed.append((src.lastPathComponent, name))
-            return dest
-        }
-    }
-
     func testTheKeptMovieMarkerBecomesItsPosterFrameEmbed() throws {
         let work = try workingFolder(); defer { try? FileManager.default.removeItem(at: work) }
-        let att = work.appendingPathComponent("att")
-        let rec = Recorder()
-        let (md, count) = MacNoteAttachments.convertMarkers(
-            "[[vid_001]]\n\nSaid something.", working: work, safe: "Kiln", into: att, profile: .obsidian, place: rec.place)
+        let out = try ExportV2Test.export(body: "[[vid_001]]\n\nSaid something.", working: work, title: "Kiln")
 
-        XCTAssertEqual(count, 1)
-        XCTAssertEqual(md, "![[Kiln_frame.jpg]]\n\nSaid something.", "the frame sits where the movie's marker was")
-        XCTAssertEqual(rec.placed.map(\.name), ["Kiln_frame.jpg"], "only the frame is placed, never the movie")
-        let jpeg = try Data(contentsOf: att.appendingPathComponent("Kiln_frame.jpg"))
-        XCTAssertEqual(Array(jpeg.prefix(3)), [0xFF, 0xD8, 0xFF], "a real JPEG")
-        XCTAssertFalse(FileManager.default.fileExists(atPath: att.appendingPathComponent("source.mov").path))
+        XCTAssertEqual(out.result.imageCount, 1)
+        XCTAssertEqual(out.body, "![[Kiln_frame.jpg]]\n\nSaid something.", "the frame sits where the movie's marker was")
+        XCTAssertEqual(out.files, ["Kiln_frame.jpg"], "only the frame is placed, never the movie")
+        let frame = try XCTUnwrap(out.file("Kiln_frame.jpg"))
+        XCTAssertEqual(Array(try Data(contentsOf: frame).prefix(3)), [0xFF, 0xD8, 0xFF], "a real JPEG")
     }
 
     func testThePortfolioGetsTheFrameToo() throws {
         let work = try workingFolder(); defer { try? FileManager.default.removeItem(at: work) }
-        let rec = Recorder()
-        let (md, count) = MacNoteAttachments.convertMarkers(
-            "[[vid_001]]\n\nwords", working: work, safe: "Kiln", into: work.appendingPathComponent("att"),
-            profile: .portfolio, place: rec.place)
-        XCTAssertEqual(count, 1)
-        XCTAssertEqual(md, "![](Kiln_frame.jpg)\n\nwords")
+        let out = try ExportV2Test.export(body: "[[vid_001]]\n\nwords", working: work, title: "Kiln", profile: .portfolio)
+        XCTAssertEqual(out.result.imageCount, 1)
+        let stem = out.result.markdownURL.deletingPathExtension().lastPathComponent
+        XCTAssertEqual(out.body, "![](\(stem)_frame.jpg)\n\nwords")
     }
 
     func testTheFrameIsMadeOnceAndReused() throws {
@@ -66,22 +48,26 @@ final class VideoNoteVaultFrameTests: XCTestCase {
 
     func testAMovieWithNoReadableFrameDropsTheMarker() throws {
         let work = try workingFolder(movie: false); defer { try? FileManager.default.removeItem(at: work) }
-        let rec = Recorder()
-        let (md, count) = MacNoteAttachments.convertMarkers(
-            "[[vid_001]]\n\nwords", working: work, safe: "Kiln", into: work.appendingPathComponent("att"),
-            profile: .obsidian, place: rec.place)
-        XCTAssertEqual(count, 0)
-        XCTAssertTrue(rec.placed.isEmpty)
-        XCTAssertFalse(md.contains("[[vid_"), "a dangling marker is dropped, never printed")
-        XCTAssertTrue(md.contains("words"))
+        let out = try ExportV2Test.export(body: "[[vid_001]]\n\nwords", working: work, title: "Kiln")
+        XCTAssertEqual(out.result.imageCount, 0)
+        XCTAssertTrue(out.files.isEmpty, "\(out.files)")
+        XCTAssertFalse(out.body.contains("[[vid_"), "a dangling marker is dropped, never printed")
+        XCTAssertTrue(out.body.contains("words"))
+    }
+
+    /// Export v2's compile of `body` with these attachments, `place` and `poster` as an engine passes them.
+    private func compile(_ body: String, manifest: [NoteAttachmentEntry], place: @escaping ExportV2.Place,
+                         poster: @escaping ExportV2.Place = { _, _ in nil }) -> ExportV2.Output {
+        var note = ExportV2.Note(input: CompilerInput(filename: "n.md", transcript: body, sourceType: .note), title: "Kiln")
+        note.attachments = manifest
+        return ExportV2.compile(note, profile: .obsidian, stem: "Kiln", placeAttachment: place, poster: poster)
     }
 
     func testAnEngineWithoutAFrameDropsTheKeptMovieInTheSharedConversion() {
         let entry = NoteAttachment.keptMovieEntry(filename: VideoKeep.filename(memoID: UUID(), sourceExtension: "mov"),
                                                   originalName: "Video", byteCount: 5, durationSeconds: 1)
-        let r = ExportBody.convertAttachmentMarkers("[[vid_001]]\n\nwords", manifest: [entry], stem: "Kiln",
-                                                    profile: .obsidian) { _, _ in "never" }
-        XCTAssertEqual(r.placed, 0)
+        let r = compile("[[vid_001]]\n\nwords", manifest: [entry], place: { _, _ in "never" })
+        XCTAssertEqual(r.attachments, 0)
         XCTAssertFalse(r.markdown.contains("vid_001"))
         XCTAssertFalse(r.markdown.contains("never"), "the movie is never placed")
     }
@@ -91,11 +77,10 @@ final class VideoNoteVaultFrameTests: XCTestCase {
         let body = NoteAttachmentEntry(kind: NoteAttachment.Kind.video, filename: "video_\(UUID().uuidString)_002.mov",
                                        name: "clip.mov", uti: "com.apple.quicktime-movie", byteCount: 3)
         var seen: [String] = []
-        let r = ExportBody.convertAttachmentMarkers("[[vid_001]]", manifest: [body], stem: "Kiln", profile: .obsidian,
-                                                    poster: { _, _ in "frame.jpg" }) { source, preferred in
+        let r = compile("[[vid_001]]", manifest: [body], place: { source, preferred in
             seen.append(source); return preferred
-        }
-        XCTAssertEqual(r.placed, 1)
+        }, poster: { _, _ in "frame.jpg" })
+        XCTAssertEqual(r.attachments, 1)
         XCTAssertEqual(seen, [body.filename])
         XCTAssertTrue(r.markdown.contains("Kiln_video_001.mov"))
     }

@@ -18,7 +18,7 @@ final class MemoExporterTests: XCTestCase {
                              transcript: "Met up with Hendri today.", significance: 0.5,
                              metadata: MemoMetadata(location: LocationInfo(latitude: 1, longitude: 2, placeName: "Lisbon"),
                                                     tags: []))
-        let md = MemoExporter.markdown(for: memo, people: [hendri], author: "Tiuri")
+        let md = ExportV2Test.markdown(for: memo, people: [hendri], author: "Tiuri")
 
         XCTAssertTrue(md.hasPrefix("---\n"), "starts with YAML frontmatter")
         XCTAssertTrue(md.contains("title: \"Coffee with Hendri\""))
@@ -26,7 +26,7 @@ final class MemoExporterTests: XCTestCase {
         XCTAssertTrue(md.contains("source: Voice-memo"))
         XCTAssertTrue(md.contains("location: \"Lisbon\""))
         XCTAssertTrue(md.contains("- idea"))
-        XCTAssertTrue(md.contains("date: \(MemoExporter.dateString(fixedDate))"))
+        XCTAssertTrue(md.contains("date: \(ExportNaming.localDay(fixedDate))"))
         XCTAssertTrue(md.contains("[[Hendri van Niekerk]]"), "body should be name-linked — got: \(md)")
         XCTAssertTrue(md.contains("people: [[Hendri van Niekerk]]"), "people: frontmatter from the linked body")
     }
@@ -36,7 +36,7 @@ final class MemoExporterTests: XCTestCase {
         let memo = Memo.make(recordedAt: fixedDate, title: "Saved link",
                              sharedContent: sc, annotationText: "Worth reading.")
         XCTAssertTrue(memo.isShareCapture, "fixture must be a share-capture")
-        let md = MemoExporter.markdown(for: memo, people: [], author: "T")
+        let md = ExportV2Test.markdown(for: memo, people: [], author: "T")
         XCTAssertTrue(md.contains("source: capture-url"))
         XCTAssertTrue(md.contains("url: https://example.com"))
         XCTAssertTrue(md.contains("**Example**"))
@@ -66,7 +66,7 @@ final class MemoExporterTests: XCTestCase {
                         transcript: "um so i met hendri today you know")
         let enh = MemoEnhancement(memoID: memo.id, copyedit: "I met Hendri today.",
                                   title: "Meeting Hendri", summary: "A short note about meeting Hendri.")
-        let md = MemoExporter.markdown(for: memo, people: [hendri], author: "T", enhancement: enh)
+        let md = ExportV2Test.markdown(for: memo, people: [hendri], author: "T", enhancement: enh)
         XCTAssertTrue(md.contains("title: \"raw title\""), "the user title outranks the Mac title (C25, D174)")
         XCTAssertTrue(md.contains("summary: \"A short note about meeting Hendri.\""), "uses the Mac summary")
         XCTAssertTrue(md.contains("I met [[Hendri van Niekerk]] today."),
@@ -76,7 +76,7 @@ final class MemoExporterTests: XCTestCase {
 
     func testEmptyEnhancementFallsBackToRaw() {
         let memo = Memo(title: "T", transcript: "Met Hendri today.")
-        let md = MemoExporter.markdown(for: memo, people: [hendri], enhancement: MemoEnhancement(memoID: memo.id))
+        let md = ExportV2Test.markdown(for: memo, people: [hendri], enhancement: MemoEnhancement(memoID: memo.id))
         XCTAssertTrue(md.contains("Met [[Hendri van Niekerk]] today."), "empty enhancement → raw linked body")
     }
 }

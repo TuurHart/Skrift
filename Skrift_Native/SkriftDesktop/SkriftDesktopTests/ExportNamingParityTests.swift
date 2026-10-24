@@ -6,7 +6,7 @@ import SwiftData
 /// workshop debrief"), re-timed to 23:30 local in a zone where that is already tomorrow in
 /// UTC, goes through the iPad's input (`ExportNaming.title(for: Memo, …)`, what
 /// `MemoExporter` / `ObsidianPublisher` call) and through the Mac's bridge (phone memo →
-/// `MemoCloudIngest` row → `VaultExporter` / `Compiler.compile(file:)`). Before the fix the
+/// `MemoCloudIngest` row → `VaultExporter` / `ExportV2Test.markdown(file:)`). Before the fix the
 /// iPad named it from the transcript's first line and the Mac's `date:` was the UTC day.
 /// The phone target's twin class asserts the same two literals through `MemoExporter`.
 @MainActor
