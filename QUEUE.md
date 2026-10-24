@@ -3519,7 +3519,7 @@ needs: -
 do: One clickable HTML page `Skrift_Native/SkriftDesktop/mocks/Q484-sync-health.html`, phone + Mac frames drawn from source: a CloudKit quota or sign-in failure showing on the notes list within a minute, a note marked "not synced yet", and an iCloud account switch noticed (syncing stops, it says so). Reuse existing banner/pill styles. One agent writes this file.
 check: Tuur clicked through it and said go.
 
-### Q485 [auto] (todo) B: build sync health per the mock
+### Q485 [auto] (done) B: build sync health per the mock
 spec: C155 D48 R47
 needs: Q484
 gate+: yes
@@ -5409,3 +5409,4 @@ check: `grep -rqE "class MacSyncStateStoppedTests\\b" Skrift_Native/SkriftDeskto
 - 2026-10-24 08:57 Q517 added
 - 2026-10-24 08:57 Q485 -> stuck — gate failed — .queue/Q485.gate.log
 - 2026-10-24 08:58 Q485 -> todo
+- 2026-10-24 09:01 Q485 -> done — gate 147s @d5456150
