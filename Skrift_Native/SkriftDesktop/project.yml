@@ -297,6 +297,12 @@ targets:
       # Q100: the lock verbs' policy (Foundation-only, closure-injected) so MacLockGateTests
       # can drive delete/lock/unlock without LocalAuthentication.
       - path: ../Shared/Session/LockPolicy.swift
+      # Q516: the Export-all zip writer + the CRC-checked reader, so ExportAllZipTests reads back
+      # the real archive (ZIPFoundation is small and pure Swift; no MLX comes with it).
+      - path: ../Shared/Zip
+    dependencies:
+      - package: ZIPFoundation
+        product: ZIPFoundation
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests
