@@ -232,7 +232,7 @@ extension MemoCloudReconciler {
     /// keeps an overlapping pass from ingesting the same memo or trashing its row meanwhile.
     private static let backgroundIngestBatch = 50
 
-    /// D218 (C155): "Copy these notes to this account" after an iCloud switch. Adopts the new
+    /// D218 (C155): the Mac's copy (`SyncHealth.copyVerb`) after an iCloud switch. Adopts the new
     /// account (syncing resumes), then every live row of this Mac becomes a memo there. Only on
     /// his tap; the next sweep reconciles as usual.
     @MainActor static func copyToCurrentAccount() {

@@ -3,8 +3,8 @@ import SwiftData
 
 extension ReconcileV2 {
 
-    /// D218 (C155, R47): after an iCloud account switch, the Mac's "Copy these notes to this
-    /// account". Apple wiped the cloud store when the account changed; the Mac's own rows survive,
+    /// D218 (C155, R47): after an iCloud account switch, the Mac's copy (`SyncHealth.copyVerb`).
+    /// Apple wiped the cloud store when the account changed; the Mac's own rows survive,
     /// so each live row becomes a memo again in the new account: the raw words and media through
     /// the one author door (`Author.author`), then its tags, rating, destination, lock, reminder,
     /// chosen title and polish. Only on his tap. A row whose memo the new account already has is

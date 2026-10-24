@@ -63,7 +63,7 @@ struct SyncHealthNoteLine: View {
 }
 
 /// "Syncing is stopped": what happened, what is still here and how to sync again. D218: the Mac
-/// adds "Copy these notes to this account" (`onCopy`); the phone has nothing left to copy (Apple
+/// adds the copy button (`SyncHealth.copyVerb`, `onCopy`); the phone has nothing left to copy (Apple
 /// wipes its store on a switch), so it gets OK only.
 struct SyncWhatNowView: View {
     let content: SyncHealth.WhatNow

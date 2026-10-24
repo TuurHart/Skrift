@@ -82,7 +82,7 @@ struct SyncHealth: Codable, Equatable {
         }
     }
 
-    /// D218: on the Mac he tapped "Copy these notes to this account". The new account becomes the
+    /// D218: on the Mac he tapped the copy button (`copyVerb`). The new account becomes the
     /// one this store syncs with, and the Mac's own rows go up to it (`ReconcileV2.AccountCopy`).
     mutating func adoptCurrentAccount() {
         guard let name = switchedTo else { return }
