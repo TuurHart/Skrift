@@ -4,7 +4,7 @@ import os
 
 /// Debounced Mac→phone LIVE-EDIT write-back (`LIVE_SYNC_HANDOFF.md` Part B). When the user edits
 /// a note on the Mac review screen (body / title / summary), the bindings call `note(_:)`; after
-/// a short idle we push the edited polish to CloudKit via `MacCloudWriteBack`, so the phone
+/// a short idle we push the edited polish to CloudKit via `ReconcileV2.Writers`, so the phone
 /// reflects the edit within seconds. Same carrier + gate as the post-process write-back
 /// (`ProcessingCoordinator.writeBackEnhancement`), just fired on MANUAL edits too.
 ///

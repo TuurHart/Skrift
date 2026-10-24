@@ -27,7 +27,7 @@ final class ExportV2InputsTests: XCTestCase {
         let pipeline = ModelContext(try ModelContainer(
             for: PipelineFile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
         try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: work.appendingPathComponent("phone"))
-        MemoCloudReconciler.sweep(from: cloud, into: pipeline, upload: UploadService(outputDir: work.appendingPathComponent("mac")))
+        V2.sweep(cloud, into: pipeline, outputDir: work.appendingPathComponent("mac"))
         let rows = Dictionary(try pipeline.fetch(FetchDescriptor<PipelineFile>()).map { ($0.id, $0) },
                               uniquingKeysWith: { a, _ in a })
         var checked = 0, his = 0
@@ -49,7 +49,7 @@ final class ExportV2InputsTests: XCTestCase {
         let memo = Memo(title: nil, transcript: "Kiln notes.")
         memo.createdAt = Date(timeIntervalSince1970: 1_790_000_000)
         let pf = PipelineFile(id: memo.id.uuidString, filename: "memo.m4a")
-        let v1 = Dictionary(MirroredNoteFields.all.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+        let v1 = Dictionary(ReconcileV2.Fields.all.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
         XCTAssertTrue(v1["createdAt"]!.pull(memo, pf))
         XCTAssertEqual(pf.memoCreatedAt, memo.createdAt)
         XCTAssertFalse(v1["titleIsHis"]!.pull(memo, pf), "no title of his: nothing to change")

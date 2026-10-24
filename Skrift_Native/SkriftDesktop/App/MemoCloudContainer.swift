@@ -9,7 +9,7 @@ import SwiftData
 /// (`SharedStore.container`) holds `PipelineFile`, whose `@Attribute(.unique) id` CloudKit
 /// forbids — so `PipelineFile` can never join a CloudKit container. CloudKit-syncable models
 /// (`Memo` / `MemoAsset` / `MemoEnhancement`, all default-valued, no unique constraints) live
-/// here instead. The two containers coexist; the read bridge (`MemoCloudIngest`, 8b) turns a
+/// here instead. The two containers coexist; the read bridge (`ReconcileV2.Ingest`, 8b) turns a
 /// synced `Memo` into a local `PipelineFile`, and the write-back (8c) upserts a
 /// `MemoEnhancement` here after the pipeline enhances a memo-sourced file.
 ///

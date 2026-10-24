@@ -65,9 +65,7 @@ final class ExportDiffHarnessTests: XCTestCase {
             try CorpusSeed.seed(from: root, into: cloud,
                                 recordingsDirectory: scratch.appendingPathComponent("phone-recordings"))
             let roster = try ExportDiffHarnessTests.roster(root)
-            MemoCloudReconciler.sweep(from: cloud, into: pipeline, people: roster, author: "Tiuri",
-                                      thisDeviceID: "corpus-mac-0001",
-                                      upload: UploadService(outputDir: scratch.appendingPathComponent("mac-work")))
+            V2.sweep(cloud, into: pipeline, people: roster, author: "Tiuri", device: "corpus-mac-0001", outputDir: scratch.appendingPathComponent("mac-work"))
             let rows = try pipeline.fetch(FetchDescriptor<PipelineFile>())
             ExportDiffHarnessTests.nameLink(rows, people: roster)
             let byID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -394,7 +392,7 @@ final class ExportDiffHarnessTests: XCTestCase {
         let pipeline = ModelContext(try ModelContainer(
             for: PipelineFile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
         try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: work.appendingPathComponent("phone"))
-        MemoCloudReconciler.sweep(from: cloud, into: pipeline, upload: UploadService(outputDir: work.appendingPathComponent("mac")))
+        V2.sweep(cloud, into: pipeline, outputDir: work.appendingPathComponent("mac"))
         let rows = try pipeline.fetch(FetchDescriptor<PipelineFile>())
         let ids = try Self.manifest(root).notes.filter { $0.slug.hasPrefix("typed-same-title-") }.map(\.id)
         let pair = ids.compactMap { id in rows.first { $0.id == id } }
@@ -460,7 +458,7 @@ final class ExportDiffHarnessTests: XCTestCase {
             memo.createdAt = recorded
             cloud.insert(memo)
             try cloud.save()
-            MemoCloudReconciler.sweep(from: cloud, into: pipeline, upload: UploadService(outputDir: try scratch()))
+            V2.sweep(cloud, into: pipeline, outputDir: try scratch())
             let pf = try XCTUnwrap(try pipeline.fetch(FetchDescriptor<PipelineFile>()).first, "\(c.zone): not ingested")
 
             let phoneDay = ExportNaming.localDay(memo.recordedAt)   // MemoExporter.dateString

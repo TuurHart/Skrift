@@ -163,7 +163,7 @@ final class PolishCenter {
     /// enhancement. Fire-and-forget from UI; phases drive the indicators.
     func polishNow(_ memo: Memo, repository: NotesRepository = .shared) {
         guard canPolish(memo) else { return }
-        // Pressing Polish IS a judgment — so it RATES the note (the `MacMemoAuthor`
+        // Pressing Polish IS a judgment — so it RATES the note (the `ReconcileV2.Author`
         // 0.1-floor precedent). Without this, an unrated note could be polished on
         // demand and stay unrated: still fading, still invisible to the Mac,
         // polished-but-dying. The rating is consent, and this is the user giving it;

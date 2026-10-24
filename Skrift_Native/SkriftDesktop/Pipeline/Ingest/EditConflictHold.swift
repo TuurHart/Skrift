@@ -5,7 +5,7 @@ import SwiftData
 /// mock `Q4-edit-conflict.html`: "The Mac does not polish or export a note with two versions
 /// until you pick. Its pill replaces Enhancing.").
 ///
-/// The set is refreshed by every CloudKit reconcile sweep (`MemoCloudReconciler.sweep`) and
+/// The set is refreshed by every CloudKit reconcile sweep (`ReconcileV2.sweep`) and
 /// after a pick; ids are `PipelineFile.id` = the memo's UUID string. Readers: the process
 /// queue (`ProcessingCoordinator.needsProcessing`), the exporter (`VaultExporter.export`),
 /// and the list pill.

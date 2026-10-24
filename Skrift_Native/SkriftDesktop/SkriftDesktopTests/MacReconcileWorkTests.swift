@@ -15,12 +15,11 @@ final class MacReconcileWorkTests: XCTestCase {
 
     private let noteCount = 2_000
 
-    private lazy var upload = UploadService(
-        outputDir: FileManager.default.temporaryDirectory
-            .appendingPathComponent("q364_\(UUID().uuidString)", isDirectory: true))
+    private lazy var upload = FileManager.default.temporaryDirectory
+            .appendingPathComponent("q364_\(UUID().uuidString)", isDirectory: true)
 
     override func tearDown() {
-        try? FileManager.default.removeItem(at: upload.outputDir)
+        try? FileManager.default.removeItem(at: upload)
         super.tearDown()
     }
 
@@ -49,8 +48,8 @@ final class MacReconcileWorkTests: XCTestCase {
         try cloud.save()
     }
 
-    private func pass(_ s: (cloud: ModelContext, local: ModelContext)) throws -> MemoCloudReconciler.PassOutcome {
-        try MemoCloudReconciler.pass(from: s.cloud, into: s.local, thisDeviceID: "mac-test", upload: upload)
+    private func pass(_ s: (cloud: ModelContext, local: ModelContext)) throws -> ReconcileV2.PassOutcome {
+        V2.pass(s.cloud, into: s.local, device: "mac-test", outputDir: upload)
     }
 
     /// The first pass ingests everything (blobs are needed then). Every pass after it, with
@@ -103,7 +102,7 @@ final class MacReconcileWorkTests: XCTestCase {
         let s = try stores()
         try seedMonologues(s.cloud, count: 50)
         let outcome = try pass(s)
-        XCTAssertEqual(outcome.memos.count, 50)
+        XCTAssertEqual(outcome.snapshot.memos.count, 50)
     }
 
     /// The short-circuit must not cost the heal: a `diar` asset that lands AFTER ingest is

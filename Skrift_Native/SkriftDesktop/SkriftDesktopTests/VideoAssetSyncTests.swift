@@ -63,9 +63,7 @@ final class VideoAssetSyncTests: XCTestCase {
 
     func testPhoneMovieAssetLandsAsSourceBesideTheAudio() throws {
         let (memo, assets, _) = phoneVideo(withMovie: true)
-        let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: assets,
-                                                          upload: UploadService(outputDir: makeTempDir()),
-                                                          into: try pipelineContext()))
+        let pf = try XCTUnwrap(try V2.ingest(memo, assets: assets, outputDir: makeTempDir(), into: try pipelineContext()))
         let folder = try XCTUnwrap(pf.workingFolder)
         let kept = try XCTUnwrap(VaultExporter.keptSourceVideo(in: folder), "the export looks for source.<ext>")
         XCTAssertEqual(kept.lastPathComponent, "source.mov")
@@ -74,17 +72,13 @@ final class VideoAssetSyncTests: XCTestCase {
 
     func testNoMovieAssetMeansNoMovieFile() throws {
         let (memo, assets, _) = phoneVideo(withMovie: false)   // a Personal video: nothing synced
-        let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: assets,
-                                                          upload: UploadService(outputDir: makeTempDir()),
-                                                          into: try pipelineContext()))
+        let pf = try XCTUnwrap(try V2.ingest(memo, assets: assets, outputDir: makeTempDir(), into: try pipelineContext()))
         XCTAssertNil(VaultExporter.keptSourceVideo(in: try XCTUnwrap(pf.workingFolder)))
     }
 
     func testMovieThatSyncsAfterTheFirstIngestIsHealed() throws {
         let (memo, assets, name) = phoneVideo(withMovie: false)
-        let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: assets,
-                                                          upload: UploadService(outputDir: makeTempDir()),
-                                                          into: try pipelineContext()))
+        let pf = try XCTUnwrap(try V2.ingest(memo, assets: assets, outputDir: makeTempDir(), into: try pipelineContext()))
         let folder = try XCTUnwrap(pf.workingFolder)
         XCTAssertNil(VaultExporter.keptSourceVideo(in: folder))
 
@@ -125,7 +119,7 @@ final class VideoAssetSyncTests: XCTestCase {
     func testMacVideoFiledIdeaWritesTheMovieAssetAndNamesIt() throws {
         let ctx = try cloudContext()
         let pf = try macVideoRow(destination: .portfolio)
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path), into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
         let name = try XCTUnwrap(memo.metadata?.videoFilename)
         XCTAssertEqual(name, VideoKeep.filename(memoID: memo.id, sourceExtension: "mp4"))
         let assets = try videoAssets(ctx, memo.id)
@@ -137,24 +131,24 @@ final class VideoAssetSyncTests: XCTestCase {
     func testMacVideoFiledPersonalSyncsNoMovie() throws {
         let ctx = try cloudContext()
         let pf = try macVideoRow(destination: .personal)
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path), into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
         XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1, "D188: a Personal video syncs like every other note")
     }
 
     func testFilingLaterWritesTheMovieAndFilingBackRemovesIt() throws {
         let ctx = try cloudContext()
         let pf = try macVideoRow(destination: .personal)
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path), into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
         XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1, "D188: authored Personal, the movie already syncs")
 
         pf.destination = .portfolio
         // Idempotent: the asset is already there, so a pass inserts nothing.
-        XCTAssertFalse(MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx))
+        XCTAssertFalse(ReconcileV2.Author.keptMovie(pf, memo: memo, in: ctx))
         try ctx.save()
         XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1)
 
         pf.destination = .personal
-        XCTAssertFalse(MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx))
+        XCTAssertFalse(ReconcileV2.Author.keptMovie(pf, memo: memo, in: ctx))
         try ctx.save()
         XCTAssertEqual(try videoAssets(ctx, memo.id).count, 1, "filed back to Personal: the synced blob stays (D188)")
         XCTAssertNotNil(VaultExporter.keptSourceVideo(in: try XCTUnwrap(pf.workingFolder)),
@@ -164,7 +158,7 @@ final class VideoAssetSyncTests: XCTestCase {
     func testAVideoWithNoKeptMovieNamesNoMovie() throws {
         let ctx = try cloudContext()
         let pf = try macVideoRow(destination: .portfolio, keepMovie: false)   // over the cap or the copy failed
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: URL(fileURLWithPath: pf.path), into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
         XCTAssertNil(memo.metadata?.videoFilename)
         XCTAssertTrue(try videoAssets(ctx, memo.id).isEmpty)
     }

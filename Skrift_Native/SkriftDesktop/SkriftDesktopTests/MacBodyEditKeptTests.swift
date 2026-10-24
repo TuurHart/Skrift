@@ -27,7 +27,7 @@ final class MacBodyEditKeptTests: XCTestCase {
         pf.enhancedCopyedit = polish
         pf.enhancedTitle = "Studio rent"
         pf.enhanceStatus = .done
-        MemoCloudUpdate.resanitiseAndCompile(pf, people: [bruno], author: "Tuur")
+        ReconcileV2.Reflect.recompile(pf, people: [bruno], author: "Tuur")
         return pf
     }
 
@@ -44,7 +44,7 @@ final class MacBodyEditKeptTests: XCTestCase {
         let trip = MacEditRoundTrip.compute(body: pf.bestBodyText, before: polish, people: people,
                                             neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
         MacEditRoundTrip.adopt(trip, into: pf)
-        try MacCloudWriteBack.upsert(for: pf, into: cloud, deviceID: "mac-test", bodyOverride: trip.raw)
+        try V2.upsert(pf, into: cloud, device: "mac-test", body: trip.raw)
     }
 
     private func cloud(for pf: PipelineFile) throws -> ModelContext {
@@ -83,7 +83,7 @@ final class MacBodyEditKeptTests: XCTestCase {
         assertKept(pf, linkedTo: "[[Bruno Costa")
         XCTAssertEqual(try cloudCopy(pf, ctx), edited, "the cloud copy is his edit")
         // A later polish write-back (Redo title, post-process) sends the copy-edit: still his words.
-        try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-test")
+        try V2.upsert(pf, into: ctx, device: "mac-test")
         XCTAssertEqual(try cloudCopy(pf, ctx), edited)
     }
 
@@ -133,8 +133,7 @@ final class MacBodyEditKeptTests: XCTestCase {
         let pf = processedRow()
         typeOnTheMac(pf, people: [bruno])
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: try phoneMemoWithNewTag(pf), enhancement: nil, to: pf,
-                                            people: [bruno], author: "Tuur", thisDeviceID: "mac-test"))
+        XCTAssertTrue(V2.reflect(try phoneMemoWithNewTag(pf), enhancement: nil, to: pf, people: [bruno], author: "Tuur", device: "mac-test"))
 
         XCTAssertEqual(pf.tags, ["studio"], "the phone's tag landed")
         assertKept(pf, linkedTo: "[[Bruno Costa")
@@ -149,8 +148,7 @@ final class MacBodyEditKeptTests: XCTestCase {
         let id = try XCTUnwrap(UUID(uuidString: pf.id))
         let own = try XCTUnwrap(try ctx.fetch(FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == id })).first)
 
-        MemoCloudUpdate.apply(memo: try phoneMemoWithNewTag(pf), enhancement: own, to: pf,
-                              people: [bruno], author: "Tuur", thisDeviceID: "mac-test")
+        V2.reflect(try phoneMemoWithNewTag(pf), enhancement: own, to: pf, people: [bruno], author: "Tuur", device: "mac-test")
 
         assertKept(pf, linkedTo: "[[Bruno Costa")
     }
@@ -165,7 +163,7 @@ final class MacBodyEditKeptTests: XCTestCase {
         pf.enhancedTitle = "Rent and kiln"   // the Redo title
 
         MacEditRoundTrip.settle(pf, linkedWith: [bruno])
-        try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-test", passRan: true)
+        try V2.upsert(pf, into: ctx, device: "mac-test", passRan: true)
 
         XCTAssertEqual(try cloudCopy(pf, ctx), edited, "the phone gets his edit, not the polish it replaced")
     }

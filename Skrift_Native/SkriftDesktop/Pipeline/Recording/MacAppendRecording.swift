@@ -13,7 +13,7 @@ import SwiftData
 ///    text and synced memo are exactly as they were. The caller keeps the clip file.
 /// 2. `land` writes the words + new duration onto the row and its synced `Memo` (the raw
 ///    transcript and the audio asset). The memo MUST get the combined transcript: the reconcile
-///    sweep (`MemoCloudUpdate` path 3) copies `memo.transcript` over a row whose transcript
+///    sweep (`ReconcileV2.Reflect`, a raw transcript edit) copies `memo.transcript` over a row whose transcript
 ///    differs, which would otherwise erase the appended words from the Mac on the next sweep.
 ///
 /// Pure over an explicit `ModelContext` (no container, no settings), so the host-less unit
@@ -145,7 +145,7 @@ enum MacAppendRecording {
     }
 
     /// The metadata blob with `duration` set to `seconds` (number of seconds, the shape
-    /// `MemoCloudIngest.metadataJSON` writes); every other key kept.
+    /// `ReconcileV2.Ingest.metadataJSON` writes); every other key kept.
     static func withDuration(_ seconds: TimeInterval, in json: Data?) -> Data? {
         var obj = json.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] } ?? [:]
         obj["duration"] = seconds

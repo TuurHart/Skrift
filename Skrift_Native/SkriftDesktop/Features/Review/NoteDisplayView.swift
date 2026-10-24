@@ -709,7 +709,7 @@ struct NoteDisplayView: View {
     private func showsTransport(_ file: PipelineFile) -> Bool {
         guard file.sourceType != .note else { return false }
         if file.durationSeconds > 0 { return true }
-        // A capture's `path` is its FOLDER (UploadService): a directory is not audio, so only a
+        // A capture's `path` is its FOLDER (`ReconcileV2.Ingest`): a directory is not audio, so only a
         // regular file counts (note-player-06).
         var isDir: ObjCBool = false
         return !file.path.isEmpty

@@ -266,7 +266,7 @@ final class MacImportDoorsTests: XCTestCase {
         let cloud = ModelContext(try ModelContainer(
             for: Memo.self, MemoAsset.self, MemoEnhancement.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: nil, into: cloud))
+        let memo = try XCTUnwrap(try V2.author(pf, into: cloud))
         XCTAssertEqual(memo.sharedContent?.type, .file)
         XCTAssertEqual(memo.sharedContent?.fileName, "contract.pdf")
         XCTAssertEqual(memo.audioFilename, "", "no audio: a capture, as on the phone")

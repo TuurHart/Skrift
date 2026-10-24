@@ -192,10 +192,10 @@ final class LiveRecordingSession {
                     onCreated: { rows in
                         guard let pf = rows.first else { return }
                         createdRow = pf
-                        // BEFORE the arrival hooks run (`MacMemoAuthor.author`, inside
+                        // BEFORE the arrival hooks run (`ReconcileV2.Author.author`, inside
                         // `ArrivalPath.run`, right after this closure) — that ordering is what
                         // lets `author` read "transcript already set on a fresh recording" as
-                        // the user-edited signal (see `MacMemoAuthor.author`'s own comment).
+                        // the user-edited signal (see `ReconcileV2.Author.author`'s own comment).
                         // Body v2 (C10): an edited take is the person's text — commit it as an edit.
                         pf.transcript = BodyV2.committed(BodyV2.Input(
                             text: finalTranscript, source: .speech, userEdited: true))

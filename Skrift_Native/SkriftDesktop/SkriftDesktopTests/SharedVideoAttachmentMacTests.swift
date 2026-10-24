@@ -7,6 +7,7 @@ import CoreVideo
 /// Q454 (D210, C63) on the Mac import path: an imported video's kept movie (`source.<ext>`) is the
 /// note's inline video attachment (`attachment_manifest.json`, the phone's shape), no frame
 /// picture is written, the block reads the kept movie, and the vault export never gets it.
+@MainActor
 final class SharedVideoAttachmentMacTests: XCTestCase {
     private func makeContext() throws -> ModelContext {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -45,8 +46,8 @@ final class SharedVideoAttachmentMacTests: XCTestCase {
         XCTAssertEqual(file.lastPathComponent, "source.mov")
 
         // The synced memo names the same file for both roles: the attachment and the kept movie.
-        let shape = MacMemoAuthor.authoredShape(for: pf, memoID: memoID)
-        let meta = try XCTUnwrap(shape.metadataData.flatMap { try? JSONDecoder().decode(MemoMetadata.self, from: $0) })
+        let shape = ReconcileV2.Author.Shape(pf, memoID: memoID)
+        let meta = try XCTUnwrap(shape.metadata.flatMap { try? JSONDecoder().decode(MemoMetadata.self, from: $0) })
         XCTAssertEqual(meta.attachmentManifest?.map(\.filename), [entry.filename])
         XCTAssertEqual(meta.videoFilename, entry.filename)
         XCTAssertTrue(meta.imageManifest?.isEmpty ?? true)

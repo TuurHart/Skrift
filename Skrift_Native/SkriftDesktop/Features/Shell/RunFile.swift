@@ -528,7 +528,7 @@ enum RunFile {
     /// call the sidebar's drop target / + Upload panel makes) over ONE local file into the
     /// REAL SwiftData store, print the created PipelineFile id, and exit. Closes the headless
     /// loop for Mac-local captures: relaunch the GUI app afterwards and its reconcile sweep
-    /// authors the synced Memo for the new row (`MacMemoAuthor.backfill`), then `-processfile`
+    /// authors the synced Memo for the new row (`ReconcileV2.Author.backfill`), then `-processfile`
     /// the id and relaunch again for the transcript reflect. QUIT the GUI app first — a
     /// second instance races the shared store.
     nonisolated static func runIngestFileIfRequested() {
@@ -633,7 +633,7 @@ enum RunFile {
             // ② nothing the RATING gates may have run — which means `enhance`, and not
             // `sanitise`. Reported but not asserted, because it flaps for a legitimate reason:
             // when a sweep lands during the run it reflects the Mac's own fresh transcript back
-            // through `MemoCloudUpdate`, which deterministically re-links names (no LLM, no
+            // through `ReconcileV2.Reflect`, which deterministically re-links names (no LLM, no
             // rating involved) and marks the step done. That is the sync layer doing its job,
             // not the capture path leaking into processing — `BatchRunner` returns on
             // `stopAfterTranscribe` well before its own sanitise step.

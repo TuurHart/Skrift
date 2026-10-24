@@ -173,7 +173,7 @@ final class Memo {
     /// the transcript RAW and re-derives tiers (`Sanitiser.nameSpans`) against these on
     /// demand (`mocks/phone-name-linking.html`); they also steer the on-device Obsidian
     /// export. SYNCED both ways (C81, D20, R37): the Mac adopts it into
-    /// `PipelineFile.nameResolutionsData` (`MirroredNoteFields` "nameResolutions") and writes
+    /// `PipelineFile.nameResolutionsData` (`ReconcileV2.Fields` "nameResolutions") and writes
     /// its own decisions back (`MacCloudMetaSync.setNameResolutions`). Typed form:
     /// `NameResolutions` (Shared/Naming). ADDITIVE, nil default → lightweight migration +
     /// CloudKit-safe.

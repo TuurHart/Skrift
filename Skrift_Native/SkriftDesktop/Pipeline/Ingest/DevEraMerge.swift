@@ -7,7 +7,7 @@ import SwiftData
 /// any new note. Never touches `NamesRecord` / `VocabularyRecord` / `PolishPromptsRecord` (the
 /// normal reconcile merges those from the Mac's local files) and never CloudKit directly.
 ///
-/// Pure + host-less like `MemoCloudReconciler.pass`: every entry point takes its contexts, so the
+/// Pure + host-less like `ReconcileV2.pass`: every entry point takes its contexts, so the
 /// tests run it on synthetic in-memory stores. `plan` reads only; `apply` writes Production in
 /// batches of `batchSize` notes per save and refuses to run before the Production store's first
 /// CloudKit import is done (`CloudFirstImport`, Q397). `apply` returns an `UndoJournal`; `unmerge`

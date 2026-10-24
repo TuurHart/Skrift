@@ -6,6 +6,7 @@ import Foundation
 /// "From Marta Silva"), which the transcript never carries. The ONE shared builder
 /// (`CompilerInput.make`, `lead:`) appends that mention to the exported body, name-linked, so a
 /// roster sender lands in `people:` on the Mac's export and the phone's alike.
+@MainActor
 final class SenderPeopleExportTests: XCTestCase {
 
     private let mac = "q471-mac"
@@ -30,8 +31,7 @@ final class SenderPeopleExportTests: XCTestCase {
         pf.transcript = m.transcript
         pf.transcribeStatus = .done
         pf.syncedSourceEditedAt = Date()
-        _ = MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf, people: [marta],
-                                  author: "Me", thisDeviceID: mac, isFreshRow: true)
+        _ = V2.reflect(m, enhancement: nil, to: pf, people: [marta], author: "Me", device: mac, freshRow: true)
         return pf
     }
 

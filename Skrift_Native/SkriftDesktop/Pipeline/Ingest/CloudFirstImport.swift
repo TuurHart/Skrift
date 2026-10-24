@@ -2,7 +2,7 @@ import Foundation
 
 /// Q397 (D203, `plan/release/ICLOUD_MERGE.md` A1): has the Mac's cloud store finished its first
 /// CloudKit import since that store file was created? Until it has, the reconcile's backfill
-/// authors nothing (`MacMemoAuthor.mayBackfill`): a Memo that exists in CloudKit but has not
+/// authors nothing (`ReconcileV2.Author.mayBackfill`): a Memo that exists in CloudKit but has not
 /// downloaded yet looks missing, and authoring it again would upload a same-id twin.
 ///
 /// Persisted as a small stamp file (`AppPaths.memoCloudFirstImportStamp`) that names the store

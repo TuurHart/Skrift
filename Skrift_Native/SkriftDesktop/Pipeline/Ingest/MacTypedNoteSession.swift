@@ -6,7 +6,7 @@ import SwiftData
 /// empty pane; NO `Memo` exists until the first non-empty edit, and a note left empty is
 /// deleted — so an untouched click never leaves a quiet 'Note' row that syncs to the phone.
 ///
-/// Host-less like `MacMemoAuthor`: every entry point takes its `ModelContext`, and the
+/// Host-less like `ReconcileV2.Author`: every entry point takes its `ModelContext`, and the
 /// metadata provider is injected (a test passes a fake; the app passes `MacMetadataService`).
 /// One session per window — at most one open draft; starting another leaves the first.
 @MainActor

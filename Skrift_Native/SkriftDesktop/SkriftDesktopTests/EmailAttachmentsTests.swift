@@ -5,6 +5,7 @@ import SwiftData
 /// a `[[file_NNN]]` marker per file after the body, in attachment order, a synced `MemoAsset`
 /// per file), and an `.eml` in a dropped folder is an email capture like the direct drop.
 /// Built on the `ingress/email` fixture with a second attachment added to its MIME tail.
+@MainActor
 final class EmailAttachmentsTests: XCTestCase {
 
     private static let secondText = "Glaze recipe: 3 parts frit, 1 part kaolin.\n"
@@ -86,7 +87,7 @@ final class EmailAttachmentsTests: XCTestCase {
         let pf = try XCTUnwrap(report.created.first)
 
         let cloud = try cloudContext()
-        XCTAssertEqual(try MacMemoAuthor.backfill(files: [pf], into: cloud), 1)
+        XCTAssertEqual(try V2.backfill([pf], into: cloud), 1)
         let id = try XCTUnwrap(UUID(uuidString: pf.id))
         let memo = try XCTUnwrap(try cloud.fetch(FetchDescriptor<Memo>()).first { $0.id == id })
         let manifest = try XCTUnwrap(memo.metadata?.attachmentManifest)

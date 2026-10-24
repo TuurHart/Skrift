@@ -49,7 +49,7 @@ final class MacTimingsAssetTests: XCTestCase {
     func testAMacRecordingYieldsAWordTimingsAssetInThePhonesShape() throws {
         let cloud = try cloudContext()
         let (memo, pf) = try macTake(in: cloud)
-        XCTAssertEqual(try MacMemoAuthor.reflectTranscripts(files: [pf], into: cloud), 1)
+        XCTAssertEqual(try ReconcileV2.Author.reflectTranscripts([pf], into: cloud), 1)
 
         let wt = try assets(MemoAsset.Kind.wordTimings, of: memo.id, in: cloud)
         XCTAssertEqual(wt.count, 1)
@@ -61,7 +61,7 @@ final class MacTimingsAssetTests: XCTestCase {
                       "a monologue has no diarization to send")
 
         // The sweep runs again: nothing doubles.
-        XCTAssertEqual(try MacMemoAuthor.reflectTranscripts(files: [pf], into: cloud), 0)
+        XCTAssertEqual(try ReconcileV2.Author.reflectTranscripts([pf], into: cloud), 0)
         XCTAssertEqual(try assets(MemoAsset.Kind.wordTimings, of: memo.id, in: cloud).count, 1)
     }
 
@@ -72,7 +72,7 @@ final class MacTimingsAssetTests: XCTestCase {
         pf.diarizationSegments = [DiarizedSegment(speaker: 0, start: 0, end: 0.9),
                                   DiarizedSegment(speaker: 1, start: 0.9, end: 1.1),
                                   DiarizedSegment(speaker: 0, start: 1.1, end: 1.3)]
-        XCTAssertEqual(try MacMemoAuthor.reflectTranscripts(files: [pf], into: cloud), 1)
+        XCTAssertEqual(try ReconcileV2.Author.reflectTranscripts([pf], into: cloud), 1)
 
         let dz = try XCTUnwrap(try assets(MemoAsset.Kind.diarization, of: memo.id, in: cloud).first)
         XCTAssertEqual(dz.filename, "diar_\(memo.id.uuidString).json", "the phone's DiarizationStore name")
@@ -91,7 +91,7 @@ final class MacTimingsAssetTests: XCTestCase {
         pf.transcript = "Kiln loaded again."
         pf.wordTimings = words
         pf.transcribeStatus = .done
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: nil, into: cloud))
+        let memo = try XCTUnwrap(try V2.author(pf, into: cloud))
         let asset = try XCTUnwrap(try assets(MemoAsset.Kind.wordTimings, of: memo.id, in: cloud).first)
         XCTAssertEqual(try JSONDecoder().decode([WordTiming].self, from: asset.blob), words)
     }

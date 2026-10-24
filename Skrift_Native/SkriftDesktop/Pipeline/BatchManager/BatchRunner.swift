@@ -350,7 +350,7 @@ struct BatchRunner {
     /// Empty annotation: skip all LLM steps, fall back to a title from sharedContent
     /// (urlTitle → first words of text → image filename — all from the metadata blob).
     private func runCapture(_ pf: PipelineFile) async throws {
-        // transcribeStatus is already .done from UploadService; never run ASR here.
+        // transcribeStatus is already .done from ingest; never run ASR here.
         let annotation = (pf.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let sc = SharedContent.decode(from: pf.audioMetadataJSON)
         pf.enhanceStatus = .processing

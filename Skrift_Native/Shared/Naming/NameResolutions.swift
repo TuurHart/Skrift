@@ -4,7 +4,7 @@ import Foundation
 ///
 /// The phone stores it on `Memo.nameResolutionsData`, the Mac on
 /// `PipelineFile.nameResolutionsData`; both blobs are this struct, JSON-encoded, so the
-/// Mac mirrors the field both ways (`MirroredNoteFields` "nameResolutions" + the event
+/// Mac mirrors the field both ways (`ReconcileV2.Fields` "nameResolutions" + the event
 /// write `MacCloudMetaSync.setNameResolutions`) and a decision made on either device is
 /// honoured by the `Sanitiser` on the other. The two fields are exactly the `neverLink` /
 /// `namePicks` inputs the shared `Sanitiser` accepts.

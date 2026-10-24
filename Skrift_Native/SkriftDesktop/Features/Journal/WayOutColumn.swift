@@ -16,7 +16,7 @@ struct WayOutColumn: View {
     /// Memos with `deletedAt` set — the memo trash.
     let deleted: [Memo]
     /// The transitional tail (Q5): trashed Mac-local uploads with no backing
-    /// Memo. Empty once step ⑤ ships `MacMemoAuthor` and backfills the rest.
+    /// Memo. Empty once step ⑤ ships `ReconcileV2.Author` and backfills the rest.
     let macOnlyFiles: [PipelineFile]
     /// keptAt + deletedAt=nil already applied by the caller's own predicate
     /// hook — this just fires after the row's tap.

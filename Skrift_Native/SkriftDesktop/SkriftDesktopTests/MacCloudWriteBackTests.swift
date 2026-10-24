@@ -5,6 +5,7 @@ import Foundation
 /// 8c tests for the Mac→CloudKit WRITE-BACK (`MacCloudWriteBack`): the Mac's polish is
 /// upserted as a `MemoEnhancement` keyed by the memo UUID, only for memos that actually
 /// exist in the synced store, and only when there's something to sync.
+@MainActor
 final class MacCloudWriteBackTests: XCTestCase {
 
     /// An in-memory mirror of the CloudKit Memo store (Memo + MemoEnhancement + MemoAsset).
@@ -33,20 +34,20 @@ final class MacCloudWriteBackTests: XCTestCase {
     func testMemoIDFromMemoFilename() {
         let id = UUID()
         let pf = PipelineFile(id: "random-not-a-uuid", filename: "memo_\(id.uuidString).m4a")
-        XCTAssertEqual(MacCloudWriteBack.memoID(for: pf), id)
+        XCTAssertEqual(ReconcileV2.Writers.memoID(for: pf), id)
     }
 
     func testMemoIDFromCaptureFilename() {
         let id = UUID()
         let pf = PipelineFile(id: "random", filename: "capture_\(id.uuidString)")
-        XCTAssertEqual(MacCloudWriteBack.memoID(for: pf), id)
+        XCTAssertEqual(ReconcileV2.Writers.memoID(for: pf), id)
     }
 
     func testMemoIDFallsBackToRowID() {
         let id = UUID()
         // A locally-ingested file: filename carries no memo UUID, id is a plain UUID.
         let pf = PipelineFile(id: id.uuidString, filename: "some recording.m4a")
-        XCTAssertEqual(MacCloudWriteBack.memoID(for: pf), id)
+        XCTAssertEqual(ReconcileV2.Writers.memoID(for: pf), id)
     }
 
     // MARK: - Upsert
@@ -58,7 +59,7 @@ final class MacCloudWriteBackTests: XCTestCase {
         try ctx.save()
 
         let written = try XCTUnwrap(
-            try MacCloudWriteBack.upsert(for: enhancedFile(id: id), into: ctx, deviceID: "mac-1"))
+            try V2.upsert(enhancedFile(id: id), into: ctx, device: "mac-1"))
         XCTAssertEqual(written.memoID, id)
         XCTAssertEqual(written.copyedit, "Polished body.")
         XCTAssertEqual(written.title, "A good title")
@@ -73,20 +74,21 @@ final class MacCloudWriteBackTests: XCTestCase {
         ctx.insert(Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a"))
         try ctx.save()
 
-        _ = try MacCloudWriteBack.upsert(for: enhancedFile(id: id), into: ctx, deviceID: "mac-1")
+        _ = try V2.upsert(enhancedFile(id: id), into: ctx, device: "mac-1")
         // A re-run (e.g. redo summary) with changed content must UPDATE, not duplicate.
         let pf = enhancedFile(id: id)
         pf.enhancedSummary = "Revised summary."
-        let written = try XCTUnwrap(try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-2"))
+        // The same Mac: another device's unseen polish is refused instead (R44, `ReconcileV2Tests`).
+        let written = try XCTUnwrap(try V2.upsert(pf, into: ctx, device: "mac-1"))
         XCTAssertEqual(enhancements(in: ctx).count, 1, "one enhancement per memo, updated in place")
         XCTAssertEqual(written.summary, "Revised summary.")
-        XCTAssertEqual(written.enhancedByDeviceID, "mac-2")
+        XCTAssertEqual(written.enhancedByDeviceID, "mac-1")
     }
 
     func testNoWriteBackWhenMemoNotSynced() throws {
         let ctx = try cloudContext()
         // No Memo inserted — the file is local-only / not synced.
-        let result = try MacCloudWriteBack.upsert(for: enhancedFile(id: UUID()), into: ctx, deviceID: "mac-1")
+        let result = try V2.upsert(enhancedFile(id: UUID()), into: ctx, device: "mac-1")
         XCTAssertNil(result, "never orphan an enhancement onto a non-synced memo")
         XCTAssertEqual(enhancements(in: ctx).count, 0)
     }
@@ -98,7 +100,7 @@ final class MacCloudWriteBackTests: XCTestCase {
         try ctx.save()
 
         let pf = PipelineFile(id: id.uuidString, filename: "memo_\(id.uuidString).m4a")  // no enhanced* fields
-        XCTAssertNil(try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-1"))
+        XCTAssertNil(try V2.upsert(pf, into: ctx, device: "mac-1"))
         XCTAssertEqual(enhancements(in: ctx).count, 0)
     }
 
@@ -117,7 +119,7 @@ final class MacCloudWriteBackTests: XCTestCase {
         let pf = PipelineFile(id: id.uuidString, filename: "memo_\(id.uuidString).m4a")
         pf.enhanceStatus = .done                    // BatchRunner marks an empty input done
         let written = try XCTUnwrap(
-            try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-1", passRan: true))
+            try V2.upsert(pf, into: ctx, device: "mac-1", passRan: true))
 
         XCTAssertEqual(enhancements(in: ctx).count, 1, "the run is a fact worth syncing")
         XCTAssertFalse(written.hasContent, "…and it genuinely produced nothing")
@@ -134,8 +136,7 @@ final class MacCloudWriteBackTests: XCTestCase {
         try ctx.save()
 
         let written = try XCTUnwrap(
-            try MacCloudWriteBack.upsert(for: enhancedFile(id: id), into: ctx,
-                                         deviceID: "mac-1", bodyOverride: "Hand-edited body."))
+            try V2.upsert(enhancedFile(id: id), into: ctx, device: "mac-1", body: "Hand-edited body."))
         XCTAssertNil(written.processedAt, "an edit is not a model pass")
         XCTAssertTrue(written.isProcessed, "…but the content it carries still proves one ran")
     }
@@ -163,8 +164,7 @@ final class MacCloudWriteBackTests: XCTestCase {
         try ctx.save()
 
         let pf = enhancedFile(id: id)   // enhancedCopyedit = "Polished body."
-        let written = try XCTUnwrap(try MacCloudWriteBack.upsert(
-            for: pf, into: ctx, deviceID: "mac-1", bodyOverride: "Edited on the Mac."))
+        let written = try XCTUnwrap(try V2.upsert(pf, into: ctx, device: "mac-1", body: "Edited on the Mac."))
         XCTAssertEqual(written.copyedit, "Edited on the Mac.", "bodyOverride is the live-edited body")
     }
 
@@ -180,8 +180,7 @@ final class MacCloudWriteBackTests: XCTestCase {
         ctx.insert(phoneEdit)
         try ctx.save()
 
-        let result = try MacCloudWriteBack.upsert(for: enhancedFile(id: id), into: ctx,
-                                                  deviceID: "mac-1", now: Date())
+        let result = try V2.upsert(enhancedFile(id: id), into: ctx, device: "mac-1", now: Date())
         XCTAssertEqual(result?.copyedit, "Phone's newer text.", "a strictly-newer phone edit is preserved")
         XCTAssertEqual(enhancements(in: ctx).count, 1)
     }
@@ -195,8 +194,7 @@ final class MacCloudWriteBackTests: XCTestCase {
                                    enhancedByDeviceID: "mac-1", enhancedAt: Date().addingTimeInterval(60)))
         try ctx.save()
 
-        let written = try XCTUnwrap(try MacCloudWriteBack.upsert(
-            for: enhancedFile(id: id), into: ctx, deviceID: "mac-1", bodyOverride: "New from the same Mac."))
+        let written = try XCTUnwrap(try V2.upsert(enhancedFile(id: id), into: ctx, device: "mac-1", body: "New from the same Mac."))
         XCTAssertEqual(written.copyedit, "New from the same Mac.")
     }
 
@@ -211,7 +209,7 @@ final class MacCloudWriteBackTests: XCTestCase {
         pf.enhancedTitle = "Saved link"
         pf.enhancedSummary = "Why it matters."
         pf.enhanceStatus = .done
-        let written = try XCTUnwrap(try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-1"))
+        let written = try XCTUnwrap(try V2.upsert(pf, into: ctx, device: "mac-1"))
         XCTAssertEqual(written.title, "Saved link")
         XCTAssertEqual(written.summary, "Why it matters.")
         XCTAssertEqual(written.copyedit, "")

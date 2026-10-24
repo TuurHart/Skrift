@@ -158,7 +158,7 @@ enum SourceKind: Equatable {
         if let sourceLink, sourceLink.isSourceLink { return sourceLink }
         if hasBook { return article ? .articleQuote : (pdfPage ? .pdfQuote : .audiobookQuote) }
         if media == "video" { return .video }
-        // A note born typed (the Mac's pencil/Cmd-N verb, `MacMemoAuthor.typedNote`).
+        // A note born typed (the Mac's pencil/Cmd-N verb, `Memo.newTyped`).
         // Without the marker a no-audio memo reads as an Apple Note import below.
         if media == "typed" { return .typedNote }
         // A Mac picture-only import carries no `sharedContent`; its marker says what it is.
