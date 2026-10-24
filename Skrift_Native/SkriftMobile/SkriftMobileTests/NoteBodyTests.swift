@@ -303,7 +303,8 @@ final class MemoLinkTests: XCTestCase {
         tv.selectedRange = NSRange(location: tv.textStorage.length, length: 0)
         coordinator.textViewDidChange(tv)      // detects the trigger
         coordinator.insertMemoLink(id: idA, title: "Harbor")
-        XCTAssertEqual(memo.transcript, "Hello [[memo:\(idA.uuidString)|Harbor]] ")
+        // C19: the stored body is trimmed at commit; the space stays in the editor (MemoLinkSpaceTests).
+        XCTAssertEqual(memo.transcript, "Hello [[memo:\(idA.uuidString)|Harbor]]")
     }
 }
 
