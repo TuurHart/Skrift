@@ -3741,6 +3741,13 @@ gate+: yes
 do: Per the signed-off mock: one shared exporter (Skrift_Native/Shared) compiles every note not in the trash with export v2 into the vault layout (Personal and Portfolio folders, as D189), adds each note's audio, photos and attachments beside it, zips to a temp file and opens the share sheet (phone) / save panel (Mac). Streams to disk (no whole-library in memory); shows progress; cancellable. Never touches his real vault. Test `ExportAllZipTests` (desktop, on the synthetic corpus): every live corpus note appears once with its assets, trashed notes do not.
 check: `grep -rqE "class ExportAllZipTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q517 [auto] (todo) B: Mac Settings never says Up to date while sync is stopped or failing
+spec: C155 D217 D218
+needs: Q485
+gate+: yes
+do: After Q485 the Mac Settings iCloud row still reads "Up to date" while SyncStopFlag is set (account switch) or the banner shows iCloud full / signed out — bad info (feedback: better no info than bad info). Add the stopped / failing states to MacSyncState with the same wording as the banner; MacSyncStateTests' allCases list grows by the new cases (additive; report it for hand-merge). Test `MacSyncStateStoppedTests` (desktop).
+check: `grep -rqE "class MacSyncStateStoppedTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5399,3 +5406,4 @@ check: `grep -rqE "class ExportAllZipTests\\b" Skrift_Native/SkriftDesktop/Skrif
 - 2026-10-24 08:22 Q515 added
 - 2026-10-24 08:22 Q516 added
 - 2026-10-24 08:28 Q515 -> done
+- 2026-10-24 08:57 Q517 added
