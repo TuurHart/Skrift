@@ -35,7 +35,7 @@ final class SenderPeopleExportTests: XCTestCase {
         return pf
     }
 
-    /// The Mac's export input: the row compiled with the live roster, as `Compiler.compile(file:)` does.
+    /// The Mac's export input: the row compiled with the live roster, as `ExportV2Test.markdown(file:)` does.
     private func macInput(_ m: Memo) -> CompilerInput { macRow(m).compilerInput(people: [marta]) }
 
     /// The phone's side, as `MemoExporter.compilerInput` builds it (that type is phone-only).
@@ -49,7 +49,7 @@ final class SenderPeopleExportTests: XCTestCase {
     }
 
     private func markdown(_ input: CompilerInput) -> String {
-        Compiler.compile(input, author: "Me", date: "2026-10-15", knownPeople: [marta])
+        ExportV2Test.markdown(input, author: "Me", date: "2026-10-15", people: [marta])
     }
 
     private func peopleLine(_ md: String) -> String? {

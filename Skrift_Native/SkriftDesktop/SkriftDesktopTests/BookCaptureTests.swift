@@ -43,13 +43,13 @@ final class BookCaptureTests: XCTestCase {
         let capture = makeFile(metadata: #"{"bookTitle":"Steal Like an Artist"}"#)
         capture.transcript = "> Quote.\n\nRamble."
         XCTAssertNotNil(capture.bookCapture)
-        XCTAssertTrue(Compiler.compile(file: capture, author: "T", date: "2026-06-11")
+        XCTAssertTrue(ExportV2Test.markdown(capture, author: "T", date: "2026-06-11")
             .contains("source: Audiobook-quote"))
 
         let plain = makeFile()
         plain.transcript = "hello"
         XCTAssertNil(plain.bookCapture)
-        XCTAssertTrue(Compiler.compile(file: plain, author: "T", date: "2026-06-11")
+        XCTAssertTrue(ExportV2Test.markdown(plain, author: "T", date: "2026-06-11")
             .contains("source: Voice-memo"))
     }
 

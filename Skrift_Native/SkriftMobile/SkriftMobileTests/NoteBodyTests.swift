@@ -258,7 +258,7 @@ final class MemoLinkTests: XCTestCase {
         let input = CompilerInput(filename: "m.m4a",
                                   transcript: "Body with [[memo:\(idA.uuidString)|Harbor]].",
                                   enhancedTitle: "T")
-        let md = Compiler.compile(input, author: "A")
+        let md = ExportV2Test.markdown(input, author: "A")
         XCTAssertFalse(md.contains("[[memo:"), "raw memo-link syntax must never reach the vault")
         XCTAssertTrue(md.contains("[[Harbor]]"))
     }

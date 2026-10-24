@@ -724,7 +724,7 @@ final class ProcessingCoordinator {
             case .summary:
                 pf.enhancedSummary = try await enhancer.summary(transcript, prompts: settings.prompts, modelRepo: repo)
             }
-            pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: NamesStore.shared.livePeople())
+            pf.compiledText = pf.compiledMarkdown(author: settings.authorName, people: NamesStore.shared.livePeople())
             pf.lastActivityAt = Date()
             try? context.save()
             writeBackEnhancement(pf)   // re-sync the edited title/copy-edit/summary to the phone (8c)
@@ -746,7 +746,7 @@ final class ProcessingCoordinator {
         let people = NamesStore.shared.livePeople()
         let isConversation = SpeakerTranscript.isConversation(working, source: pf.noteSource)
         pf.relinkNames(working: working, isConversation: isConversation, people: people)
-        pf.compiledText = Compiler.compile(file: pf, author: SettingsStore.shared.load().authorName, knownPeople: people)
+        pf.compiledText = pf.compiledMarkdown(author: SettingsStore.shared.load().authorName, people: people)
         if let context { pf.lastActivityAt = Date(); try? context.save() }
     }
 

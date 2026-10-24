@@ -17,7 +17,8 @@ final class CompilerTests: XCTestCase {
         pf.tags = ["work", "ideas"]
         pf.significance = 0.7
 
-        let md = Compiler.compile(file: pf, author: "Tiuri", date: "2026-06-06")
+        let nick = Person(canonical: "[[Nick Jansen]]", aliases: [], short: "Nick", lastModifiedAt: "x")
+        let md = ExportV2Test.markdown(pf, author: "Tiuri", date: "2026-06-06", people: [nick])
         XCTAssertTrue(md.contains("title: \"My Title\""))
         XCTAssertTrue(md.contains("date: 2026-06-06"))
         XCTAssertTrue(md.contains("author: Tiuri"))
@@ -37,7 +38,11 @@ final class CompilerTests: XCTestCase {
         // a repeated person appears once; `[[img_NNN]]` markers are excluded.
         let pf = makeFile()
         pf.sanitised = "[[img_001]] [[Hendri Van Niekerk]] met [[Bruno Aragorn|Bruno]], then [[Hendri Van Niekerk|Henry]] again."
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        // v2 lists roster people only (v1 listed every link when it was given no roster).
+        let roster = ["[[Hendri Van Niekerk]]", "[[Bruno Aragorn]]"].map {
+            Person(canonical: $0, aliases: [], short: nil, lastModifiedAt: "x")
+        }
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01", people: roster)
         XCTAssertTrue(md.contains("people: [[Hendri Van Niekerk]], [[Bruno Aragorn]]"),
                       "distinct canonicals in reading order, img marker excluded; got: \(md)")
     }
@@ -48,7 +53,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.sanitised = "Met [[Nick Jansen]] at [[Hotel Du Vin]]. ![[photo.jpg]]"
         let people = [Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"], short: "Nick", lastModifiedAt: "x")]
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01", knownPeople: people)
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01", people: people)
         let peopleLine = md.split(separator: "\n").first { $0.hasPrefix("people:") }.map(String.init) ?? ""
         XCTAssertEqual(peopleLine, "people: [[Nick Jansen]]", "only the known person; place + embed excluded")
     }
@@ -56,7 +61,7 @@ final class CompilerTests: XCTestCase {
     func testPeopleEmptyWhenNobodyLinked() {
         let pf = makeFile()
         pf.sanitised = "A plain note about Henry and Bruno, nobody linked."
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01")
         XCTAssertTrue(md.contains("\npeople:\n"), "empty people key when no links; got: \(md)")
         XCTAssertFalse(md.contains("people: [["), "no people values on an unlinked note")
     }
@@ -67,7 +72,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.mediaSource = "video"
         pf.transcript = "advice to my future self"
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-14")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-06-14")
         XCTAssertTrue(md.contains("source: Video"), "video import should export source: Video")
         XCTAssertFalse(md.contains("source: Voice-memo"))
     }
@@ -76,7 +81,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.transcript = "raw"
         pf.enhancedCopyedit = "edited body"
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01")
         XCTAssertTrue(md.hasSuffix("edited body"))
     }
 
@@ -84,7 +89,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.transcript = "hi"
         pf.audioMetadataJSON = Data(#"{"location":{"placeName":"Amsterdam"},"weather":{"conditions":"Cloudy","temperature":12,"temperatureUnit":"°C"},"steps":4200,"recordedAt":"2026-06-05T08:00:00.000Z"}"#.utf8)
-        let md = Compiler.compile(file: pf, author: "T")   // date from recordedAt
+        let md = ExportV2Test.markdown(pf, author: "T")   // date from recordedAt
         XCTAssertTrue(md.contains("location: \"Amsterdam\""))
         XCTAssertTrue(md.contains("weather: \"Cloudy, 12°C\""))   // 12 not 12.0
         XCTAssertTrue(md.contains("steps: 4200"))
@@ -95,7 +100,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.transcript = "body"
         pf.significance = 0.7000000000000001   // float noise the slider produced (E3)
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01")
         XCTAssertTrue(md.contains("significance: 0.7"), "rounded to one decimal")
         XCTAssertFalse(md.contains("0.70000"), "no float-noise decimals in YAML")
     }
@@ -103,7 +108,7 @@ final class CompilerTests: XCTestCase {
     func testEmptySignificanceAndSummaryAreBareKeys() {
         let pf = makeFile()
         pf.transcript = "body"
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01")
         XCTAssertTrue(md.contains("\nsignificance:\n"))
         XCTAssertTrue(md.contains("\nsummary:\n"))
     }
@@ -144,7 +149,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.transcript = captureBody
         pf.audioMetadataJSON = Data(bookJSON.utf8)
-        let md = Compiler.compile(file: pf, author: "Tiuri")
+        let md = ExportV2Test.markdown(pf, author: "Tiuri")
         XCTAssertTrue(md.contains("source: Audiobook-quote"))
         XCTAssertFalse(md.contains("source: Voice-memo"))
         XCTAssertTrue(md.contains("book: \"The Beginning of Infinity\""))
@@ -156,7 +161,7 @@ final class CompilerTests: XCTestCase {
     func testNoBookMetadataKeepsVoiceMemoSource() {
         let pf = makeFile()
         pf.transcript = captureBody   // a quote block alone is NOT an audiobook capture
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01")
         XCTAssertTrue(md.contains("source: Voice-memo"))
         XCTAssertFalse(md.contains("book:"))
         XCTAssertTrue(md.contains("> Optimism is a way"), "body untouched without book metadata")
@@ -168,7 +173,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.transcript = captureBody
         pf.audioMetadataJSON = Data(bookJSON.utf8)
-        let md = Compiler.compile(file: pf, author: "T")
+        let md = ExportV2Test.markdown(pf, author: "T")
         XCTAssertTrue(md.contains("> *Optimism is a way of explaining failure.*"), "quote lines italicised")
         XCTAssertTrue(md.contains("> *Problems are soluble.*"))
         XCTAssertTrue(md.contains("> — [[David Deutsch]], *The Beginning of Infinity*, ch. 4"))
@@ -182,7 +187,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.transcript = "> A line.\n\nramble"
         pf.audioMetadataJSON = Data(#"{"bookTitle":"Some Book","bookAuthor":"Jane Doe"}"#.utf8)
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01")
         XCTAssertTrue(md.contains("> — [[Jane Doe]], *Some Book*"))
         XCTAssertFalse(md.contains("ch. "))
         XCTAssertFalse(md.contains("chapter:"))
@@ -192,7 +197,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.transcript = "> A line.\n\nramble"
         pf.audioMetadataJSON = Data(#"{"bookTitle":"Some Book","bookChapter":"12"}"#.utf8)
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01")
         XCTAssertTrue(md.contains("> — *Some Book*, ch. 12"))
         XCTAssertFalse(md.contains("[["), "no author → no wikilink anywhere")
         XCTAssertFalse(md.contains("bookAuthor:"))
@@ -202,7 +207,7 @@ final class CompilerTests: XCTestCase {
         let pf = makeFile()
         pf.transcript = "just a ramble, the quote got lost upstream"
         pf.audioMetadataJSON = Data(#"{"bookTitle":"Some Book"}"#.utf8)
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-01-01")
         XCTAssertTrue(md.contains("source: Audiobook-quote"), "frontmatter still book-aware")
         XCTAssertTrue(md.hasSuffix("just a ramble, the quote got lost upstream"))
         XCTAssertFalse(md.contains("> — "), "no attribution without a quote block")
@@ -220,6 +225,12 @@ final class CompilerTests: XCTestCase {
 // MARK: - C3 Capture compile tests
 
 final class CaptureCompilerTests: XCTestCase {
+
+    /// Below the frontmatter: v2's `title:` is the C25 ladder, which for an untitled capture is
+    /// its annotation's first line, so order checks look at the body.
+    private func body(_ md: String) -> String {
+        md.components(separatedBy: "\n---\n").dropFirst().joined(separator: "\n---\n")
+    }
 
     private func makeCapture(type: String, sc: [String: Any], annotation: String = "") -> PipelineFile {
         let pf = PipelineFile(id: "c-\(UUID().uuidString)", filename: "capture_test",
@@ -239,7 +250,7 @@ final class CaptureCompilerTests: XCTestCase {
             sc: ["type": "url", "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
                  "urlTitle": "Rich text editing in SwiftUI — strategies that work"],
             annotation: "Try this for the body editor.")
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-06-11")
         XCTAssertTrue(md.contains("source: capture-url"), "source key must be capture-url")
     }
 
@@ -248,7 +259,7 @@ final class CaptureCompilerTests: XCTestCase {
             sc: ["type": "url", "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
                  "urlTitle": "Rich text editing in SwiftUI — strategies that work"],
             annotation: "A note.")
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-06-11")
         XCTAssertTrue(md.contains("url: https://swiftwithmajid.com/2026/05/rich-text-editing"),
                       "url: key in frontmatter for url captures")
     }
@@ -258,7 +269,7 @@ final class CaptureCompilerTests: XCTestCase {
             sc: ["type": "url", "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
                  "urlTitle": "Rich text editing in SwiftUI — strategies that work"],
             annotation: "My annotation.")
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        let md = body(ExportV2Test.markdown(pf, author: "T", date: "2026-06-11"))
         // The shared block must appear BEFORE the annotation.
         let boldTitle = "**Rich text editing in SwiftUI — strategies that work**"
         let urlLine = "https://swiftwithmajid.com/2026/05/rich-text-editing"
@@ -273,7 +284,7 @@ final class CaptureCompilerTests: XCTestCase {
         let pf = makeCapture(type: "url",
             sc: ["type": "url", "url": "https://example.com", "urlTitle": "Example"],
             annotation: "Note.")
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-06-11")
         XCTAssertFalse(md.contains("audio:"), "no audio key for captures")
     }
 
@@ -283,8 +294,9 @@ final class CaptureCompilerTests: XCTestCase {
         let pf = makeCapture(type: "text",
             sc: ["type": "text", "text": "The key insight is that async/await composes naturally."],
             annotation: "This is exactly what we saw with the upload flow.")
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
-        XCTAssertTrue(md.contains("source: capture-text"))
+        let full = ExportV2Test.markdown(pf, author: "T", date: "2026-06-11")
+        XCTAssertTrue(full.contains("source: capture-text"))
+        let md = body(full)
         XCTAssertTrue(md.contains("> The key insight is that async/await composes naturally."),
                       "text snippet as blockquote")
         // blockquote before annotation
@@ -299,8 +311,9 @@ final class CaptureCompilerTests: XCTestCase {
         let pf = makeCapture(type: "image",
             sc: ["type": "image", "fileName": "whiteboard.jpg", "mimeType": "image/jpeg"],
             annotation: "The sync flow diagram from Nick's session.")
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
-        XCTAssertTrue(md.contains("source: capture-image"))
+        let full = ExportV2Test.markdown(pf, author: "T", date: "2026-06-11")
+        XCTAssertTrue(full.contains("source: capture-image"))
+        let md = body(full)
         XCTAssertTrue(md.contains("![[whiteboard.jpg]]"), "image embed in shared block")
         let embedRange = md.range(of: "![[whiteboard.jpg]]")!
         let bodyRange = md.range(of: "The sync flow diagram")!
@@ -314,9 +327,10 @@ final class CaptureCompilerTests: XCTestCase {
         let pf = makeCapture(type: "image",
             sc: ["type": "image", "fileName": "IMG_2041.jpeg", "mimeType": "image/jpeg"],
             annotation: "Ramble about the day.\n\n[[img_001]]\n\n[[img_002]]")
-        let md = Compiler.compile(file: pf, author: "T", date: "2026-07-11")
+        let md = ExportV2Test.markdown(pf, author: "T", date: "2026-07-11")
         XCTAssertFalse(md.contains("![[IMG_2041.jpeg]]"), "no pinned embed when markers place the photos")
-        XCTAssertTrue(md.contains("[[img_001]]"), "markers stay for the exporter to convert")
+        // v2's compile IS the exporter's: a marker with no manifest picture is dropped (C196).
+        XCTAssertFalse(md.contains("[[img_"), "a dangling marker is never printed")
     }
 
     // MARK: captureSharedBlock unit tests

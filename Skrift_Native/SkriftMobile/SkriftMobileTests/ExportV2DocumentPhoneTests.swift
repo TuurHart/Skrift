@@ -1,9 +1,9 @@
 import XCTest
 @testable import SkriftMobile
 
-/// Q513 (R38, C2): with export v2 routed (`ExportV2.routingOverride`), the iPad puts a `.file`
-/// capture's shared document in the vault beside the note, named by the rule the Mac uses
-/// (`ExportV2.documentName`), and links it from the capture block. No document bytes on this
+/// Q513 (R38, C2): through export v2 the iPad puts a `.file` capture's shared document in the
+/// vault beside the note, named by the rule the Mac uses (`ExportV2.documentName`), and links it
+/// from the capture block. No document bytes on this
 /// device → no document and no dangling link. The Mac half is `ExportV2SwapGapsTests`.
 @MainActor
 final class ExportV2DocumentPhoneTests: XCTestCase {
@@ -12,11 +12,9 @@ final class ExportV2DocumentPhoneTests: XCTestCase {
     override func setUpWithError() throws {
         sandbox = FileManager.default.temporaryDirectory.appendingPathComponent("q513-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: sandbox, withIntermediateDirectories: true)
-        ExportV2.routingOverride = true
     }
 
     override func tearDownWithError() throws {
-        ExportV2.routingOverride = nil
         try? FileManager.default.removeItem(at: sandbox)
     }
 

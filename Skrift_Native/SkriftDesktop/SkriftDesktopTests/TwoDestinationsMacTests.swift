@@ -88,23 +88,23 @@ final class TwoDestinationsMacTests: XCTestCase {
         for (tags, wants) in [(["inspiration"], true), (["Inspiration", "idea"], true),
                               (["idea"], false), (["project"], false), ([], false)] as [([String], Bool)] {
             let pf = try row(tags: tags)
-            let md = Compiler.compile(file: pf, author: "Me", date: "2026-10-11", profile: .portfolio)
+            let md = ExportV2Test.markdown(pf, author: "Me", date: "2026-10-11", profile: .portfolio)
             XCTAssertEqual(md.contains("  - credit"), wants, "tags \(tags)")
         }
     }
 
     func testPortfolioProfileHasNoSummaryButTheVaultKeepsIt() throws {
         let pf = try row(tags: ["idea"])
-        let portfolio = Compiler.compile(file: pf, author: "Me", date: "2026-10-11", profile: .portfolio)
+        let portfolio = ExportV2Test.markdown(pf, author: "Me", date: "2026-10-11", profile: .portfolio)
         XCTAssertFalse(portfolio.contains("summary:"), portfolio)
-        let vault = Compiler.compile(file: pf, author: "Me", date: "2026-10-11", profile: .obsidian)
+        let vault = ExportV2Test.markdown(pf, author: "Me", date: "2026-10-11", profile: .obsidian)
         XCTAssertTrue(vault.contains("summary: \"A bench worth copying.\""), vault)
     }
 
     func testAnOldStoredIdeaStillCompilesWithItsTag() throws {
         let pf = try row(tags: ["lisbon"])
         pf.destinationRaw = "idea"
-        let md = Compiler.compile(file: pf, author: "Me", date: "2026-10-11", profile: .portfolio)
+        let md = ExportV2Test.markdown(pf, author: "Me", date: "2026-10-11", profile: .portfolio)
         XCTAssertTrue(md.contains("tags:\n  - lisbon\n  - idea"), md)
     }
 }

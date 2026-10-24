@@ -286,21 +286,21 @@ final class PortfolioExportTests: XCTestCase {
                           lastModifiedAt: "2026-01-01T00:00:00Z")
         let body = "Saw [[Jack]] at [[Hotel Du Vin]] and it gave me an idea."
 
-        let kept = Compiler.plainifyNonPeopleLinks(in: body, knownPeople: [jack])
+        let kept = ExportV2.Body.keepingOnlyPeople(body, people: [jack])
         XCTAssertEqual(kept, "Saw [[Jack]] at Hotel Du Vin and it gave me an idea.",
                        "credit the person, drop the place — Tuur's call, 2026-08-26")
     }
 
     func testPlainifyLeavesImageEmbedsAlone() {
         let body = "![[shot.jpg]] and [[Somewhere]]"
-        XCTAssertEqual(Compiler.plainifyNonPeopleLinks(in: body, knownPeople: []),
+        XCTAssertEqual(ExportV2.Body.keepingOnlyPeople(body, people: []),
                        "![[shot.jpg]] and Somewhere",
                        "an embed is not a link")
     }
 
     func testPlainifyKeepsTheSpokenFormOfAnAliasLink() {
         XCTAssertEqual(
-            Compiler.plainifyNonPeopleLinks(in: "at [[Hotel Du Vin|the hotel]] again", knownPeople: []),
+            ExportV2.Body.keepingOnlyPeople("at [[Hotel Du Vin|the hotel]] again", people: []),
             "at the hotel again",
             "the reader saw the spoken form — that is the text that stays")
     }

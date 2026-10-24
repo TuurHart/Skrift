@@ -111,7 +111,7 @@ final class LibraryHatchMoveTests: XCTestCase {
         XCTAssertEqual(memo.metadata?.bookKind, "pdf")
         XCTAssertEqual(SourceKind.of(memo), .pdfLink)
 
-        let md = MemoExporter.markdown(for: memo, people: [])
+        let md = ExportV2Test.markdown(for: memo, people: [])
         XCTAssertTrue(md.contains("source: PDF-link"), md)
         XCTAssertTrue(md.contains("— *GFR grant application, draft 3*, p. 4"), md)
         XCTAssertFalse(md.contains("PDF-quote"), md)
@@ -125,7 +125,7 @@ final class LibraryHatchMoveTests: XCTestCase {
                         kind: .episode, duration: 3713, position: 1421)
         let memo = try XCTUnwrap(repo.memo(id: try XCTUnwrap(LibraryHatch.sendToNote(book: ep, repository: repo))))
         XCTAssertEqual(SourceKind.of(memo), .episodeLink)
-        let md = MemoExporter.markdown(for: memo, people: [])
+        let md = ExportV2Test.markdown(for: memo, people: [])
         XCTAssertTrue(md.contains("source: Episode-link"), md)
         XCTAssertTrue(md.contains("— *NRC Het Uur*, Joris Luyendijk: Ik zit in een rouwproces, 23:41"), md)
     }

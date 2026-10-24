@@ -4,7 +4,7 @@ import SwiftData
 
 /// Writes a compiled note to the Obsidian vault: the `.md` (frontmatter + body) at
 /// the vault root, the original audio into the audio subfolder, and any captured
-/// images into the attachments subfolder. Pure (Compiler + FileManager), so the
+/// images into the attachments subfolder. Pure (ExportV2 + FileManager), so the
 /// coordinator and the `-runfile` harness share it and it host-tests.
 enum VaultExporter {
     struct Result: Equatable {
@@ -211,165 +211,6 @@ enum VaultExporter {
                                 device: .mac)
     }
 
-    /// Export through the SHARED engine (`VaultWriter`, 2026-07-26): this file keeps
-    /// only the Mac's asset sourcing (working-folder images, Apple-Note attachments);
-    /// naming, the stamp, the edit guard, collision handling, atomic+coordinated
-    /// writes and the ledger are the one cross-app implementation. The engine is
-    /// asked FIRST (`assess`) so a refused note copies zero images and touches
-    /// nothing — the old path wrote `<title>.md` unconditionally over whatever was
-    /// there, with a bare non-atomic write, into a folder that lives in iCloud.
-    ///
-    /// `session` (Q365): an export RUN shares one decoded ledger per destination and one names
-    /// snapshot across its notes, and folds the ledger to disk once at `finish()`. nil = a
-    /// one-off export, exactly as before (its own ledger, written on change).
-    @discardableResult
-    static func export(_ pf: PipelineFile, settings: AppSettings,
-                       session: ExportSession? = nil) throws -> Result {
-        // Q436: export v2 ships; v1 stays callable for the corpus harness until Q437 deletes it.
-        ExportV2.routes ? try exportV2(pf, settings: settings, session: session)
-                        : try exportV1(pf, settings: settings, session: session)
-    }
-
-    /// v1's export, kept beside v2 until Q437 (the harness's `V1Engine` pins it).
-    @discardableResult
-    static func exportV1(_ pf: PipelineFile, settings: AppSettings,
-                         session: ExportSession? = nil) throws -> Result {
-        // The engine-scope gate (`ExportGate`, the SAME predicate the iPad runs): folder, a
-        // locked note NEVER reaching the plaintext vault, and the D139 two-versions hold
-        // (Mac-only). Rating / trash / processing are asked by the callers that act on a
-        // person's press (`ProcessingCoordinator.export`, `reexportEdited`) with the `full`
-        // scope — this write path is also reached by the headless harness with bare rows.
-        // (Locking never deletes an already-exported file; the phone's lock flow says so.)
-        if let failure = ExportGate.check(gateFacts(for: pf, settings: settings, processed: true),
-                                          device: .mac, scope: .engine) {
-            throw ExportError(failure)
-        }
-        // WHERE and HOW both follow the note's destination — `.personal` is the Obsidian
-        // vault and today's layout, unchanged; a portfolio destination is its folder inside
-        // the portfolio root, written flat (`ExportProfile`).
-        let profile = ExportProfile.of(pf.destination)
-        guard let vaultURL = exportHome(for: pf, settings: settings) else {
-            throw ExportError(pf.destination.isPortfolio ? .noPortfolioFolder : .noVaultFolder)
-        }
-        try FileManager.default.createDirectory(at: vaultURL, withIntermediateDirectories: true)
-
-        let id = ledgerID(for: pf)
-        // C163 (Q490): re-filed to the other destination since it was exported? Edited or filed
-        // elsewhere there refuses the move, named, and nothing is written anywhere. Ours and
-        // untouched is removed below, once the new home has agreed to take the note.
-        let move = destinationMove(pf, id: id, settings: settings, session: session)
-        if case .refused(let refusal) = move { return refusal }
-        // Folder names are the engine's now, not settings — see VaultWriter.
-        let writer = VaultWriter(root: vaultURL, ledger: session?.ledger(for: vaultURL) ?? .default(for: vaultURL),
-                                 profile: profile)
-
-        // Phase 1 — may we write, and where? A refusal costs nothing: no compile
-        // output lands, no image is copied, the vault is untouched.
-        let relPath: String
-        let rewritesOurOwnFile: Bool
-        // The C25 ladder's title (`pf.exportTitle`), the same one the iPad names the file
-        // from — one note, one file name, whichever device writes it first.
-        switch writer.assess(id: id, title: pf.exportTitle, filenameFallback: pf.filename,
-                             recordedAt: MemoDate.isUnknown(captureDate(for: pf)) ? nil : captureDate(for: pf)) {
-        case .refused(let outcome):
-            return Result(outcome: outcome,
-                          markdownURL: vaultURL.appendingPathComponent(outcome.relativePath),
-                          audioURL: nil, imageCount: 0)
-        case .proceed(let rel, let creates):
-            relPath = rel
-            rewritesOurOwnFile = !creates
-        }
-        if case .removeOld(let rel, let old, let ledger) = move {
-            DestinationMove.removeOld(relativePath: rel, id: id, oldHome: old, ledger: ledger)
-        }
-        // The stem the ENGINE chose — sticky across retitles, collision-resolved —
-        // names the attachments too, so embeds always match their files.
-        let safe = ((relPath as NSString).lastPathComponent as NSString).deletingPathExtension
-
-        // Filter `people:` to actual persons at export — the vault output is the one that
-        // must be clean (no place/embed links leaking into the people graph). Memo-link
-        // stems consult THIS vault's ledger first, so links follow the files actually
-        // written (a retitled target keeps its sticky filename).
-        let markdown = Compiler.compile(file: pf, author: settings.authorName,
-                                        knownPeople: session?.people ?? NamesStore.shared.livePeople(),
-                                        linkLedger: writer.ledger, profile: profile)
-
-        // The body is exported as stored (C65): body v2 already made every picture its
-        // own paragraph at write time. Only a body stored before v2 goes through the Q13
-        // read-only fallback (`BodyV2Legacy`, Q14 removes it), so it still exports as it reads.
-        let compiled = ExportBody.shown(markdown)
-        let attDir = imageDestination(vaultURL: vaultURL, relativePath: relPath, profile: profile)
-
-        // Q365 (G9): the skip check BEFORE any picture is placed. When the ledger says we wrote
-        // this very file, the markdown built with every picture at its preferred name equals
-        // what is there, and every picture already sits at that name with the source's size
-        // and no newer date than our write, the full path would come back `.unchanged` too —
-        // so return that without reading a single image byte. Anything else (an edit, a missing
-        // or replaced picture) takes the full path below, unchanged.
-        if rewritesOurOwnFile, let entry = writer.ledger.entry(for: id), entry.relativePath == relPath {
-            var planned: [(src: URL, dest: URL)] = []
-            let (dry, dryCount) = placeAssets(compiled, for: pf, safe: safe, attDir: attDir, id: id,
-                                              profile: profile) { src, name, dir in
-                let dest = dir.appendingPathComponent(name)
-                planned.append((src, dest))
-                return dest
-            }
-            if planned.allSatisfy({ assetLooksCurrent(source: $0.src, vaultCopy: $0.dest, writtenAt: entry.exportedAt) }),
-               writer.isUnchanged(markdown: dry, id: id, relativePath: relPath) {
-                return Result(outcome: .unchanged(relativePath: relPath),
-                              markdownURL: vaultURL.appendingPathComponent(relPath),
-                              audioURL: nil, imageCount: dryCount)
-            }
-        }
-
-        let (finalMarkdown, imageCount) = placeAssets(compiled, for: pf, safe: safe, attDir: attDir, id: id,
-                                                      profile: profile, place: owned(id))
-
-        // Original audio rides the engine's asset lane (per-note opt-out honored).
-        var audio: VaultAsset?
-        if pf.includeAudioInExport, pf.sourceType == .audio,
-           !pf.path.isEmpty, FileManager.default.fileExists(atPath: pf.path) {
-            let ext = URL(fileURLWithPath: pf.path).pathExtension
-            audio = VaultAsset(name: safe + "." + (ext.isEmpty ? "m4a" : ext),
-                               source: .file(URL(fileURLWithPath: pf.path)))
-        }
-
-        // The source MOVIE, portfolio only. It is bound to its note the same way the picture is
-        // — by filename, not by a markdown reference, because no markdown embed plays a video
-        // and the portfolio's rule is that the pair travels together. The vault never gets it:
-        // a 500 MB clip has no business in a notes folder, and `capture: Video` already tells
-        // a reader where the words came from.
-        var documents: [VaultAsset] = []
-        if profile == .portfolio, let working = pf.workingFolder,
-           let movie = Self.keptSourceVideo(in: working) {
-            documents.append(VaultAsset(name: safe + "." + movie.pathExtension,
-                                        source: .file(movie)))
-        }
-
-        // Phase 2 — stamp + atomic coordinated write (or skip everything when the
-        // content is already current: no mtime churn for iCloud to chew on).
-        let r = try writer.commit(markdown: finalMarkdown, id: id, relativePath: relPath,
-                                  audio: audio, documents: documents,
-                                  removedAttachments: removedPictures(compiled, for: pf, safe: safe, profile: profile))
-        return Result(outcome: r.outcome, markdownURL: r.markdownURL,
-                      audioURL: r.audioURL, imageCount: imageCount, removedPictures: r.removedAttachments)
-    }
-
-    /// C158: the pictures whose marker left the body, as the bytes we placed them from (the
-    /// manifest entry and its file stay, C14). A legacy marker-less capture keeps its own
-    /// copy-under-original-name path and never has `<stem>_NNN` copies to remove.
-    static func removedPictures(_ compiled: String, for pf: PipelineFile, safe: String,
-                                profile: ExportProfile) -> [VaultAsset] {
-        guard let imagesDir = pf.workingFolder?.appendingPathComponent("images"),
-              !(pf.sourceType == .capture && !compiled.contains("[[img_")) else { return [] }
-        return profile.removedPictures(compiled, manifest: pictureManifest(imagesDir: imagesDir), stem: safe)
-            .compactMap { p in
-                let src = imagesDir.appendingPathComponent(p.source)
-                return FileManager.default.fileExists(atPath: src.path)
-                    ? VaultAsset(name: p.embedName, source: .file(src)) : nil
-            }
-    }
-
     /// Places one picture/attachment: `(source file, preferred name, folder) -> URL written`
     /// (nil = could not place, the embed is dropped). The real one is `copyOwned`; the Q365
     /// skip check passes one that only records where each would go.
@@ -378,57 +219,6 @@ enum VaultExporter {
     /// The real placer: the C58 ownership-safe copy.
     static func owned(_ id: UUID) -> Placer {
         { src, name, dir in VaultAttachmentOwnership.copyOwned(from: src, preferredName: name, into: dir, id: id) }
-    }
-
-    /// Every asset step of an export, in order, through `place`: `[[img_NNN]]` markers →
-    /// embeds (or the legacy capture folder copy), then Apple-Note `Attachments/` refs.
-    /// Returns the markdown with embeds and the asset count.
-    static func placeAssets(_ markdown: String, for pf: PipelineFile, safe: String, attDir: URL,
-                            id: UUID, profile: ExportProfile, place: @escaping Placer) -> (String, Int) {
-        // Convert [[img_NNN]] markers → ![[<safe>_NNN.ext]] Obsidian embeds and copy
-        // the matched images into the attachments subfolder. The working folder (which holds
-        // `images/`) is the ONE `pf.workingFolder` derivation (captures → pf.path; audio/notes
-        // → its parent).
-        var finalMarkdown = markdown
-        var imageCount = 0
-        let imagesDir = pf.workingFolder?.appendingPathComponent("images")
-        if let imagesDir, FileManager.default.fileExists(atPath: imagesDir.path),
-           pf.sourceType == .capture, !finalMarkdown.contains("[[img_") {
-            // Legacy marker-less captures keep the copy-under-original-name path (their
-            // pinned `![[filename]]` embed references the original name).
-            (finalMarkdown, imageCount) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: finalMarkdown,
-                                                                  id: id, place: place)
-        } else if let imagesDir {
-            // Memos AND Share-Wave-2 captures carry `[[img_NNN]]` markers → the shared
-            // converter. Runs even with no `images/` folder: a dangling marker is dropped,
-            // never printed (C196).
-            (finalMarkdown, imageCount) = convertImageMarkers(finalMarkdown, imagesDir: imagesDir, safe: safe,
-                                                              into: attDir, id: id, profile: profile, place: place)
-        } else if finalMarkdown.contains("[[img_") {
-            (finalMarkdown, _) = profile.convertPictureMarkers(finalMarkdown, manifest: [], stem: safe)
-        }
-
-        // D199: videos and files in the body go beside the note like photos, through the same
-        // placer (the ownership copy, or the Q365 dry run).
-        let (withAttachments, attachmentCount) = MacNoteAttachments.convertMarkers(
-            finalMarkdown, working: pf.workingFolder, safe: safe, into: attDir, profile: profile, place: place)
-        finalMarkdown = withAttachments
-        imageCount += attachmentCount
-
-        // Apple-Note attachments: copy the note's `Attachments/` into the vault
-        // attachments folder and convert `(Attachments/<name>)` refs → Obsidian
-        // `![[<name>]]` embeds (robust to the renamed files' spaces).
-        if pf.sourceType == .note, !pf.path.isEmpty {
-            let attSrc = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
-                .appendingPathComponent("Attachments", isDirectory: true)
-            if FileManager.default.fileExists(atPath: attSrc.path) {
-                let (rewritten, copied) = convertNoteAttachments(finalMarkdown, attachmentsSrc: attSrc, into: attDir,
-                                                                 id: id, place: place)
-                finalMarkdown = rewritten
-                imageCount += copied
-            }
-        }
-        return (finalMarkdown, imageCount)
     }
 
     /// Stat-only (Q365): is the vault copy at `vaultCopy` plausibly the one we placed from
@@ -455,36 +245,6 @@ enum VaultExporter {
         VaultName.stem(title: pf.exportTitle, filename: pf.filename)
     }
 
-    /// Replace `[[img_NNN]]` markers with this profile's embeds of `<safe>_NNN.ext`
-    /// (`![[x]]` vault, `![](x)` portfolio) through the ONE shared converter
-    /// (`ExportProfile.convertPictureMarkers`, the phone's publisher uses it too), copying
-    /// each resolved picture into `attDir`. NNN resolves through the note's
-    /// `image_manifest.json` (the N-th entry, the same rule `NoteBody` renders with);
-    /// a folder written before manifests existed falls back to its sorted `images/`
-    /// listing. A marker with no entry, no file on disk, or a failed copy is DROPPED.
-    /// Returns the rewritten markdown + copy count.
-    /// `id` disambiguates a name collision with a file this device doesn't own (C58) —
-    /// same ownership rule the markdown lane already applies (C54): never a blind
-    /// `removeItem`, a foreign occupant gets left alone and ours lands under a suffix.
-    static func convertImageMarkers(_ markdown: String, imagesDir: URL, safe: String,
-                                    into attDir: URL, id: UUID,
-                                    profile: ExportProfile = .obsidian, place: Placer? = nil) -> (String, Int) {
-        guard markdown.contains("[[img_") else { return (markdown, 0) }
-        let fm = FileManager.default
-        var copied = 0
-        let r = profile.convertPictureMarkers(markdown, manifest: pictureManifest(imagesDir: imagesDir),
-                                              stem: safe) { source, preferredName in
-            let file = imagesDir.appendingPathComponent(source)
-            guard fm.fileExists(atPath: file.path) else { return nil }
-            guard let written = (place ?? owned(id))(file, preferredName, attDir) else {
-                Self.logCopyFailure(name: source); return nil
-            }
-            copied += 1
-            return written.lastPathComponent
-        }
-        return (r.markdown, copied)
-    }
-
     /// The note's picture manifest as ordered filenames: `image_manifest.json` beside
     /// `images/` (written by phone sync, uploads, video and mixed-drop ingest), else the
     /// sorted `images/` listing for a folder that predates manifests. Empty when neither.
@@ -508,8 +268,8 @@ enum VaultExporter {
 
     /// LEGACY (pre-Wave-2) captures: copy images from the capture's `images/` folder to
     /// the vault attachments folder under their original names — no `[[img_NNN]]` markers
-    /// in the body, the Compiler emitted a pinned `![[filename]]` embed instead. Wave-2
-    /// captures carry markers and go through `convertImageMarkers` like memos. A name
+    /// in the body, the capture block pins a `![[filename]]` embed instead. Wave-2
+    /// captures carry markers and go through export v2's picture placing like memos. A name
     /// collision with a file this device doesn't own (C58) never deletes it — ours lands
     /// under a disambiguated name instead, and the pinned embed is rewritten to match.
     static func copyCaptureFolderImages(imagesDir: URL, into attDir: URL, markdown: String, id: UUID,
@@ -527,7 +287,7 @@ enum VaultExporter {
             }
             copied += 1
             if written.lastPathComponent != originalName {
-                // The pinned embed the Compiler already baked in references the ORIGINAL
+                // The pinned embed the compile already baked in references the ORIGINAL
                 // name — a foreign file occupied it, so keep the reference pointed at what
                 // we actually wrote.
                 out = out.replacingOccurrences(of: "[[\(originalName)]]", with: "[[\(written.lastPathComponent)]]")
@@ -542,9 +302,9 @@ enum VaultExporter {
     /// embeds/links (`![[x]]` / `[[x]]`). Robust to spaces in the renamed files (the
     /// wikilink form sidesteps markdown URL escaping). Returns rewritten md + copies.
     /// `id` disambiguates a name collision with a file this device doesn't own (C58).
-    /// `profile` (Q434, export v2): the portfolio's `![](x)` / `[x](x)`; nil = v1's wiki form.
+    /// `profile`: the portfolio's `![](x)` / `[x](x)`, the vault's `![[x]]` / `[[x]]` (R51).
     static func convertNoteAttachments(_ markdown: String, attachmentsSrc: URL, into attDir: URL, id: UUID,
-                                       place: Placer? = nil, profile: ExportProfile? = nil) -> (String, Int) {
+                                       place: Placer? = nil, profile: ExportProfile) -> (String, Int) {
         let fm = FileManager.default
         guard let rx = try? NSRegularExpression(pattern: "(!?)\\[[^\\]]*\\]\\(Attachments/([^)]+)\\)") else {
             return (markdown, 0)

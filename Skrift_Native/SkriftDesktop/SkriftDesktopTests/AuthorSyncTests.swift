@@ -46,8 +46,8 @@ final class AuthorSyncTests: XCTestCase {
         XCTAssertEqual(AuthorSettings.modifiedAt(defaults: ipad), newer, "the remote stamp is kept")
 
         let input = CompilerInput(filename: "n.md", transcript: "Words.")
-        let mac = Compiler.compile(input, author: "Tuur", date: "2026-10-03")
-        let pad = Compiler.compile(input, author: AuthorSettings.name(defaults: ipad), date: "2026-10-03")
+        let mac = ExportV2Test.markdown(input, author: "Tuur", date: "2026-10-03")
+        let pad = ExportV2Test.markdown(input, author: AuthorSettings.name(defaults: ipad), date: "2026-10-03")
         XCTAssertEqual(mac, pad)
         XCTAssertTrue(pad.contains("\nauthor: Tuur\n"), pad)
     }

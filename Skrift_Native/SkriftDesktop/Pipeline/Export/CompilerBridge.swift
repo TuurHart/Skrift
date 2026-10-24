@@ -1,15 +1,14 @@
 import Foundation
 import SwiftData
 
-// Desktop bridge to the shared `Compiler` (Skrift_Native/Shared/Export). The pure compiler
-// moved to Shared behind the neutral `CompilerInput` so the phone compiles the SAME engine
-// (standalone Phase 2). This file keeps the desktop-only pieces:
+// Desktop bridge to the shared export compile (`ExportV2`, fed the neutral `CompilerInput` the
+// phone builds too). This file keeps the desktop-only pieces:
 //   • `PhoneMetadata` — the metadata decode helper several desktop surfaces still use
 //     directly (BatchRunner, QueueDerivations, NoteProperties, NoteDisplayView,
 //     CaptureViews, tests). It mirrors the PHONE's metadata shape. (`SharedContent`
 //     itself is the ONE shared wire struct now — Shared/Model/SharedContent.swift.)
 //   • `PipelineFile.compilerInput` — maps a queue item into the neutral DTO.
-//   • `Compiler.compile(file:)` — byte-identical shim so every existing call site is unchanged.
+//   • `PipelineFile.compiledMarkdown` — the review draft / copy-as-markdown, compiled by v2.
 
 /// Phone-sent metadata, decoded from `PipelineFile.audioMetadataJSON` for the export
 /// frontmatter. Q172 (books-102): the lenient reader now lives in Shared beside the
@@ -18,9 +17,8 @@ import SwiftData
 typealias PhoneMetadata = MemoMetadata.Lenient
 
 extension PipelineFile {
-    /// Map this queue item into the neutral `CompilerInput` the shared `Compiler` consumes.
-    /// Decodes the metadata blob through the desktop `PhoneMetadata`/`SharedContent` helpers
-    /// exactly as the pre-Shared `Compiler.compile` did, so output stays byte-identical.
+    /// Map this queue item into the neutral `CompilerInput` export v2 consumes, decoding the
+    /// metadata blob through the desktop `PhoneMetadata`/`SharedContent` helpers.
     var compilerInput: CompilerInput { compilerInput(people: []) }
 
     /// Q471: `people` (the live roster) links a voice / video share's sender line, which the
@@ -109,23 +107,12 @@ extension PipelineFile {
     }
 }
 
-extension Compiler {
-    /// Desktop convenience — compile straight from a `PipelineFile`. Also supplies the
-    /// memo-link resolver (the phone's publish path does the same via `linkStems`): when
-    /// the body carries `[[memo:UUID|Title]]` links, they export as `[[<stem>|Title]]`
-    /// pointing at the LINKED note's Mac-exported filename instead of degrading to the
-    /// title-snapshot fallback. Zero cost for the 99% of notes without links.
-    static func compile(file pf: PipelineFile, author: String, date: String? = nil,
-                        knownPeople: [Person]? = nil, linkLedger: ExportLedger? = nil,
-                        profile: ExportProfile = .obsidian) -> String {
-        var input = pf.compilerInput(people: knownPeople ?? [])
-        let body = input.sanitised ?? input.enhancedCopyedit ?? input.transcript ?? ""
-        if !MemoLinkSyntax.occurrences(in: body).isEmpty, let context = pf.modelContext {
-            let stems = MemoLinkStems.map(context, ledger: linkLedger)
-            input.setLinkStems(stems)
-        }
-        return compile(input, author: author, date: date, knownPeople: knownPeople,
-                       profile: profile)
+extension PipelineFile {
+    /// The note as export v2 compiles it for the vault, nothing placed: the review draft
+    /// (`compiledText`) and copy-as-markdown. Memo-links resolve to the derived stems (no ledger).
+    func compiledMarkdown(author: String, people: [Person]) -> String {
+        ExportV2.compile(VaultExporter.v2Note(self, people: people, author: author),
+                         profile: .obsidian, stem: VaultExporter.noteStem(self)).markdown
     }
 }
 

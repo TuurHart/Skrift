@@ -57,8 +57,7 @@ enum CopyEditV2Mac {
                                  },
                                  compile: {
                                      pf.enhanceStatus = .done
-                                     pf.compiledText = Compiler.compile(file: pf, author: settings.authorName,
-                                                                        knownPeople: people)
+                                     pf.compiledText = pf.compiledMarkdown(author: settings.authorName, people: people)
                                  }))
     }
 

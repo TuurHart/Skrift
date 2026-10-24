@@ -1124,8 +1124,8 @@ struct SidebarView: View {
                 case .copyMarkdown:
                     Button(item.label) {
                         MacGatedCopy.copy(f, text: {
-                            f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName,
-                                                               knownPeople: NamesStore.shared.livePeople())
+                            f.compiledText ?? f.compiledMarkdown(author: SettingsStore.shared.load().authorName,
+                                                                 people: NamesStore.shared.livePeople())
                         }, flash: { coordinator.flash($0) })
                     }
                 case .revealInFinder:

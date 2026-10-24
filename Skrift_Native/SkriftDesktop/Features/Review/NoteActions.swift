@@ -242,9 +242,8 @@ struct NoteActions: View {
     }
 
     private func compiledMarkdown() -> String {
-        file.compiledText ?? Compiler.compile(file: file,
-                                              author: SettingsStore.shared.load().authorName,
-                                              knownPeople: NamesStore.shared.livePeople())
+        file.compiledText ?? file.compiledMarkdown(author: SettingsStore.shared.load().authorName,
+                                                   people: NamesStore.shared.livePeople())
     }
 
     private func revealInFinder() {

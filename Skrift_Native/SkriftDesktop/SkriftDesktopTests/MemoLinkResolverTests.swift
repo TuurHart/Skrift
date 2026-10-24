@@ -3,7 +3,7 @@ import SwiftData
 import Foundation
 
 /// The Mac side of memo↔memo link export (phone chunk 5 parity): the desktop
-/// `Compiler.compile(file:)` shim supplies `CompilerInput.memoLinkResolver` from the
+/// `ExportV2Test.markdown(file:)` shim supplies `CompilerInput.memoLinkResolver` from the
 /// queue's own exported stems (`MemoLinkStems` over `VaultExporter.noteStem`), so
 /// `[[memo:UUID|Title]]` leaves the Mac as a resolver-precise `[[<stem>|Title]]` —
 /// not the title-snapshot fallback the Mac used to emit (nil resolver).
@@ -29,7 +29,7 @@ final class MemoLinkResolverTests: XCTestCase {
         ctx.insert(source)
         try ctx.save()
 
-        let md = Compiler.compile(file: source, author: "Tiuri")
+        let md = ExportV2Test.markdown(source, author: "Tiuri")
         XCTAssertTrue(md.contains("[[Target Note|Old Snapshot]]"),
                       "link resolves to the TARGET's exported stem, keeping the display title")
         XCTAssertFalse(md.contains("memo:"), "raw syntax never reaches the vault")
@@ -42,7 +42,7 @@ final class MemoLinkResolverTests: XCTestCase {
         ctx.insert(source)
         try ctx.save()
 
-        let md = Compiler.compile(file: source, author: "Tiuri")
+        let md = ExportV2Test.markdown(source, author: "Tiuri")
         XCTAssertTrue(md.contains("[[Vanished Note]]"), "unknown target → readable title fallback")
         XCTAssertFalse(md.contains("memo:"))
     }

@@ -1,28 +1,9 @@
 import Foundation
 
-/// Exports a `Memo` to Obsidian markdown so a phone-only note can leave the device (standalone
-/// Phase 2). Reuses the shared `Compiler` (via the neutral `CompilerInput`) + on-device
-/// `MemoLinking`, so the phone's markdown matches what the Mac would produce for the same
-/// memo (no drift). Plain text, PDF and quote-card export were removed 2026-09-30 (Q80, D154).
-///
-/// `author` is the note's author (the user): the synced Settings → Obsidian "Author" field
-/// (`AuthorSettings.name()`); "" leaves the frontmatter `author:` blank.
+/// What export v2 (`ObsidianPublisher.v2Note`) reads about a `Memo`: the neutral `CompilerInput`
+/// with on-device `MemoLinking`, so the phone's note matches what the Mac would produce for the
+/// same memo (no drift). Plain text, PDF and quote-card export were removed 2026-09-30 (Q80, D154).
 enum MemoExporter {
-
-    // MARK: - Markdown (Obsidian)
-
-    /// Full Obsidian markdown (YAML frontmatter + name-linked body) via the shared `Compiler`.
-    /// `enhancement` (the Mac's CloudKit write-back) is preferred when present — a paired Mac
-    /// auto-upgrades the export; nil = on-device raw + linking.
-    static func markdown(for memo: Memo, people: [Person], author: String = "",
-                         enhancement: MemoEnhancement? = nil,
-                         linkStems: [UUID: String] = [:],
-                         profile: ExportProfile = .obsidian) -> String {
-        let input = compilerInput(for: memo, people: people, enhancement: enhancement,
-                                  linkStems: linkStems)
-        return Compiler.compile(input, author: author, date: MemoDate.isUnknown(memo.recordedAt) ? "" : dateString(memo.recordedAt),
-                                knownPeople: people, profile: profile)
-    }
 
     // MARK: - Memo → CompilerInput
 
@@ -66,8 +47,8 @@ enum MemoExporter {
 
     /// The export title — the shared C25 ladder (`ExportNaming.title`, the Mac's rule too):
     /// user title → the Mac's suggested title (`enhancement.title`) → first body line →
-    /// share title → "Note"/"Voice note". Always non-empty so the Compiler never falls back
-    /// to the (synthetic) filename stem. `people` is kept for call-site stability: linking
+    /// share title → "Note"/"Voice note". Always non-empty, so the synthetic filename never
+    /// names the note. `people` is kept for call-site stability: linking
     /// only wraps spoken words, so the plain first line is the same with or without it.
     static func exportTitle(for memo: Memo, people: [Person],
                             enhancement: MemoEnhancement? = nil) -> String {
@@ -105,7 +86,7 @@ enum MemoExporter {
             dayPeriod: m.dayPeriod?.rawValue,
             daylight: m.daylight.map { CompilerMetadata.Daylight(sunrise: $0.sunrise, sunset: $0.sunset, hoursOfLight: $0.hoursOfLight) },
             steps: m.steps,
-            recordedAt: nil,                                   // date supplied via the `date:` override
+            recordedAt: nil,                                   // `v2Note` supplies `rawRecordedAt`
             bookTitle: m.bookTitle, bookAuthor: m.bookAuthor, bookChapter: m.bookChapter,
             bookPosition: m.bookPosition,                      // a link note's place (Q372)
             bookURL: m.bookURL                                 // an article quote's page (Q355)
@@ -118,7 +99,4 @@ enum MemoExporter {
         guard let t = s?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
         return t
     }
-
-    /// `date:` — the recording's local day, the ONE rule the Mac uses too (C64).
-    static func dateString(_ date: Date) -> String { ExportNaming.localDay(date) }
 }

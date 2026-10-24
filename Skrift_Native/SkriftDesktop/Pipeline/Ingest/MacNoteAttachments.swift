@@ -163,27 +163,4 @@ enum MacNoteAttachments {
     }
 
     static let posterName = "poster.jpg"
-
-    /// Replace `[[vid_NNN]]` / `[[file_NNN]]` with embeds of the files copied beside the note
-    /// (`NoteAttachment.convertMarkers`), through the same placer photos use (C58 ownership copy,
-    /// the Q365 dry run). Returns the markdown and the copy count.
-    static func convertMarkers(_ markdown: String, working: URL?, safe: String, into attDir: URL,
-                               profile: ExportProfile, place: VaultExporter.Placer) -> (String, Int) {
-        guard markdown.contains("[[vid_") || markdown.contains("[[file_") else { return (markdown, 0) }
-        let entries = working.map { manifest(in: $0) } ?? []
-        let dir = working.map { folder(in: $0) }
-        // The kept movie never goes to the vault (C63); its poster frame does, in its place (D210).
-        // Both live in the shared `ExportBody.convertAttachmentMarkers`.
-        let r = ExportBody.convertAttachmentMarkers(markdown, manifest: entries, stem: safe, profile: profile,
-                                                    poster: { _, preferred in
-            guard let working, let frame = posterFrame(in: working) else { return nil }
-            return place(frame, preferred, attDir)?.lastPathComponent
-        }) { source, preferred in
-            guard let dir else { return nil }
-            let file = dir.appendingPathComponent(source)
-            guard FileManager.default.fileExists(atPath: file.path) else { return nil }
-            return place(file, preferred, attDir)?.lastPathComponent
-        }
-        return (r.markdown, r.placed)
-    }
 }

@@ -2,7 +2,7 @@ import Foundation
 
 /// Export compiler v2 (Q434, C2): one pure function from a note to the file both destinations
 /// get — frontmatter, body with every marker turned into its embed, and the pictures it placed.
-/// Both apps export through it since the swap (Q436); v1 (`Compiler`) stays until Q437. I/O, ownership, stamps, the
+/// Both apps export through it (Q436); v1's compiler was deleted in Q437 (tag `v1-export`). I/O, ownership, stamps, the
 /// layout of the picked folder and the ledger stay the shared writer's (`VaultWriter`,
 /// `VaultStamp`, `VaultLayout.home`, `DestinationMove`): v2 decides WHAT is written, the writer
 /// WHERE and WHETHER.
@@ -15,29 +15,6 @@ import Foundation
 /// hand-typed `[[word]]` that resolves to nothing kept a link (D216), the quote attribution (C60),
 /// `date:` the recording's local day (C64), OCR text and a shared document exported (R38).
 enum ExportV2 {
-
-    /// THE swap switch (Q511): true routes the Mac's `VaultExporter.export` and the iPad's
-    /// `ObsidianPublisher` through v2. Flipped by Q436.
-    static let isLive = true
-
-    // Tuur's four calls (plan/reads/export-v2.md), one line each, answered by D216.
-    /// `duration:` as a quoted `"HH:MM:SS"` clock (`"00:04:41"`); false writes whole seconds (`281`).
-    static let durationAsClock = true
-    /// A picture's OCR text in the vault (R38): an Obsidian comment, a callout under it, or left out.
-    static let pictureTextStyle: PictureTextStyle = .hidden
-    /// D216: a hand-typed `[[word]]` that leads nowhere stays an Obsidian link, as v1 and Obsidian
-    /// itself; true would write it escaped (the dropped R49).
-    static let escapesUnknownLinks = false
-    /// The portfolio's `location:` quoted, as v1; false writes it plain with `: ` reworded (C130).
-    static let quotesPortfolioLocation = true
-
-    enum PictureTextStyle { case hidden, visible, none }
-
-    /// Test hook (Q513): forces the export ROUTING on or off without flipping `isLive`, which
-    /// other rules (the mirrored fields' recompile) read once at launch. nil = follow `isLive`.
-    nonisolated(unsafe) static var routingOverride: Bool? = nil
-    /// Does an export go through v2 right now? `isLive`, unless a test forced the routing.
-    static var routes: Bool { routingOverride ?? isLive }
 
     /// R38: a shared document's exported name — the note's stem plus the document's extension,
     /// never the extension twice (`blue-3.txt` stays `blue-3.txt`). One rule for the Mac and the iPad.
@@ -120,22 +97,16 @@ enum ExportV2 {
             else { edits.append((m.range, "")); continue }
             placed.append(PlacedPicture(source: source, embedName: name))
             var embed = profile.imageMarkdown(name)
-            if profile == .obsidian, let text = note.pictureText[n] { embed += pictureTextLines(text) }
+            if profile == .obsidian, let text = note.pictureText[n] { embed += pictureTextComment(text) }
             edits.append((m.range, embed))
         }
         return (Sanitiser.nsReplace(markdown, edits: edits), placed)
     }
 
-    /// What follows a picture's embed for its OCR text, in `style` (`pictureTextStyle`).
-    static func pictureTextLines(_ raw: String, style: PictureTextStyle = pictureTextStyle) -> String {
+    /// A picture's OCR text under its embed, as a hidden Obsidian comment (R38, D216).
+    static func pictureTextComment(_ raw: String) -> String {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return "" }
-        switch style {
-        case .hidden: return "\n%% " + text.replacingOccurrences(of: "%%", with: "%") + " %%"
-        case .visible: return "\n> [!quote] Text in the picture\n" + text.components(separatedBy: .newlines)
-            .map { "> " + $0 }.joined(separator: "\n")
-        case .none: return ""
-        }
+        return text.isEmpty ? "" : "\n%% " + text.replacingOccurrences(of: "%%", with: "%") + " %%"
     }
 }
 
@@ -162,7 +133,7 @@ extension ExportV2 {
                 add("voice", input.voice.rawValue)
                 list("tags", input.tags.compactMap { tag($0, portfolio: true) })
                 list("people", peopleNames(in: body, people: note.people))
-                add("location", place(meta).map { portfolioLocation($0) })
+                add("location", place(meta).map(quoted))
                 if taggedInspiration(input.tags) { list("needs", ["credit"]) }
             } else {
                 add("editedAt", input.editedAt.map { ExportNaming.localDateTime($0) })
@@ -268,19 +239,13 @@ extension ExportV2 {
 
         static func place(_ meta: CompilerMetadata?) -> String? { trimmed(meta?.location?.placeName) }
 
-        /// D12/D216: with `clock` (`durationAsClock`) `"HH:MM:SS"`, always padded and quoted so
-        /// YAML never reads it as a base-60 number; otherwise whole seconds.
-        static func duration(_ seconds: TimeInterval, clock: Bool = durationAsClock) -> String {
+        /// D12/D216: `"HH:MM:SS"`, always padded and quoted so YAML never reads it as a base-60 number.
+        static func duration(_ seconds: TimeInterval) -> String {
             let t = Int(seconds.rounded())
-            guard clock else { return String(t) }
             let h = t / 3600, m = t / 60 % 60, s = t % 60
             return quoted(String(format: "%02d:%02d:%02d", h, m, s))
         }
 
-        /// The portfolio's `location:` value, quoted or plain (`quotesPortfolioLocation`).
-        static func portfolioLocation(_ place: String, quoted q: Bool = quotesPortfolioLocation) -> String {
-            q ? quoted(place) : reworded(place)
-        }
 
         /// Double-quoted YAML scalar, `\` and `"` escaped (R50: any `: ` stays one value).
         static func quoted(_ s: String) -> String {

@@ -311,7 +311,7 @@ struct BatchRunner {
         pf.enhanceStatus = .done
 
         // 5. Compile the review draft (body precedence: sanitised → copy-edit → transcript).
-        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: people)
+        pf.compiledText = pf.compiledMarkdown(author: settings.authorName, people: people)
     }
 
     /// C152: copy-edit `block` alone and splice it over the raw tail of the shown body, then
@@ -340,7 +340,7 @@ struct BatchRunner {
         pf.pendingPolishBlock = nil
         pf.relinkNames(working: body, isConversation: isConversation, people: people)
         pf.enhanceStatus = .done
-        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: people)
+        pf.compiledText = pf.compiledMarkdown(author: settings.authorName, people: people)
     }
 
     // MARK: Capture pipeline (C3 enhancement-lite)
@@ -384,7 +384,7 @@ struct BatchRunner {
         }
 
         pf.enhanceStatus = .done
-        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: people)
+        pf.compiledText = pf.compiledMarkdown(author: settings.authorName, people: people)
     }
 
     /// Title fallback chain for an empty-annotation capture:

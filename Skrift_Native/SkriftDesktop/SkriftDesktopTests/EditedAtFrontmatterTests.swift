@@ -25,25 +25,26 @@ final class EditedAtFrontmatterTests: XCTestCase {
     }
 
     func testEditedAtSitsRightAfterDateInLocalTime() {
-        let fm = frontmatter(Compiler.compile(input(editedAt: edited), author: "Tiuri"))
+        let fm = frontmatter(ExportV2Test.markdown(input(editedAt: edited), author: "Tiuri"))
         let keys = fm.compactMap { $0.split(separator: ":").first.map(String.init) }
         let date = try? XCTUnwrap(keys.firstIndex(of: "date"))
-        XCTAssertEqual(keys.firstIndex(of: "editedAt"), date.map { $0 + 1 }, "stable order: title, date, editedAt, author")
-        XCTAssertEqual(keys.firstIndex(of: "author"), date.map { $0 + 2 })
+        XCTAssertEqual(keys.firstIndex(of: "editedAt"), date.map { $0 + 1 },
+                       "stable order: title, date, editedAt, created, duration, author (D12)")
+        XCTAssertEqual(keys.firstIndex(of: "author"), date.map { $0 + 4 })
         XCTAssertTrue(fm.contains("editedAt: \(ExportNaming.localDateTime(edited))"), fm.joined(separator: "\n"))
         XCTAssertEqual(ExportNaming.localDateTime(edited, timeZone: TimeZone(identifier: "Europe/Lisbon")!),
                        "2026-09-13T21:00:00", "local wall time, to the second")
     }
 
     func testNeverEditedWritesTheKeyEmpty() {
-        let fm = frontmatter(Compiler.compile(input(editedAt: nil), author: "Tiuri"))
+        let fm = frontmatter(ExportV2Test.markdown(input(editedAt: nil), author: "Tiuri"))
         XCTAssertTrue(fm.contains("editedAt:"), fm.joined(separator: "\n"))
     }
 
     func testThePortfolioProfileHasNoEditedAt() {
         var i = input(editedAt: edited)
         i.destination = .portfolio
-        let fm = frontmatter(Compiler.compile(i, author: "Tiuri", profile: .portfolio))
+        let fm = frontmatter(ExportV2Test.markdown(i, author: "Tiuri", profile: .portfolio))
         XCTAssertFalse(fm.contains { $0.hasPrefix("editedAt") }, "C130: the portfolio's own key list")
     }
 
@@ -64,8 +65,8 @@ final class EditedAtFrontmatterTests: XCTestCase {
         XCTAssertFalse(field.pull(memo, pf), "idempotent")
         XCTAssertEqual(pf.memoEditedAt, edited)
         let line = { (md: String) in md.components(separatedBy: "\n").first { $0.hasPrefix("editedAt") } }
-        XCTAssertEqual(line(Compiler.compile(pf.compilerInput, author: "Tiuri")),
-                       line(Compiler.compile(phone, author: "Tiuri")))
-        XCTAssertEqual(line(Compiler.compile(phone, author: "Tiuri")), "editedAt: \(ExportNaming.localDateTime(edited))")
+        XCTAssertEqual(line(ExportV2Test.markdown(pf.compilerInput, author: "Tiuri")),
+                       line(ExportV2Test.markdown(phone, author: "Tiuri")))
+        XCTAssertEqual(line(ExportV2Test.markdown(phone, author: "Tiuri")), "editedAt: \(ExportNaming.localDateTime(edited))")
     }
 }

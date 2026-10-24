@@ -1,36 +1,26 @@
 import XCTest
 
-/// Q436: Tuur's four export calls (plan/reads/export-v2.md), each one line in `ExportV2`, set by
-/// D216; every alternative is tested here so flipping a line is the whole change.
+/// Q436 / D216: Tuur's four export calls (plan/reads/export-v2.md). The alternatives were deleted
+/// with v1 (Q437); these pin the answers.
 final class ExportV2CallsTests: XCTestCase {
     typealias F = ExportV2.Frontmatter
 
-    func testTheDefaults() {
-        XCTAssertTrue(ExportV2.durationAsClock)
-        XCTAssertEqual(ExportV2.pictureTextStyle, .hidden)
-        XCTAssertFalse(ExportV2.escapesUnknownLinks)
-        XCTAssertTrue(ExportV2.quotesPortfolioLocation)
+    func testDurationIsAPaddedClock() {
+        XCTAssertEqual(F.duration(280.6), "\"00:04:41\"")
+        XCTAssertEqual(F.duration(3725), "\"01:02:05\"")
+        XCTAssertEqual(F.duration(7), "\"00:00:07\"")
     }
 
-    func testDurationSecondsOrClock() {
-        XCTAssertEqual(F.duration(280.6, clock: false), "281")
-        XCTAssertEqual(F.duration(280.6, clock: true), "\"00:04:41\"")
-        XCTAssertEqual(F.duration(3725, clock: true), "\"01:02:05\"")
-        XCTAssertEqual(F.duration(7, clock: true), "\"00:00:07\"")
-        XCTAssertEqual(F.duration(280.6), "\"00:04:41\"", "D216: the clock is the default")
+    func testPictureTextIsAHiddenComment() {
+        XCTAssertEqual(ExportV2.pictureTextComment(" GREY BODY €18 "), "\n%% GREY BODY €18 %%")
+        XCTAssertEqual(ExportV2.pictureTextComment("  "), "", "no text, no comment")
     }
 
-    func testPictureTextHiddenVisibleOrNone() {
-        XCTAssertEqual(ExportV2.pictureTextLines(" GREY BODY €18 ", style: .hidden), "\n%% GREY BODY €18 %%")
-        XCTAssertEqual(ExportV2.pictureTextLines("GREY BODY\n€18", style: .visible),
-                       "\n> [!quote] Text in the picture\n> GREY BODY\n> €18")
-        XCTAssertEqual(ExportV2.pictureTextLines("GREY BODY", style: .none), "")
-        XCTAssertEqual(ExportV2.pictureTextLines("  ", style: .visible), "", "no text, no block")
-    }
-
-    func testPortfolioLocationQuotedOrPlain() {
-        XCTAssertEqual(F.portfolioLocation("Studio: Lisbon", quoted: true), "\"Studio: Lisbon\"")
-        XCTAssertEqual(F.portfolioLocation("Studio: Lisbon", quoted: false), "Studio - Lisbon")
+    func testPortfolioLocationIsQuoted() {
+        var input = CompilerInput(filename: "n.md", transcript: "Words.", sourceType: .note)
+        input.metadata = CompilerMetadata(location: .init(placeName: "Studio: Lisbon"))
+        let md = ExportV2.compile(ExportV2.Note(input: input, title: "N"), profile: .portfolio, stem: "n").markdown
+        XCTAssertTrue(md.contains("\nlocation: \"Studio: Lisbon\"\n"), md)
     }
 
     func testAnUnknownLinkStaysALinkInTheVault() {
@@ -39,8 +29,6 @@ final class ExportV2CallsTests: XCTestCase {
         note.people = []
         let md = ExportV2.compile(note, profile: .obsidian, stem: "Kiln").markdown
         XCTAssertTrue(md.contains("Fire [[the kiln]] tonight."), "D216: as Obsidian does\n\(md)")
-        XCTAssertEqual(ExportV2.Body.escapingUnresolved("Fire [[the kiln]].", people: []), "Fire \\[\\[the kiln\\]\\].",
-                       "the alternative still escapes")
     }
 
     func testALinkToADeletedPersonStaysALink() {

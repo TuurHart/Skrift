@@ -2,8 +2,8 @@ import XCTest
 import SwiftData
 
 extension ExportDiffHarnessTests {
-    /// Q434: export v2 over the seeded corpus — the same sweep and rows as `V1Engine`, written by
-    /// `VaultExporter.exportV2` (the same writer, compiled by `Shared/ExportV2`). `created:` and
+    /// Q434: export v2 over the seeded corpus — the sweep and rows v1's goldens were recorded
+    /// from, written by `VaultExporter.export` (compiled by `Shared/ExportV2`). `created:` and
     /// "he gave a title" ride the row, mirrored from the synced memo (Q511).
     struct V2Engine: ExportEngine {
         let name = "v2"
@@ -44,7 +44,7 @@ extension ExportDiffHarnessTests {
                     pf.destination = profile.destination
                     defer { pf.destinationRaw = kept }
                     do {
-                        let r = try VaultExporter.exportV2(pf, settings: settings, session: session)
+                        let r = try VaultExporter.export(pf, settings: settings, session: session)
                         let md = (try? String(contentsOf: r.markdownURL, encoding: .utf8)) ?? ""
                         let rel = String(r.markdownURL.standardizedFileURL.path
                             .dropFirst(exportRoot.standardizedFileURL.path.count + 1))

@@ -47,7 +47,7 @@ final class ExportNamingParityTests: XCTestCase {
         XCTAssertEqual(enh?.title, "Saturday workshop debrief")
 
         // MemoExporter: frontmatter title + date:
-        let md = MemoExporter.markdown(for: memo, people: [], enhancement: enh)
+        let md = ExportV2Test.markdown(for: memo, people: [], enhancement: enh)
         XCTAssertTrue(md.contains("\ndate: \(Self.expectedDay)\n"), md)
         XCTAssertTrue(md.contains("title: \"\(Self.expectedStem)\""), md)
         XCTAssertEqual(MemoExporter.exportTitle(for: memo, people: [], enhancement: enh), Self.expectedStem)
