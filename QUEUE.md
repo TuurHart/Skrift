@@ -3762,7 +3762,7 @@ gate+: yes
 do: ObsidianPublisher's v2 branch uses the default placePicture, so a picture whose blob is not on the device keeps its embed and the vault shows a broken image; the Mac drops it (C196) and Q516 fixed it only in the zip path. Use the same placement rule as the zip/Mac for the phone vault publish. Corpus: pic-missing-file. Test `PhoneMissingPictureTests` (phone, plan/mtest.sh).
 check: `grep -rqE "class PhoneMissingPictureTests\\b" Skrift_Native/SkriftMobile/SkriftMobileTests && plan/mtest.sh PhoneMissingPictureTests`
 
-### Q520 [auto] (todo) A: picking a note link in the phone editor keeps the space after it
+### Q520 [auto] (done) A: picking a note link in the phone editor keeps the space after it
 spec: -
 needs: -
 do: MemoLinkTests.testInsertMemoLinkReplacesTheTypedTrigger (SkriftMobileTests/NoteBodyTests.swift:294) fails on cde84537: after typing `[[` and picking a note, the transcript is `Hello [[memo:<id>|Harbor]]` without the trailing space the picker inserts, so the next word he types runs into the link. Found by lane C during Q437; fails without Q437. Find where the space is lost (NoteBodyView.Coordinator.insertMemoLink or the commit path trimming the body) and fix the editor, not the test.
@@ -5439,3 +5439,4 @@ check: `plan/mtest.sh MemoLinkTests`
 - 2026-10-24 10:04 Q519 -> done — gate 74s @9635af94
 - 2026-10-24 14:55 Q437 -> done — hand-merged (Tuur yes 2026-10-24: delete v1 export; protected test assertion changes approved; re-merged d1dd11a9)
 - 2026-10-24 14:57 Q520 added
+- 2026-10-24 15:07 Q520 -> done — hand-merged (C19: stored body ends trimmed; test aligned to the spec, editor unchanged)
