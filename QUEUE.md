@@ -3194,7 +3194,7 @@ needs: Q435 Q511 Q513
 do: Point the shared export engine (iPad and Mac) at the v2 compiler. `Shared/Export/Compiler.swift` stays in place for Q437 to delete.
 check: `grep -rqE "ExportV2" Skrift_Native/Shared/Export Skrift_Native/SkriftDesktop`
 
-### Q437 [tuur] (todo) delete the v1 export compiler after the tag
+### Q437 [tuur] (done) delete the v1 export compiler after the tag
 spec: C2 C252
 needs: Q436
 do: Tag the current commit `v1-export`, then in ONE commit delete `Shared/Export/Compiler.swift`'s v1 paths and the tests that pin them. Touches protected tests, so accept parks it stuck; Tuur approves the diff in the sitting.
@@ -5431,3 +5431,4 @@ check: `grep -rqE "class PhoneMissingPictureTests\\b" Skrift_Native/SkriftMobile
 - 2026-10-24 09:25 Q516 -> done — gate 104s @7a27d37a
 - 2026-10-24 09:42 Q518 -> done — hand-merged (Q518 fixes the dangling capture embed per C57 (one picture naming rule): ExportAllZipTests' recorded dangling case removed, VaultExporterTests legacy-capture name now pictureName, C57 registered on 6 cap-image rows)
 - 2026-10-24 10:04 Q519 -> done — gate 74s @9635af94
+- 2026-10-24 14:55 Q437 -> done — hand-merged (Tuur yes 2026-10-24: delete v1 export; protected test assertion changes approved; re-merged d1dd11a9)
