@@ -3162,7 +3162,7 @@ needs: Q430 Q510
 do: Point `MemoCloudReconciler`'s callers (launch, activation, CloudKit import, `CloudFirstImport`, `MacNoteOpenWork`) at reconcile v2. The v1 code stays in place for Q432 to delete.
 check: `grep -rqE "ReconcileV2" Skrift_Native/SkriftDesktop/App Skrift_Native/SkriftDesktop/Pipeline`
 
-### Q432 [tuur] (todo) delete v1 reconcile after the tag
+### Q432 [tuur] (done) delete v1 reconcile after the tag
 spec: C2 C252
 needs: Q431 Q512
 do: Tag the current commit `v1-reconcile`, then in ONE commit delete v1's sweep code in `MemoCloudReconciler` and the tests that pin it. Touches protected tests, so accept parks it stuck; Tuur approves the diff in the sitting.
@@ -5380,3 +5380,4 @@ check: `grep -rqE "class UntrustedTranscriptRowTests\\b" Skrift_Native/SkriftDes
 - 2026-10-23 22:35 Q513 -> done — gate 94s @83d0605d
 - 2026-10-23 22:40 Q514 added
 - 2026-10-23 23:03 Q514 -> done — hand-merged (Q514's own registration: expected-differences-rows.json gains voice-en-untrusted C42 for the v2 row (C42 trust gate now holds in the reflect))
+- 2026-10-24 08:04 Q432 -> done — hand-merged (Tuur said yes 2026-10-24 to deleting v1 reconcile (tag v1-reconcile); ports ~40 protected tests with the assertion changes in its report; 3 v1-export goldens re-recorded for Q514)
