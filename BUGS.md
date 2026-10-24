@@ -291,6 +291,16 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 
 ## 3. Reported on device, not yet diagnosed
 
+- [ ] **A note opened with no text** (Tuur 2026-10-15, FeedbackKit `d2ae60e2` + `d1c33c07`, phone
+      0.2.0): tapping the top note of the list opened an empty body with the player at 0:00/0:00, no
+      words. Diagnose on Dev 194 first (the open path was rewritten since); no data read.
+- [ ] **Picture size small/large does the wrong thing** (Tuur 2026-10-23, FeedbackKit `cc368874`):
+      he expects small = a small picture and large = a large picture; it gives a large picture or a
+      banner you tap to open. Mock the two sizes before building.
+- [ ] **"Transcribe" on a podcast offers to add a book file** (Tuur 2026-10-16, FeedbackKit
+      `7488094a`, Player): the book-text step (ePub) makes no sense for an episode; hide it for podcasts.
+- [ ] **Question: remove the ads from podcasts?** (Tuur 2026-10-16, FeedbackKit `03c4dc4f`). An idea,
+      not a bug: needs a decision and a design (find ad breaks in the transcript, skip them).
 - [ ] **Mac: three sidebar problems** (Tuur 2026-09-30, prod Mac build): (a) shift-click does not
       select a range of notes; (b) imported voice memos did not transcribe on their own — C49 says a
       Mac import floors to 0.1, so it should be picked up; he had to right-click → Process; (c) that
