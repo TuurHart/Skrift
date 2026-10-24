@@ -28,7 +28,7 @@ final class ExportV2PhoneInputsTests: XCTestCase {
         XCTAssertEqual(n.pictureText[1], "GREY BODY €18")
         let md = ExportV2.compile(n, profile: .obsidian, stem: "Price board").markdown
         XCTAssertTrue(md.contains("\ndate: \(MemoExporter.dateString(m.recordedAt))\n"), "one date rule (C64)\n\(md)")
-        XCTAssertTrue(md.contains("\nduration: 42\n"), md)
+        XCTAssertTrue(md.contains("\nduration: \"00:00:42\"\n"), md)
         XCTAssertTrue(md.contains("![[Price board_001.jpg]]"), md)
     }
 

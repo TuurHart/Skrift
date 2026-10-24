@@ -12,7 +12,7 @@ import Foundation
 /// YAML (C130, R51: `people:` as a block list of plain names), the portfolio's embeds `![](file)`
 /// everywhere including a capture's picture (C129, R51), pictures named by the note stem (C57,
 /// Q488's `ExportProfile.pictureName`), a dangling marker dropped (C196), memo-links (C59) and a
-/// hand-typed `[[word]]` that resolves to nothing escaped (R49), the quote attribution (C60),
+/// hand-typed `[[word]]` that resolves to nothing kept a link (D216), the quote attribution (C60),
 /// `date:` the recording's local day (C64), OCR text and a shared document exported (R38).
 enum ExportV2 {
 
@@ -20,13 +20,14 @@ enum ExportV2 {
     /// `ObsidianPublisher` through v2. Flipped by Q436.
     static let isLive = true
 
-    // Tuur's four calls (plan/reads/export-v2.md), one line each; the defaults are the read's.
-    /// `duration:` in whole seconds (`281`); true writes the clock form, quoted (`"4:41"`).
-    static let durationAsClock = false
+    // Tuur's four calls (plan/reads/export-v2.md), one line each, answered by D216.
+    /// `duration:` as a quoted `"HH:MM:SS"` clock (`"00:04:41"`); false writes whole seconds (`281`).
+    static let durationAsClock = true
     /// A picture's OCR text in the vault (R38): an Obsidian comment, a callout under it, or left out.
     static let pictureTextStyle: PictureTextStyle = .hidden
-    /// R49: a hand-typed `[[word]]` that leads nowhere is written escaped; false keeps it a link, as v1.
-    static let escapesUnknownLinks = true
+    /// D216: a hand-typed `[[word]]` that leads nowhere stays an Obsidian link, as v1 and Obsidian
+    /// itself; true would write it escaped (the dropped R49).
+    static let escapesUnknownLinks = false
     /// The portfolio's `location:` quoted, as v1; false writes it plain with `: ` reworded (C130).
     static let quotesPortfolioLocation = true
 
@@ -267,13 +268,13 @@ extension ExportV2 {
 
         static func place(_ meta: CompilerMetadata?) -> String? { trimmed(meta?.location?.placeName) }
 
-        /// D12: whole seconds, or with `clock` (`durationAsClock`) `"m:ss"` / `"h:mm:ss"`, quoted
-        /// so YAML never reads it as a base-60 number.
+        /// D12/D216: with `clock` (`durationAsClock`) `"HH:MM:SS"`, always padded and quoted so
+        /// YAML never reads it as a base-60 number; otherwise whole seconds.
         static func duration(_ seconds: TimeInterval, clock: Bool = durationAsClock) -> String {
             let t = Int(seconds.rounded())
             guard clock else { return String(t) }
             let h = t / 3600, m = t / 60 % 60, s = t % 60
-            return quoted(h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s))
+            return quoted(String(format: "%02d:%02d:%02d", h, m, s))
         }
 
         /// The portfolio's `location:` value, quoted or plain (`quotesPortfolioLocation`).

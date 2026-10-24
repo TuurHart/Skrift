@@ -117,12 +117,12 @@ final class ExportV2HarnessTests: XCTestCase {
     }
 
     /// D12 / R38: every vault export carries `created:` and `duration:`; a recording's duration is
-    /// its seconds; a `.file` capture brings its document.
+    /// its clock (D216); a `.file` capture brings its document.
     func testVaultCarriesCreatedDurationAndTheDocument() throws {
         let out = try v2()
         let voice = try XCTUnwrap(out["pic-ocr-text.vault"]).markdown
         XCTAssertTrue(voice.contains("\ncreated: 2026-08-09T20:00:00\n"), voice)
-        XCTAssertTrue(voice.contains("\nduration: 5\n"), voice)
+        XCTAssertTrue(voice.contains("\nduration: \"00:00:05\"\n"), voice)
         let typed = try XCTUnwrap(out["typed-user-wikilink.vault"]).markdown
         XCTAssertTrue(typed.contains("\nduration:\n"), "a typed note has no recording\n\(typed)")
         let pdf = try XCTUnwrap(out["cap-file-pdf.vault"]).markdown
@@ -149,11 +149,11 @@ final class ExportV2HarnessTests: XCTestCase {
         return n
     }
 
-    func testAHandTypedLinkToNothingIsEscapedInTheVault_R49() {
+    func testAHandTypedLinkToNothingStaysALinkInTheVault_D216() {
         let n = note("Ask [[Lotte Vos]] about [[the kiln]] and [[memo:00000000-0000-0000-0000-000000000001|Glaze log]].")
         let md = ExportV2.compile(n, profile: .obsidian, stem: "s").markdown
         XCTAssertTrue(md.contains("[[Lotte Vos]]"), md)
-        XCTAssertTrue(md.contains("\\[\\[the kiln\\]\\]"), "escaped, never a link to nothing\n\(md)")
+        XCTAssertTrue(md.contains("about [[the kiln]] and"), "kept a link, as Obsidian does (D216)\n\(md)")
         XCTAssertTrue(md.contains("[[Glaze log]]"), "a memo-link still exports (C59)\n\(md)")
         let p = ExportV2.compile(n, profile: .portfolio, stem: "s").markdown
         XCTAssertTrue(p.contains("about the kiln and Glaze log."), "the portfolio keeps only people links\n\(p)")
