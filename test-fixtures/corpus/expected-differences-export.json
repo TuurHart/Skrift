@@ -6,6 +6,7 @@
     "D12": "Export v2 (Q434) writes `created:` (the note's createdAt, local date-time like editedAt) and `duration:` (the recording's length as a quoted `\"HH:MM:SS\"` clock, D216; empty for a note without one) on every vault export, after `editedAt:` (D12, C56, R38). The portfolio's key list (C130) has neither.",
     "C25": "Export v2 (Q434) writes the C25 ladder's title in `title:`, the same one the file is named by; v1 wrote the row's filename stem (`memo_<UUID>`, `capture_<UUID>`, the bare UUID) for a note without a polished title. One line always (a text capture's derived title kept its line breaks).",
     "R38": "Export v2 (Q434): a `.file` capture's shared document goes with the note, named by the note's stem (Documents/ in the vault, beside the note on the portfolio): a PDF embedded, any other file linked.",
+    "C57": "Q518: a marker-less shared image capture embeds its picture under the one export name (`<stem>_001.jpg`, ExportProfile.pictureName) that the copied file gets; v1 embedded the shared file's own name (`IMG_4471.jpg`) while the picture was copied as `photo_<memoid>_001.jpg`, so the embed dangled.",
     "R50": "Export v2 (Q434): a tag never carries Obsidian's leading `#` (in YAML a bare `- #studio` is a comment, an empty tag), a vault tag with `: ` is quoted, a portfolio tag reworded (C130)."
   },
   "applenote-headings-checklist.portfolio": [
@@ -21,15 +22,18 @@
   ],
   "cap-image-no-words.portfolio": [
     "C130",
-    "R51"
+    "R51",
+    "C57"
   ],
   "cap-image-typed-note.portfolio": [
     "C130",
-    "R51"
+    "R51",
+    "C57"
   ],
   "cap-image-voice-ramble.portfolio": [
     "C130",
-    "R51"
+    "R51",
+    "C57"
   ],
   "cap-text-article.portfolio": [
     "C130"
@@ -330,15 +334,18 @@
   ],
   "cap-image-no-words.vault": [
     "C25",
-    "D12"
+    "D12",
+    "C57"
   ],
   "cap-image-typed-note.vault": [
     "C25",
-    "D12"
+    "D12",
+    "C57"
   ],
   "cap-image-voice-ramble.vault": [
     "C25",
-    "D12"
+    "D12",
+    "C57"
   ],
   "cap-text-article.vault": [
     "C25",

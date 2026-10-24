@@ -24,7 +24,8 @@ extension ExportV2 {
             body = BodyV2Legacy.shown(body).text
 
             if input.sourceType == .capture, let sc = input.sharedContent {
-                return captureBlock(sc, body: body, profile: profile, document: note.documentName) + body
+                return captureBlock(sc, body: body, profile: profile, document: note.documentName,
+                                    pictures: note.pictureManifest.count) + body
             }
             guard let book = Frontmatter.trimmed(meta?.bookTitle) else { return body }
             let author = Frontmatter.trimmed(meta?.bookAuthor), chapter = Frontmatter.trimmed(meta?.bookChapter)
@@ -68,7 +69,11 @@ extension ExportV2 {
         /// A capture's shared content, pinned above his words: a link's title and address, a
         /// shared text as a quote, a shared picture (when the body places none) and a shared
         /// document (R38), both in this profile's embed (C129, R51).
-        static func captureBlock(_ sc: SharedContent, body: String, profile: ExportProfile, document: String?) -> String {
+        /// Q518 (C57): a shared picture leaves as its manifest's markers, so `convertPictures` names
+        /// and places it like any other (`<stem>_001.jpg`, dropped when missing, C196). The shared
+        /// file's own name is embedded only for a capture with no manifest.
+        static func captureBlock(_ sc: SharedContent, body: String, profile: ExportProfile, document: String?,
+                                 pictures: Int = 0) -> String {
             var lines: [String] = []
             switch sc.type {
             case .url:
@@ -77,7 +82,9 @@ extension ExportV2 {
             case .text:
                 if let t = sc.text, !t.isEmpty { lines.append(t.components(separatedBy: "\n").map { "> \($0)" }.joined(separator: "\n")) }
             case .image:
-                if let name = Frontmatter.trimmed(sc.fileName), !body.contains("[[img_") { lines.append(profile.imageMarkdown(name)) }
+                guard !body.contains("[[img_") else { break }
+                if pictures > 0 { lines.append(BodyV2Marker.block(Array(1...pictures))) }
+                else if let name = Frontmatter.trimmed(sc.fileName) { lines.append(profile.imageMarkdown(name)) }
             case .file:
                 // A PDF shows in place; any other document is a link to the file beside it (R38).
                 if let document {

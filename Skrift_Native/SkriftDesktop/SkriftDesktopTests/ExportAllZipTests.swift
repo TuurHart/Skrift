@@ -130,18 +130,10 @@ final class ExportAllZipTests: XCTestCase {
                 audioNotes += 1
             }
             let md = String(decoding: try VerifiedZip.data(built.entries[path]!, in: built.archive), as: UTF8.self)
-            let sharedImage = note.kind == "capture" && !note.photos.isEmpty && !(note.transcript ?? "").contains("[[img_")
             for m in embed.matches(in: md, range: NSRange(md.startIndex..., in: md)) {
                 let r = m.range(at: 1).location != NSNotFound ? m.range(at: 1) : m.range(at: 2)
                 let name = String(md[Range(r, in: md)!])
-                if sharedImage, name == ((note.sharedContent?.foundation as? [String: Any])?["fileName"] as? String) {
-                    // Export v2 (as v1) embeds a marker-less image capture under the shared file's
-                    // name while its picture keeps its stored name; the vault gets the same. The
-                    // picture itself is in the zip, under the name its memo id is in.
-                    XCTAssertTrue(built.entries.keys.contains { $0.hasPrefix(asset(VaultLayout.images, ""))
-                                      && $0.contains(entry.id.uppercased()) }, "\(entry.slug) brings its picture")
-                    continue
-                }
+                // Q518: a marker-less image capture's embed is its picture's one name too.
                 let found = built.entries[asset(VaultLayout.images, name)] ?? built.entries[asset(VaultLayout.documents, name)]
                 XCTAssertNotNil(found, "\(entry.slug) embeds \(name), and it is in the zip")
                 embeds += 1

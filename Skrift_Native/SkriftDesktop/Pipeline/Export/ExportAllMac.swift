@@ -88,7 +88,7 @@ extension VaultExporter {
         }, poster: { _, name in
             placed(working.flatMap { MacNoteAttachments.posterFrame(in: $0) }, name)
         })
-        if let imagesDir, pf.sourceType == .capture, !(pf.transcript ?? "").contains("[[img_"),
+        if let imagesDir, pf.sourceType == .capture, !(pf.transcript ?? "").contains("[[img_"), out.pictures.isEmpty,
            FileManager.default.fileExists(atPath: imagesDir.path) {
             out.markdown = copyCaptureFolderImages(imagesDir: imagesDir, into: nowhere, markdown: out.markdown,
                                                    id: id, place: record).0
