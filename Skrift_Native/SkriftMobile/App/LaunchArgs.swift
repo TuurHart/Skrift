@@ -11,6 +11,8 @@ enum LaunchFlags {
     /// survive across runs and the idempotent seeder would skip).
     static var inMemoryStore: Bool { args.boolFlag("-inMemoryStore") }
     static var seedDemoMemos: Bool { args.boolFlag("-seedDemoMemos") }
+    /// Q485: a sync-health state to draw (`-syncHealth quota|signedout|one|switched`).
+    static var syncHealthFixture: String? { args.stringValue("-syncHealth") }
     /// Q313 (DEBUG): open the SEPARATE never-synced `perf.store` (CloudKit off) seeded once with
     /// ~2,000 generated notes, with its own names/vocab/recordings. Every CloudKit side channel is
     /// inert under it. See `PerfLibrary` (Shared/Model) and `PerfLibraryLaunch`.

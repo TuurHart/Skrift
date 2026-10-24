@@ -53,6 +53,32 @@ struct SkriftApp: App {
         // Shared/RetrievalEngine and can't see DevLog directly).
         GemmaEmbedder.log = { DevLog.log($0) }
 
+        // C155: sync health watches the real store only (tests, the in-memory store and the perf
+        // library never talk to CloudKit).
+        var perf = false
+        #if DEBUG
+        perf = PerfLibrary.isActive
+        #endif
+        if repo.isUsable && !LaunchFlags.inMemoryStore && !LaunchArgs.isXCTest && !perf {
+            SyncHealthMonitor.shared.log = { DevLog.log($0) }
+            SyncHealthMonitor.shared.attach(repo.container)
+        }
+        #if DEBUG
+        // Q485 eyeball: `-syncHealth quota|signedout|one|switched` draws a C155 state over the
+        // seeded notes (the two newest wait); nothing is saved.
+        if let state = LaunchFlags.syncHealthFixture {
+            var h = SyncHealth()
+            h.noteChanged(repo.allMemos().prefix(state == "one" ? 1 : 2).map(\.id), at: Date().addingTimeInterval(-600))
+            switch state {
+            case "quota": h.exportFailure = .quotaFull
+            case "signedout": h.signedOut = true
+            case "switched": (h.syncedAccount, h.switchedTo) = ("_old", "_new")
+            default: break
+            }
+            SyncHealthMonitor.shared.debugInject(h)
+        }
+        #endif
+
         // Trash retention: permanently remove memos whose purge clock ran out
         // (audio + photo + sidecar files included) before any UI shows them.
         // v3-gated (2026-07-23): the clock is `trashSeenAt` — days the user

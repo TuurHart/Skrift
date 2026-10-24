@@ -60,6 +60,17 @@ struct NoteCardModel {
         /// C98/D139: the note has two versions waiting for a pick. Amber, a fork glyph, no
         /// pulse — it waits for him. Same slot as Transcribing; it outranks every other pill.
         static let twoVersions = Pill(label: "2 versions", kind: .amber, systemImage: "arrow.triangle.branch")
+        /// C155 (mock Q484): a change iCloud has not taken yet. Amber, a cloud-slash, no pulse; in
+        /// the same slot, below "2 versions" and an error.
+        static let notSynced = Pill(label: SyncHealth.pillText, kind: .amber, systemImage: "icloud.slash")
+
+        /// The pill slot with the not-synced state folded in: it replaces a progress pill (and an
+        /// empty slot), never an error or two versions.
+        static func withSync(_ pill: Pill?, unsynced: Bool) -> Pill? {
+            guard unsynced else { return pill }
+            if let pill, pill.kind == .error || pill == .twoVersions { return pill }
+            return .notSynced
+        }
     }
     /// Line 3's media marker: a glyph + text (`NoteCardBuilder.media`).
     struct Chip: Equatable {

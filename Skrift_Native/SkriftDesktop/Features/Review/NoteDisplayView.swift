@@ -186,6 +186,7 @@ struct NoteDisplayView: View {
             // twice). The iPad has never had one, so dropping it is also parity, and
             // the chrome band becomes the note column's top edge exactly as there.
             toolbarBar(file)
+            MacSyncHealthStrip(file: file)   // C155: "Not synced yet · <reason>"
             // A pipeline verb that failed says so HERE, where it was invoked —
             // `lastError` used to be written and read by nothing (SidebarView's own
             // comment), so a 2-second Redo failure looked like "nothing happened"

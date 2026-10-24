@@ -126,10 +126,26 @@ enum Snapshot {
             let shellHeight = CGFloat(path("-shellHeight").flatMap { Double($0) } ?? 900)
             // Q327: `-syncState syncing|upToDate|off|signedOut|failed` forces the list's iCloud capsule.
             let syncState = path("-syncState").flatMap { name in MacSyncState.allCases.first { "\($0)" == name } }
+            // Q485: `-syncHealth quota|signedout|one|switched` draws the C155 banner, pill and strip.
+            let syncHealth = path("-syncHealth")
             MainActor.assumeIsolated {
                 renderShell(to: p, width: w, height: shellHeight, sidebar: sb, corpusPath: path("-corpus"),
                             scheme: light ? .light : .dark, filterDone: filterDone, selectRows: selectRows,
-                            syncState: syncState)
+                            syncState: syncState, syncHealth: syncHealth)
+                exit(0)
+            }
+        }
+        // Q485: the account-switch sheet with D218's Copy (`-light` for the light variant).
+        if let p = path("-snapshot-syncwhatnow") {
+            let light = args.contains("-light")
+            MainActor.assumeIsolated {
+                var h = SyncHealth()
+                (h.syncedAccount, h.switchedTo) = ("_old", "_new")
+                h.noteChanged([UUID()], at: Date())
+                SyncHealthMonitor.shared.debugInject(h)
+                let view = MacSyncWhatNowSheet(notesHere: 48) {}
+                    .background(Theme.bg).preferredColorScheme(light ? .light : .dark)
+                hostPNG(view, size: NSSize(width: 420, height: 520), to: p)
                 exit(0)
             }
         }
@@ -276,12 +292,27 @@ enum Snapshot {
     @MainActor private static func renderShell(to path: String, width: CGFloat, height: CGFloat = 900, sidebar: CGFloat,
                                                 corpusPath: String? = nil, scheme: ColorScheme = .dark,
                                                 filterDone: Bool = false, selectRows: Int = 1,
-                                                syncState: MacSyncState? = nil) {
+                                                syncState: MacSyncState? = nil, syncHealth: String? = nil) {
         guard let container = fixtureStore(full: true) else { return }
         let ctx = container.mainContext
         let files = DemoSeed.snapshotFiles()
+        // The C155 fixture marks rows by memo id: demo rows get the UUID ids real rows carry.
+        if syncHealth != nil { for f in files.prefix(2) { f.id = UUID().uuidString } }
         for f in files { ctx.insert(f) }
         try? ctx.save()
+        if let syncHealth {
+            // The open note (the first file) and the next one wait; "one" = the first only.
+            var h = SyncHealth()
+            let ids = files.prefix(syncHealth == "one" ? 1 : 2).compactMap { ReconcileV2.Writers.memoID(for: $0) }
+            h.noteChanged(ids, at: Date().addingTimeInterval(-600))
+            switch syncHealth {
+            case "quota": h.exportFailure = .quotaFull
+            case "signedout": h.signedOut = true
+            case "switched": (h.syncedAccount, h.switchedTo) = ("_old", "_new")
+            default: break
+            }
+            SyncHealthMonitor.shared.debugInject(h)
+        }
 
         var quietMemos: [Memo] = []
         if let corpusPath {

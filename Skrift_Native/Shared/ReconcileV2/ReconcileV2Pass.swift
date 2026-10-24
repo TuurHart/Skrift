@@ -22,11 +22,16 @@ extension ReconcileV2 {
     /// `firstImportDone` (Q397, D203): until the cloud store's first CloudKit import has finished,
     /// a memo that is missing may simply not have downloaded — so nothing is authored and no row
     /// is trashed as an orphan before then.
+    /// `syncStopped` (C155, R47): the device is on a different iCloud account. Nothing is read,
+    /// trashed or authored: a store from another account holds other notes, and Q487's orphan
+    /// sweep would trash every row they lack.
     @discardableResult
     static func pass(cloud: ModelContext, local: ModelContext, context ctx: Context,
-                     firstImportDone: Bool, deferNew: Bool = false, carriers: () -> Void = {},
+                     firstImportDone: Bool, deferNew: Bool = false, syncStopped: Bool = false,
+                     carriers: () -> Void = {},
                      fetchMemos: (ModelContext) throws -> [Memo] = { try $0.fetch(FetchDescriptor<Memo>()) })
         -> PassOutcome {
+        guard !syncStopped else { return PassOutcome() }
         carriers()
         var result = PassOutcome()
         (result.sweep, result.snapshot) = run(cloud: cloud, local: local, context: ctx, deferNew: deferNew, fetchMemos: fetchMemos)

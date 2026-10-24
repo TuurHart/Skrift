@@ -232,6 +232,29 @@ extension MemoCloudReconciler {
     /// keeps an overlapping pass from ingesting the same memo or trashing its row meanwhile.
     private static let backgroundIngestBatch = 50
 
+    /// D218 (C155): the Mac's copy (`SyncHealth.copyVerb`) after an iCloud switch. Adopts the new
+    /// account (syncing resumes), then every live row of this Mac becomes a memo there. Only on
+    /// his tap; the next sweep reconciles as usual.
+    @MainActor static func copyToCurrentAccount() {
+        SyncHealthMonitor.shared.adoptCurrentAccount()
+        guard let cloud = MemoCloudStore.syncContainer else {
+            AppLog.cloudkit.error("account copy: no cloud store (sync off or still stopped)")
+            return
+        }
+        let local = SharedStore.container.mainContext
+        let rows = (try? local.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        let copied = ReconcileV2.AccountCopy.copy(rows, into: ModelContext(cloud), deviceID: DeviceID.current())
+        try? local.save()
+        AppLog.cloudkit.log("account copy: \(copied, privacy: .public) notes into the new account")
+        reconcileSoon()
+    }
+
+    /// The Mac's live notes (what an account switch leaves here), for the What now sheet.
+    @MainActor static func liveRowCount() -> Int {
+        (try? SharedStore.container.mainContext.fetchCount(
+            FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.deletedAt == nil }))) ?? 0
+    }
+
     /// The pass exactly as `reconcile()` runs it (the headless `-reconcilepass` check runs it too).
     static func v2Pass(cloud: ModelContext, local: ModelContext, people: [Person], author: String,
                        thisDevice: String, outputDir: URL, firstImportDone: Bool,
@@ -239,7 +262,8 @@ extension MemoCloudReconciler {
         let context = ReconcileV2.Context(people: people, author: author, thisDeviceID: thisDevice, now: Date(),
                                           outputDir: outputDir, inFlight: ReconcileV2.ingestInFlight)
         return (context, ReconcileV2.pass(cloud: cloud, local: local, context: context,
-                                          firstImportDone: firstImportDone, deferNew: deferIngest))
+                                          firstImportDone: firstImportDone, deferNew: deferIngest,
+                                          syncStopped: SyncStopFlag.isStopped))
     }
 
     /// Returns the ingest's task (rows created), so a headless check can wait for it.

@@ -1,0 +1,484 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sync Health</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: workbench header + sticky switchers, one device frame on stage, redline picks below.
+   Tokens = Shared/UI/Palette.swift pairs (same table as the Q4 / Q75 mocks). Redline ink (dashed red)
+   is mock-only annotation; it never ships. Amber = skAmber, the app's "waits for you" colour. */
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --elev:#ebebf0;
+  --t1:#1c1c1e; --t2:#6c6c72; --t3:#a3a3aa;
+  --accent:#6c5ce0; --accent-rgb:108 92 224; --accentText:#6051c8; --accentSoft:rgb(108 92 224 / .14);
+  --green:#0f9d72; --amber:#c26a05; --amberSoft:rgba(217,119,6,.13); --amberLine:rgba(217,119,6,.45); --rec:#dc2626;
+  --ring:rgba(0,0,0,.22); --hair:rgba(0,0,0,.08); --border:rgba(0,0,0,.09); --scrim:rgba(0,0,0,.28);
+  --page:#e9e8ee; --ink:#26242e; --inkDim:#6d6a78; --card:#f7f6fa;
+  --red:#d6336c; --redSoft:rgba(214,51,108,.08); --redLine:rgba(214,51,108,.45);
+  --macbtn:#0a66d8; --toastBg:#1c1c1e; --toastFg:#f5f5f7;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130;
+    --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:#7c6bf5; --accent-rgb:124 107 245; --accentText:#b9acff; --accentSoft:rgb(124 107 245 / .18);
+    --green:#34d399; --amber:#f59e0b; --amberSoft:rgba(245,158,11,.14); --amberLine:rgba(245,158,11,.5); --rec:#ef4444;
+    --ring:rgba(255,255,255,.26); --hair:rgba(255,255,255,.08); --border:rgba(255,255,255,.08); --scrim:rgba(0,0,0,.5);
+    --page:#07080c; --ink:#ecebf2; --inkDim:#9491a3; --card:#101118;
+    --red:#ff6b9a; --redSoft:rgba(255,107,154,.09); --redLine:rgba(255,107,154,.5);
+    --macbtn:#2f7cf6; --toastBg:#e4e4e7; --toastFg:#0f1117;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1117; --surface:#181a23; --elev:#1e2130;
+  --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+  --accent:#7c6bf5; --accent-rgb:124 107 245; --accentText:#b9acff; --accentSoft:rgb(124 107 245 / .18);
+  --green:#34d399; --amber:#f59e0b; --amberSoft:rgba(245,158,11,.14); --amberLine:rgba(245,158,11,.5); --rec:#ef4444;
+  --ring:rgba(255,255,255,.26); --hair:rgba(255,255,255,.08); --border:rgba(255,255,255,.08); --scrim:rgba(0,0,0,.5);
+  --page:#07080c; --ink:#ecebf2; --inkDim:#9491a3; --card:#101118;
+  --red:#ff6b9a; --redSoft:rgba(255,107,154,.09); --redLine:rgba(255,107,154,.5);
+  --macbtn:#2f7cf6; --toastBg:#e4e4e7; --toastFg:#0f1117;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;margin:0;padding-block:14px 60px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--page)}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:6px}
+svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
+code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px;overflow-wrap:anywhere}
+
+/* ── workbench chrome ── */
+.head h1{font-size:21px;font-weight:700;letter-spacing:-.015em;margin:0;text-wrap:balance}
+.head .meta{font-size:12px;color:var(--inkDim);margin-top:3px}
+.head .meta b{color:var(--ink);font-weight:600}
+.head p{margin:6px 0 0;font-size:13.5px;color:var(--inkDim);max-width:64ch}
+.seg{display:flex;background:var(--hair);border-radius:10px;padding:2px;gap:2px}
+.seg button{flex:1;min-height:40px;border-radius:8px;font-size:13px;color:var(--inkDim);padding:4px 4px;line-height:1.2;min-width:0}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.seg.steps button{font-size:11.5px}
+.seg.steps button small{display:block;font-size:9.5px;opacity:.7;font-weight:500}
+.row2{display:flex;gap:6px}
+.row2 .seg{flex:1}
+.sticky{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--page);padding-block:6px;display:flex;flex-direction:column;gap:6px}
+.redline{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--red)}
+.note{font-size:12.5px;color:var(--inkDim);line-height:1.45}
+.note b{color:var(--ink);font-weight:600}
+.picks{border:1.5px dashed var(--redLine);background:var(--redSoft);border-radius:14px;padding:11px 12px 12px;display:flex;flex-direction:column;gap:12px}
+.pick .k{font-size:13.5px;font-weight:650;margin-bottom:3px}
+.pick .k small{display:block;font-weight:400;color:var(--inkDim);font-size:12.5px;margin-top:2px}
+.pick .seg{margin-top:6px}
+.ask{border-left:3px solid var(--red);padding:4px 0 4px 12px;font-size:14px;line-height:1.45}
+.ask .ph{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--red);display:block;margin-bottom:2px}
+.panel{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.panel ul{margin:0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.hint{font-size:12.5px;color:var(--inkDim);text-align:center;max-width:56ch;margin:0 auto}
+.hint b{color:var(--ink)}
+
+/* ── frames ── */
+.stagewrap{margin-left:calc(-1 * max(16px, env(safe-area-inset-left, 0px)));margin-right:calc(-1 * max(16px, env(safe-area-inset-right, 0px)));display:flex;justify-content:center}
+@media (min-width:430px){.stagewrap{margin-inline:0}}
+.frame{position:relative;background:var(--bg);color:var(--t1);overflow:hidden;border:1px solid var(--hair);display:flex;flex-direction:column}
+.frame.phone{width:390px;max-width:100vw;height:clamp(600px,calc(100svh - 150px),760px)}
+@media (min-width:430px){.frame.phone{border-radius:34px}}
+.frame.mac{width:292px;height:660px;border-radius:12px}
+.frame.macwin{width:430px;max-width:100vw;height:620px;border-radius:12px;background:var(--surface)}
+.frame .scroller{flex:1;overflow-y:auto;overscroll-behavior:contain;padding-bottom:40px}
+.status{height:47px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 6px;font-size:15px;font-weight:600;flex:none}
+.macbar{height:28px;display:flex;align-items:center;gap:7px;padding-left:12px;flex:none}
+.macbar i{width:11px;height:11px;border-radius:50%;background:var(--hair);display:block}
+.macbar .wt{flex:1;text-align:center;font-size:12px;font-weight:600;color:var(--t2);margin-right:50px}
+
+/* ── phone list (MemosListView+Header.swift, NoteCardView.swift) ── */
+.phdr{display:flex;align-items:center;gap:18px;padding:8px 16px 6px;flex:none}
+.phdr .t{font-size:30px;font-weight:700;flex:1}
+.phdr .lnk{color:var(--accent);font-size:16px}
+.verbs{display:flex;gap:7px;padding:0 14px 2px;flex:none}
+.vb{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:600;min-height:44px;border-radius:8px;background:var(--elev);color:var(--t1)}
+.vb .i{font-size:12px}
+.vb.rec{color:var(--rec)}
+.vb.rec b{width:9px;height:9px;border-radius:50%;background:var(--rec);display:block}
+.vb.pen{flex:0 0 44px}
+.search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:9px 12px;margin:4px 16px 6px;color:var(--t3);font-size:14px}
+.search .i{font-size:14px}
+.cbar{display:flex;align-items:center;gap:5px;padding:2px 16px 6px;overflow-x:auto;scrollbar-width:none}
+.cbar::-webkit-scrollbar{display:none}
+.fchip{font-size:11px;color:var(--t2);padding:4px 9px;border-radius:6px;border:1px solid transparent;white-space:nowrap;flex:none}
+.fchip.on{color:var(--accent);background:rgb(var(--accent-rgb) / .14);border-color:rgb(var(--accent-rgb) / .22)}
+.fchip .cn{margin-left:3px;font-weight:600}
+.fchip.xtra{border-color:var(--border)}
+.fchip.xtra.on{border-color:rgb(var(--accent-rgb) / .22)}
+.fchip.sort{color:var(--accent);font-weight:600;border:0}
+.sechdr{font-size:11.5px;font-weight:700;letter-spacing:.5px;color:var(--t2);text-transform:uppercase;padding:10px 20px 4px}
+.rows{display:flex;flex-direction:column;gap:10px;padding:0 16px}
+.card{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;background:var(--surface);border:1px solid var(--border);text-align:left;width:100%;position:relative}
+.card .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.stamp{display:flex;align-items:center;gap:6px;font-size:10.5px;min-height:16px}
+.stamp .d{font-weight:600;color:var(--t3);white-space:nowrap}
+.stamp .sp{flex:1}
+.pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap;display:inline-flex;align-items:center;gap:3px}
+.pill.done{color:var(--green);background:color-mix(in srgb, var(--green) 12%, transparent)}
+.pill.progress{color:var(--accentText);background:rgb(var(--accent-rgb) / .12)}
+/* NEW: the not-synced pill. Same slot as Transcribing / 2 versions; amber, cloud-slash, no pulse. */
+.pill.unsynced{color:var(--amber);background:var(--amberSoft)}
+.pill .i{font-size:10px}
+.ttl{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:1px}
+.snip{font-size:11.5px;color:var(--t2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-top:1px}
+.chips{display:flex;gap:4px;padding-top:4px;flex-wrap:nowrap;overflow:hidden}
+.chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--t2);background:var(--elev);border-radius:99px;padding:2px 7px;white-space:nowrap}
+.chip .i{font-size:8.5px}
+.chip.tag{color:var(--accentText);background:var(--accentSoft)}
+.quiet{opacity:.62}
+.rb{display:inline-flex;gap:3px;align-items:center}
+.rb i{width:7px;height:7px;border-radius:50%;border:1.2px solid var(--ring);display:block}
+.rb i.on{background:var(--accent);border-color:var(--accent)}
+.newring{position:absolute;inset:-4px;border:1.5px dashed var(--redLine);border-radius:13px;pointer-events:none}
+.iflag{display:block;width:max-content;max-width:calc(100% - 32px);margin:2px 16px 4px;font-size:9px;font-weight:800;letter-spacing:.07em;color:var(--red);border:1.2px dashed var(--redLine);border-radius:6px;padding:2px 6px;background:var(--redSoft);line-height:1.35;flex:none}
+.empty{padding:22px 20px;text-align:center;color:var(--t3);font-size:13px}
+
+/* NEW: the list banner. Geometry of EditConflictBanner (Shared/UI/EditConflictViews.swift:206). */
+.banner{margin:2px 16px 4px;display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:10px;background:var(--amberSoft);border:1px solid var(--amberLine);color:var(--t1);text-align:left;width:calc(100% - 32px);flex:none;position:relative}
+.banner .gl{color:var(--amber);font-size:14px;padding-top:2px}
+.banner .tx{flex:1;min-width:0;font-size:12px;line-height:1.35;color:var(--t2)}
+.banner .tx b{display:block;font-size:13.5px;color:var(--t1);font-weight:600;margin-bottom:2px}
+.banner .go{font-size:13px;font-weight:600;color:var(--amber);white-space:nowrap;padding:2px 0 6px 6px}
+/* the alternative pick: the bottom "Syncing with iCloud…" capsule turned amber (MemosListView.swift:647) */
+.capsule{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:7px;font-size:12px;padding:7px 14px;border-radius:99px;background:var(--elev);border:1px solid var(--border);color:var(--t2);white-space:nowrap;z-index:4}
+.capsule.warn{background:var(--surface);border-color:var(--amberLine);color:var(--amber);font-weight:600}
+
+/* ── phone note (MemoDetailView nav bar, MemoPageView pinnedTitleRow + polishStatusBand) ── */
+.nav{display:flex;align-items:center;gap:2px;padding:4px 8px 6px 6px;flex:none}
+.nav .back{display:flex;align-items:center;gap:2px;color:var(--accent);font-size:17px;padding:6px 4px}
+.nav .back .i{font-size:20px}
+.nav .sp{flex:1}
+.nav .nb{width:34px;height:34px;display:grid;place-items:center;color:var(--t2);font-size:16px}
+.ptitle{font-size:17px;font-weight:700;padding:4px 20px 9px;border-bottom:.5px solid var(--border);flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* NEW: the note's line, in polishStatusBand's slot (MemoPageView.swift:326) */
+.band{display:flex;align-items:center;gap:8px;padding:8px 20px 2px;font-size:12px;color:var(--amber);flex:none;position:relative}
+.band b{font-weight:600}
+.band .sp{flex:1}
+.band .go{font-weight:600;font-size:12px;color:var(--amber)}
+.paper{padding:8px 20px 20px;display:flex;flex-direction:column;gap:10px}
+.metachips{display:flex;gap:6px;flex-wrap:wrap}
+.cchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--t2);background:var(--elev);border-radius:7px;padding:2px 7px}
+.cchip .i{font-size:10px}
+.tagrow{display:flex;gap:6px;flex-wrap:wrap}
+.tagrow span{font-size:14px;font-weight:500;height:30px;display:inline-flex;align-items:center;padding:0 12px;border-radius:99px;background:var(--accentSoft);color:var(--accentText)}
+.tagrow span.add{background:var(--elev);color:var(--t2)}
+.rate{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;background:var(--accentSoft);border-radius:99px;padding:5px 10px 5px 8px;font-size:13px;font-weight:600;color:var(--accentText)}
+.nbody{font-size:16px;line-height:1.5}
+.nbody p{margin:0 0 10px}
+
+/* ── Mac sidebar (SidebarView.swift) ── */
+.surf{display:flex;gap:3px;padding:3px;margin:10px 10px 0;background:var(--hair);border-radius:8px;flex:none}
+.surf span{flex:1;text-align:center;font-size:11.5px;font-weight:600;color:var(--t3);padding:5px 0;border-radius:6px}
+.surf span.on{background:var(--surface);color:var(--t1);box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.macid{display:flex;align-items:center;gap:8px;padding:12px 12px 10px;flex:none}
+.macid .lg{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#8e7dff,#6a59ef);color:#fff;font-weight:800;font-size:13px;display:grid;place-items:center}
+.macid .t{font-weight:700;font-size:15px;flex:1}
+.macid .g{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--t2);font-size:14px}
+.mac .verbs{padding:0 12px 8px}
+.mac .vb{min-height:30px;background:var(--surface);border:1px solid var(--border)}
+.mac .vb.pen{flex:0 0 34px}
+.proc{margin:0 12px 8px;display:flex;align-items:center;justify-content:center;gap:6px;color:#fff;background:var(--accent);border-radius:8px;padding:7px 0;font-size:12.5px;font-weight:600;width:calc(100% - 24px);flex:none}
+.proc .i{font-size:10px}
+.proc small{font-size:11px;padding:0 5px;border-radius:5px;background:rgba(255,255,255,.22)}
+.mac .iflag{margin:0 12px 4px}
+.mac .banner{margin:0 12px 8px;width:calc(100% - 24px);padding:9px 10px;gap:8px}
+.mac .banner .tx{font-size:11px}
+.mac .banner .tx b{font-size:12.5px}
+.mac .banner .go{font-size:12px}
+.mac .search{margin:0 12px;padding:5px 8px;border-radius:7px;font-size:12px;background:var(--hair);border-color:var(--hair);flex:none}
+.mac .search .i{font-size:11px}
+.mac .cbar{gap:2px;padding:8px 12px 4px;flex:none}
+.mac .fchip{padding:4px 6px;font-size:10.5px}
+.mac .rows{gap:6px;padding:0 8px}
+.mac .sechdr{font-size:10px;padding:10px 6px 3px;color:var(--t3)}
+.mfoot{display:flex;gap:14px;padding:9px 16px;border-top:.5px solid var(--hair);font-size:11px;color:var(--t2);flex:none;background:var(--bg)}
+.mfoot span{display:inline-flex;align-items:center;gap:5px}
+.mfoot i{width:6px;height:6px;border-radius:50%;background:var(--t3);display:block;opacity:.6}
+
+/* ── Mac note (NoteDisplayView.swift toolbarBar + the lastError strip's slot) ── */
+.mtool{display:flex;align-items:center;gap:12px;padding:0 16px;height:44px;border-bottom:.5px solid var(--hair);flex:none;color:var(--t2)}
+.mtool .i{font-size:15px}
+.mtool .track{flex:1;height:5px;border-radius:3px;background:var(--hair);position:relative}
+.mtool .track::after{content:"";position:absolute;left:0;top:0;bottom:0;width:22%;border-radius:3px;background:var(--accent)}
+.mtool .rt{font:600 11.5px ui-monospace,"SF Mono",Menlo,monospace}
+.strip{display:flex;align-items:center;gap:8px;padding:6px 18px;background:var(--amberSoft);color:var(--amber);font-size:11.5px;flex:none;position:relative}
+.strip b{font-weight:600}
+.strip .sp{flex:1}
+.strip .go{font-weight:600;font-size:11.5px}
+.mcol{padding:22px 28px;display:flex;flex-direction:column;gap:9px;overflow:auto;flex:1}
+.mcol .ntitle{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.mcol .nbody{font-size:14px}
+.mcol .cchip{font-size:10.5px}
+.mcol .rate{font-size:12px}
+
+/* ── sheets ── */
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:10}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:11;background:var(--bg);border-radius:14px 14px 0 0;display:flex;flex-direction:column;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding-bottom:22px}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--ring);margin:6px auto 0;flex:none}
+.shbody{padding:14px 18px 6px;display:flex;flex-direction:column;gap:10px}
+.cfhead{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+.cfhead .gl{width:44px;height:44px;border-radius:50%;background:var(--amberSoft);color:var(--amber);display:grid;place-items:center;font-size:22px}
+.cfhead h2{margin:4px 0 0;font-size:19px;font-weight:700;text-wrap:balance}
+.cfhead p{margin:0;font-size:13.5px;color:var(--t2);line-height:1.4;max-width:34ch}
+.facts{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px 12px}
+.facts div{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;padding:9px 0;border-top:1px solid var(--hair)}
+.facts div:first-child{border-top:0}
+.facts .i{font-size:14px;color:var(--t2);margin-top:2px}
+.acts{display:flex;flex-direction:column;gap:9px;padding:6px 18px 0}
+.btn{min-height:48px;border-radius:12px;font-size:16px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;padding:6px 12px;background:var(--surface);border:1px solid var(--border);color:var(--accent);position:relative}
+.btn small{font-size:11.5px;font-weight:500;color:var(--t2);margin-top:2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.q{border:1.5px dashed var(--redLine);background:var(--redSoft);color:var(--t1)}
+.btn .fl{position:absolute;right:8px;top:-8px;font-size:9px;font-weight:800;letter-spacing:.07em;color:var(--red);background:var(--bg);border:1.2px dashed var(--redLine);border-radius:6px;padding:1px 5px}
+.macsheet{position:absolute;left:18px;right:18px;top:28px;z-index:11;background:var(--surface);border:1px solid var(--border);border-radius:0 0 12px 12px;box-shadow:0 18px 40px rgba(0,0,0,.28);display:flex;flex-direction:column;padding:14px 16px}
+.macsheet .cfhead{display:grid;grid-template-columns:36px 1fr;column-gap:12px;row-gap:2px;align-items:start;text-align:left}
+.macsheet .cfhead .gl{grid-row:span 2;width:36px;height:36px;font-size:18px}
+.macsheet .cfhead h2{font-size:14px;margin:0}
+.macsheet .cfhead p{font-size:12px;max-width:none}
+.macsheet .facts{margin-top:10px;border-radius:8px;background:var(--bg)}
+.macsheet .facts div{font-size:12.5px;padding:7px 0}
+.mbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;flex-wrap:wrap}
+.mbtn{min-height:28px;border-radius:6px;font-size:13px;background:var(--elev);border:1px solid var(--border);color:var(--t1);padding:4px 12px}
+.mbtn.def{background:var(--macbtn);border-color:var(--macbtn);color:#fff;font-weight:600}
+.mbtn.q{border:1.5px dashed var(--redLine);background:var(--redSoft)}
+
+.toast{position:absolute;left:50%;bottom:60px;transform:translateX(-50%);background:var(--toastBg);color:var(--toastFg);font-size:12.5px;padding:8px 13px;border-radius:10px;width:max-content;max-width:86%;text-align:center;opacity:0;transition:opacity .18s;pointer-events:none;z-index:30;line-height:1.35}
+.toast.show{opacity:.95}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="pen" viewBox="0 0 24 24"><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></symbol>
+  <symbol id="mag" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></symbol>
+  <symbol id="pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></symbol>
+  <symbol id="cloudx" viewBox="0 0 24 24"><path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.2 4.5 4.5 0 0 0 7 18z"/><path d="M3.5 3.5l17 17"/></symbol>
+  <symbol id="person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.6-3.8 3.3-5.6 7-5.6s6.4 1.8 7 5.6"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+  <symbol id="dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="ppl" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2" fill="currentColor" stroke="none"/><path d="M3 19c.5-3.4 3-5 6-5s5.5 1.6 6 5z" fill="currentColor" stroke="none"/><circle cx="16.5" cy="8.5" r="2.6" fill="currentColor" stroke="none"/><path d="M16 13.5c2.6 0 4.6 1.4 5 4.5h-4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="back10" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="head">
+    <h1>Sync health: the list and the note</h1>
+    <div class="meta"><b>Q484</b> · first pass · C155 · D48 · R47 · row from <code>NoteCardView.swift</code></div>
+    <p>What you see when iCloud stops taking your notes: iCloud full, signed out, one note still waiting, and the phone or Mac now on a different iCloud account. Pick a state, then flip between the list and the open note. Notes are fake.</p>
+  </header>
+
+  <div class="sticky">
+    <div class="row2">
+      <div class="seg" role="group" aria-label="Device">
+        <button id="dev-phone" data-dev="phone" aria-pressed="true">iPhone</button>
+        <button id="dev-mac" data-dev="mac" aria-pressed="false">Mac</button>
+      </div>
+      <div class="seg" role="group" aria-label="Screen">
+        <button id="vw-list" data-view="list" aria-pressed="true">List</button>
+        <button id="vw-note" data-view="note" aria-pressed="false">Note</button>
+      </div>
+    </div>
+    <div class="seg steps" role="group" aria-label="Sync state">
+      <button id="st-ok" data-st="ok" aria-pressed="false">Healthy<small>today</small></button>
+      <button id="st-quota" data-st="quota" aria-pressed="true">iCloud full<small>quota</small></button>
+      <button id="st-signedout" data-st="signedout" aria-pressed="false">Signed out<small>no account</small></button>
+      <button id="st-one" data-st="one" aria-pressed="false">One note<small>waiting</small></button>
+      <button id="st-switched" data-st="switched" aria-pressed="false">Switched<small>new account</small></button>
+    </div>
+  </div>
+
+  <div class="stagewrap"><div id="stage"></div></div>
+  <div class="hint" id="hint"></div>
+
+  <div class="picks">
+    <div class="redline">My picks, to overrule</div>
+    <div class="pick"><div class="k">1. A banner that stays on the list, not the bottom capsule
+      <small>The failure sits above the search field until it clears, in the amber shape of the two-versions banner. Today's bottom "Syncing with iCloud…" capsule is transient and fades; a quota problem that fades is the thing C155 is fixing. Flip to see the capsule version on the phone:</small>
+      <div class="seg" role="group" aria-label="Where the list says it">
+        <button id="pl-top" data-place="top" aria-pressed="true">Banner on top (pick)</button>
+        <button id="pl-bottom" data-place="bottom" aria-pressed="false">Amber bottom capsule</button>
+      </div></div></div>
+    <div class="pick"><div class="k">2. One amber "Not synced yet" pill, in the slot "2 versions" uses
+      <small>On the Mac it replaces the pipeline word (Ready, Exported) the same way "2 versions" does today. The phone's existing Unsynced chip gets a count and becomes the list of these notes; the banner's Show turns it on. Today nothing in the app writes <code>syncStatus</code>, so that chip filters on a value that never changes.</small></div></div>
+    <div class="pick"><div class="k">3. An account switch only explains; it offers no button that moves notes
+      <small>Syncing stops, the banner says so, and What now says how to resume: sign back into the old account. "Sync these notes to this account instead" is drawn dashed and does nothing, because it is the one question below.</small></div></div>
+  </div>
+
+  <div class="ask"><span class="ph">The one question</span>After an iCloud account switch, should Skrift offer to start syncing this device's notes into the new account, or only stop and tell you to sign back into the old one?</div>
+
+  <div class="panel">
+    <div class="redline">Rules this mock assumes</div>
+    <ul>
+      <li>The list shows a failure within 60 seconds of the first failed upload, and clears it at the next upload that works. No toast, no alert.</li>
+      <li>A note is "not synced yet" when it was made or changed after the last upload that worked. CloudKit gives no per-note status (<code>SkriftMobile/Features/Settings/SettingsView.swift:41-43</code>), so this is Skrift's own record.</li>
+      <li>A single waiting note with a healthy account gets the pill and the note line, never a list banner.</li>
+      <li>Unverified: what SwiftData's CloudKit mirror does to local notes when the account changes. The copy "Nothing here was deleted" must be proven before it ships.</li>
+      <li>Neither app can open the iCloud pane of Settings directly, so the copy names the path instead of offering a button.</li>
+    </ul>
+  </div>
+
+  <div class="note"><b>Drawn from source.</b> Phone list: header and Select <code>MemosListView+Header.swift:307-327</code>, Import / Record / pen <code>:53-120</code>, chip row with Date and Unsynced <code>:186-231</code>, search <code>MemosListView.swift:428-443</code>, bottom sync capsule <code>MemosListView.swift:643-661</code>. Card, pill and balls <code>Shared/UI/NoteCardView.swift:85-178</code>; pill slot rule <code>MemosListView+Row.swift:95-105</code>. Banner shape <code>Shared/UI/EditConflictViews.swift:206-237</code>. Phone note: nav bar <code>MemoDetailView.swift:351-385</code>, pinned title <code>MemoPageView.swift:295-322</code>, line slot <code>MemoPageView.swift:326-355</code>, chips, tags and rating pill <code>MemoPageView.swift:465-523</code>. Mac sidebar: Notes / Review <code>JournalView.swift:659-686</code>, header, verbs, Process <code>SidebarView.swift:258-300, 443-472</code>, search and chips <code>:509-575</code>, row pill <code>:1250-1265</code>, engine footer <code>:941-967</code>. Mac note: toolbar, then the error strip slot <code>NoteDisplayView.swift:188-212</code>. Colours <code>Shared/UI/Palette.swift</code>. New here: the banner, the amber pill, the note line, the What now sheet.</div>
+</div>
+
+<script>
+(function(){
+  var ic=function(id){return '<svg class="i"><use href="#'+id+'"/></svg>';};
+  var S={dev:'phone',view:'list',st:'quota',place:'top',unsyncedOn:false,sheet:false};
+
+  var NOTES=[
+    {id:'n1',grp:'Today',stamp:'Today · 15:02',title:'Tiles for the bathroom floor',snip:'Grey hexagons for the floor, white for the walls. Ask Rui if the 20 cm ones fit under the door.',chips:[['1:48'],['Alfama','pin'],['19°','sun']],tags:['house'],balls:2,mac:'Ready'},
+    {id:'n2',grp:'Today',stamp:'Today · 11:40',title:'Call with Marta about the lease',snip:'She can do March. Deposit back within two weeks of the keys.',chips:[['4:12']],tags:['house'],balls:1,mac:'Exported'},
+    {id:'n3',grp:'Yesterday',stamp:'Yesterday · 21:15',title:'Bread starter, day four',snip:'Doubled in six hours. Feed at 1:1 tomorrow morning and try a loaf on Saturday.',chips:[['0:52']],tags:[],balls:1,mac:'Exported'},
+    {id:'n4',grp:'Yesterday',stamp:'Yesterday · 08:30',title:'',snip:'Running route along the river, start at Cais do Sodré and turn at the bridge. About 7 km.',chips:[['2:30'],['Cais do Sodré','pin']],tags:[],balls:0,mac:'Transcribed'}
+  ];
+  var UNSYNCED={ok:[],quota:['n1','n2'],signedout:['n1','n2'],one:['n1'],switched:['n1']};
+  var REASON={quota:'iCloud is full',signedout:'not signed in to iCloud',one:'waiting for iCloud',switched:'syncing is stopped'};
+  var HINT={
+    ok:'<b>Healthy.</b> Today\'s list, unchanged: no banner, no pill, the Unsynced chip carries no count.',
+    quota:'<b>iCloud full.</b> Shows within a minute of the first failed upload. Clears itself at the next upload that works.',
+    signedout:'<b>Signed out.</b> Same banner, same pill. New notes keep working on this device.',
+    one:'<b>One note waiting.</b> The account is fine; this note has not gone up yet (offline, or its audio is still uploading). Pill and note line only, no banner.',
+    switched:'<b>Account switched.</b> Noticed, syncing stopped, and it says so. Tap What now.'
+  };
+  var unsynced=function(){return UNSYNCED[S.st];};
+  var isUn=function(id){return unsynced().indexOf(id)>=0;};
+  var devWord=function(){return S.dev==='mac'?'this Mac':'this iPhone';};
+  var unsyncedPill=function(){return '<span class="pill unsynced">'+ic('cloudx')+'Not synced yet</span>';};
+
+  function bannerFor(){
+    var n=unsynced().length, s=n===1?'':'s', d=devWord();
+    if(S.st==='quota') return {t:'iCloud is full',l:n+' note'+s+' haven\'t synced. They\'re safe on '+d+' and go up once iCloud has room.',go:'Show'};
+    if(S.st==='signedout') return {t:'Not signed in to iCloud',l:n+' note'+s+' haven\'t synced. They stay on '+d+' until you sign in to iCloud in Settings.',go:'Show'};
+    if(S.st==='switched') return {t:'A different iCloud account',l:'Syncing stopped so your notes don\'t go into that account. Nothing here was deleted.',go:'What now'};
+    return null;
+  }
+
+  function balls(n){var h='<span class="rb">';for(var i=1;i<=3;i++)h+='<i class="'+(i<=n?'on':'')+'"></i>';return h+'</span>';}
+  function card(n,mac){
+    var pill='';
+    if(isUn(n.id)) pill=unsyncedPill();
+    else if(mac) pill='<span class="pill done">'+n.mac+'</span>';
+    var body='<div class="body"><div class="stamp"><span class="d">'+n.stamp+'</span><span class="sp"></span>'+pill+balls(n.balls)+'</div>'
+      +(n.title?'<div class="ttl">'+n.title+'</div>':'')
+      +'<div class="snip">'+n.snip+'</div><div class="chips">'
+      +n.chips.map(function(c){return '<span class="chip">'+(c[1]?ic(c[1]):'')+c[0]+'</span>';}).join('')
+      +n.tags.map(function(t){return '<span class="chip tag">#'+t+'</span>';}).join('')+'</div></div>';
+    return '<button class="card'+(n.balls===0?' quiet':'')+'" data-open="'+n.id+'">'+body+(isUn(n.id)?'<span class="newring"></span>':'')+'</button>';
+  }
+  function rows(mac){
+    var list=NOTES.filter(function(n){return !(S.unsyncedOn&&!mac)||isUn(n.id);});
+    if(!list.length) return '<div class="empty">Every note has synced.</div>';
+    var h='',g='';
+    list.forEach(function(n){ if(n.grp!==g){ if(g) h+='</div>'; g=n.grp; h+='<div class="sechdr">'+g+'</div><div class="rows">'; } h+=card(n,mac); });
+    return h+'</div>';
+  }
+  function bannerHTML(){
+    var b=bannerFor(); if(!b) return '';
+    var go=(b.go==='Show'&&S.dev==='mac')?'':'<button class="go" data-act="'+(b.go==='Show'?'show':'whatnow')+'">'+(b.go==='Show'&&S.unsyncedOn?'Hide':b.go)+'</button>';
+    return '<span class="iflag">NEW · list banner</span><div class="banner" role="status"><span class="gl">'+ic('cloudx')+'</span><div class="tx"><b>'+b.t+'</b>'+b.l+'</div>'+go+'</div>';
+  }
+
+  function phoneList(){
+    var n=unsynced().length;
+    var top=S.place==='top'?bannerHTML():'';
+    var cap='';
+    if(S.place==='bottom'&&bannerFor()) cap='<button class="capsule warn" data-act="'+(S.st==='switched'?'whatnow':'show')+'">'+ic('cloudx')+bannerFor().t+(S.st==='switched'?' · syncing stopped':' · '+n+' not synced')+'</button>';
+    return '<div class="frame phone"><div class="status"><span>15:10</span><span></span></div>'
+      +'<div class="phdr"><span class="t">Notes</span><button class="lnk" data-ack="Select">Select</button></div>'
+      +'<div class="verbs"><button class="vb" data-ack="Import">'+ic('plus')+'Import</button><button class="vb rec" data-ack="Record"><b></b>Record</button><button class="vb pen" data-ack="New note" aria-label="New note">'+ic('pen')+'</button></div>'
+      +'<div class="scroller">'+top
+      +'<div class="search">'+ic('mag')+'Search memos</div>'
+      +'<div class="cbar"><button class="fchip on" data-ack="All">All</button><button class="fchip" data-ack="Needs Work">Needs Work<span class="cn">3</span></button><button class="fchip" data-ack="Done">Done<span class="cn">5</span></button><button class="fchip" data-ack="Unrated">Unrated<span class="cn">2</span></button><button class="fchip xtra" data-ack="Date">Date ▾</button>'
+      +'<button class="fchip xtra'+(S.unsyncedOn?' on':'')+'" data-act="show">Unsynced'+(n?'<span class="cn">'+n+'</span>':'')+'</button><button class="fchip sort" data-ack="Sort">Newest</button></div>'
+      +rows(false)+'</div>'+cap+sheetHTML()+'<div class="toast" id="toast"></div></div>';
+  }
+  function lineHTML(cls){
+    if(!isUn('n1')) return '';
+    return '<div class="'+cls+'" role="status">'+ic('cloudx')+'<span><b>Not synced yet</b> · '+REASON[S.st]+'</span><span class="sp"></span>'+(S.st==='switched'?'<button class="go" data-act="whatnow">What now</button>':'')+'</div>';
+  }
+  function phoneNote(){
+    var n=NOTES[0];
+    var band=isUn('n1')?'<span class="iflag" style="margin:6px 20px 0">NEW · note line</span>'+lineHTML('band'):'';
+    return '<div class="frame phone"><div class="status"><span>15:10</span><span></span></div>'
+      +'<div class="nav"><button class="back" data-act="list">'+ic('chev')+'Notes</button><span class="sp"></span><button class="nb" data-ack="Add recording" aria-label="Add recording">'+ic('plus')+'</button><button class="nb" data-ack="Split speakers" aria-label="Split speakers">'+ic('ppl')+'</button><button class="nb" data-ack="Note menu" aria-label="Note menu">'+ic('dots')+'</button></div>'
+      +'<div class="ptitle">'+n.title+'</div>'+band
+      +'<div class="scroller"><div class="paper"><div class="metachips"><span class="cchip">Today 15:02</span><span class="cchip">1:48</span><span class="cchip">'+ic('pin')+'Alfama</span><span class="cchip">'+ic('sun')+'19°</span></div>'
+      +'<div class="tagrow"><span>house</span><span class="add">+ tag</span></div>'
+      +'<button class="rate" data-ack="Rating">'+balls(2)+'Useful</button>'
+      +'<div class="nbody"><p>Grey hexagons for the floor, white for the walls. Ask Rui if the 20 cm ones fit under the door, otherwise the 15s.</p><p>The shop on Rua da Prata closes at seven. Bring the photo of the old floor.</p></div></div></div>'
+      +sheetHTML()+'<div class="toast" id="toast"></div></div>';
+  }
+  function macList(){
+    return '<div class="frame mac"><div class="surf"><span class="on">Notes</span><span>Review</span></div>'
+      +'<div class="macid"><span class="lg">S</span><span class="t">Skrift</span><button class="g" data-ack="Settings" aria-label="Settings">'+ic('gear')+'</button></div>'
+      +'<div class="verbs"><button class="vb" data-ack="Import">'+ic('plus')+'Import</button><button class="vb rec" data-ack="Record"><b></b>Record</button><button class="vb pen" data-ack="New note" aria-label="New note">'+ic('pen')+'</button></div>'
+      +'<button class="proc" data-ack="Process">'+ic('play')+'Process<small>1</small></button>'
+      +bannerHTML()
+      +'<div class="search">'+ic('mag')+'Search memos</div>'
+      +'<div class="cbar"><button class="fchip on" data-ack="All">All</button><button class="fchip" data-ack="Needs Work">Needs Work<span class="cn">3</span></button><button class="fchip" data-ack="Done">Done<span class="cn">5</span></button><button class="fchip" data-ack="Unrated">Unrated<span class="cn">2</span></button><button class="fchip xtra" data-ack="Date">Date ▾</button><button class="fchip sort" data-ack="Sort">Newest</button></div>'
+      +'<div class="scroller">'+rows(true)+'</div>'
+      +'<div class="mfoot"><span><i></i>Parakeet</span><span><i></i>Gemma 4</span></div>'
+      +sheetHTML()+'<div class="toast" id="toast"></div></div>';
+  }
+  function macNote(){
+    var strip=isUn('n1')?'<span class="iflag" style="margin:4px 18px">NEW · note strip, in the error strip\'s slot</span>'+lineHTML('strip'):'';
+    return '<div class="frame macwin"><div class="macbar"><i></i><i></i><i></i><span class="wt">Skrift</span></div>'
+      +'<div class="mtool"><button data-ack="Back 10" aria-label="Back 10 seconds">'+ic('back10')+'</button><button data-ack="Play" aria-label="Play">'+ic('play')+'</button><span class="track"></span><span class="rt">1×</span></div>'
+      +strip
+      +'<div class="mcol"><div class="metachips"><span class="cchip">Today 15:02</span><span class="cchip">1:48</span><span class="cchip">'+ic('pin')+'Alfama</span><span class="cchip">#house</span></div>'
+      +'<div class="ntitle">Tiles for the bathroom floor</div><button class="rate" data-ack="Rating">'+balls(2)+'Useful</button>'
+      +'<div class="nbody"><p>Grey hexagons for the floor, white for the walls. Ask Rui if the 20 cm ones fit under the door, otherwise the 15s.</p><p>The shop on Rua da Prata closes at seven. Bring the photo of the old floor.</p></div></div>'
+      +sheetHTML()+'<div class="toast" id="toast"></div></div>';
+  }
+  function sheetHTML(){
+    if(!S.sheet) return '';
+    var d=devWord(), where=S.dev==='mac'?'System Settings':'Settings';
+    var facts='<div class="facts"><div>'+ic('check')+'<span>Your 48 notes are still on '+d+'.</span></div>'
+      +'<div>'+ic('cloudx')+'<span>1 note made since the switch hasn\'t synced.</span></div>'
+      +'<div>'+ic('person')+'<span>To sync again, sign back into the iCloud account you used before, in '+where+' › your name.</span></div></div>';
+    if(S.dev==='mac') return '<div class="scrim" data-act="close"></div><div class="macsheet" role="dialog" aria-label="Syncing is stopped"><div class="cfhead"><span class="gl">'+ic('cloudx')+'</span><h2>Syncing is stopped</h2><p>This Mac was syncing with a different iCloud account. Skrift stopped so notes from that account don\'t go into this one.</p></div>'+facts
+      +'<div class="mbtns"><button class="mbtn q" data-ack="The one question">Sync these notes to this account</button><button class="mbtn def" data-act="close">OK</button></div></div>';
+    return '<div class="scrim" data-act="close"></div><div class="sheet" role="dialog" aria-label="Syncing is stopped"><span class="grab"></span><div class="shbody"><div class="cfhead"><span class="gl">'+ic('cloudx')+'</span><h2>Syncing is stopped</h2><p>This iPhone was syncing with a different iCloud account. Skrift stopped so notes from that account don\'t go into this one.</p></div>'+facts+'</div>'
+      +'<div class="acts"><button class="btn primary" data-act="close">OK</button><button class="btn q" data-ack="The one question"><span class="fl">THE ONE QUESTION</span>Sync these notes to this account<small>Drawn so you can say yes or no</small></button></div></div>';
+  }
+
+  var stage=document.getElementById('stage');
+  function render(){
+    if(S.st!=='switched') S.sheet=false;
+    if(!unsynced().length) S.unsyncedOn=false;
+    stage.innerHTML = S.dev==='phone' ? (S.view==='list'?phoneList():phoneNote()) : (S.view==='list'?macList():macNote());
+    document.getElementById('hint').innerHTML=HINT[S.st]+(S.dev==='phone'&&S.view==='list'&&S.place==='bottom'&&bannerFor()?' Showing the alternative bottom capsule.':'');
+    [['data-dev','dev'],['data-view','view'],['data-st','st'],['data-place','place']].forEach(function(p){
+      document.querySelectorAll('['+p[0]+']').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute(p[0])===S[p[1]]));});
+    });
+  }
+  var tt;
+  function toast(msg){var t=document.getElementById('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(function(){t.classList.remove('show');},1400);}
+
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('button,[data-act]'); if(!b) return;
+    if(b.hasAttribute('data-dev')){S.dev=b.getAttribute('data-dev');S.sheet=false;return render();}
+    if(b.hasAttribute('data-view')){S.view=b.getAttribute('data-view');S.sheet=false;return render();}
+    if(b.hasAttribute('data-st')){S.st=b.getAttribute('data-st');return render();}
+    if(b.hasAttribute('data-place')){S.place=b.getAttribute('data-place');S.dev='phone';S.view='list';return render();}
+    if(b.hasAttribute('data-open')){S.view='note';S.sheet=false;render();if(b.getAttribute('data-open')!=='n1')toast('This mock opens one note: Tiles for the bathroom floor');return;}
+    var a=b.getAttribute('data-act');
+    if(a==='show'){ if(!unsynced().length){toast('Every note has synced');return;} S.unsyncedOn=!S.unsyncedOn; return render(); }
+    if(a==='whatnow'){S.sheet=true;return render();}
+    if(a==='close'){S.sheet=false;return render();}
+    if(a==='list'){S.view='list';return render();}
+    var ack=b.getAttribute('data-ack'); if(ack) toast(ack+': not part of this mock');
+  });
+  render();
+})();
+</script>
