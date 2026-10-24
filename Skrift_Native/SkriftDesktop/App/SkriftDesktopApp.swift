@@ -47,6 +47,7 @@ struct SkriftDesktopApp: App {
         RunFile.runVaultExportIfRequested()
         RunFile.runProcessFileIfRequested()
         RunFile.runReconcilePassIfRequested()
+        RunFile.runExportAllIfRequested()
         RunFile.runRecordCopyEditV2IfRequested()
         RunFile.runIngestFileIfRequested()
         RunFile.runRecordIngestIfRequested()
@@ -104,6 +105,7 @@ struct SkriftDesktopApp: App {
             monitor.onStopChanged = { stopped in
                 if stopped { CloudFirstImport.reset(stampURL: AppPaths.memoCloudFirstImportStamp) }
             }
+            monitor.onProblemChanged = { MacSyncMonitor.shared.syncHealthChanged() }
             monitor.attach(cloud)
         }
 

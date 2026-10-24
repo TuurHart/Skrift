@@ -57,8 +57,9 @@ struct MacSyncCard: View {
                     .font(.system(size: 10, design: .monospaced)).foregroundStyle(Theme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            alertButton(state == .signedOut ? "Open iCloud Settings…" : "Reopen Skrift") {
-                state == .signedOut ? Self.openICloudSettings() : Self.relaunch()
+            // Every account or storage problem is fixed in iCloud Settings; only "couldn't start" reopens.
+            alertButton(state == .failed ? "Reopen Skrift" : "Open iCloud Settings…") {
+                state == .failed ? Self.relaunch() : Self.openICloudSettings()
             }
         }
         .padding(.horizontal, 11).padding(.vertical, 10)

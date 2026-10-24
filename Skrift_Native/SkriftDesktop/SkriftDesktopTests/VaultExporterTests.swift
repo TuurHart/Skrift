@@ -208,8 +208,8 @@ final class VaultExporterTests: XCTestCase {
     }
 
     func testExportLegacyCaptureCopiesImagesUnderOriginalNames() throws {
-        // Pre-Wave-2 captures: no markers in the body — the Compiler pins ![[fileName]]
-        // and the exporter copies the folder's images under their original names.
+        // Pre-Wave-2 captures: no markers in the body. Q518 (C57): the pinned embed and the
+        // copied picture share the one export name (`<stem>_001.jpg`), so the embed resolves.
         let work = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: work) }
@@ -232,9 +232,9 @@ final class VaultExporterTests: XCTestCase {
         let r = try VaultExporter.export(pf, settings: settings)
         XCTAssertEqual(r.imageCount, 1)
         let md = try String(contentsOf: r.markdownURL, encoding: .utf8)
-        XCTAssertTrue(md.contains("![[whiteboard.jpg]]"), "pinned embed under the original name")
+        XCTAssertTrue(md.contains("![[Whiteboard_001.jpg]]"), "pinned embed under the export name")
         XCTAssertTrue(FileManager.default.fileExists(
-            atPath: vault.appendingPathComponent("Skrift/Images/whiteboard.jpg").path))
+            atPath: vault.appendingPathComponent("Skrift/Images/Whiteboard_001.jpg").path))
     }
 
     // MARK: - Locked notes (synced flag) never reach the plaintext vault

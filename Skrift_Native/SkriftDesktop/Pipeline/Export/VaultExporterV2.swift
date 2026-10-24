@@ -113,7 +113,8 @@ extension VaultExporter {
         var out = compile(place)
         var count = out.pictures.count + out.attachments
         // A legacy marker-less capture: its pictures under their own names, as the block embeds them.
-        if let imagesDir, legacyCapture, FileManager.default.fileExists(atPath: imagesDir.path) {
+        // Q518: a marker-less capture with a manifest placed its pictures in the compile (one name).
+        if let imagesDir, legacyCapture, out.pictures.isEmpty, FileManager.default.fileExists(atPath: imagesDir.path) {
             let (md, copied) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: out.markdown,
                                                        id: id, place: place)
             out.markdown = md

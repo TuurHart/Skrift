@@ -135,16 +135,14 @@ struct SyncHealth: Codable, Equatable {
         let notes = n == 1 ? "1 note hasn't synced." : "\(n) notes haven't synced."
         switch problem {
         case .accountSwitched?:
-            return Banner(title: "A different iCloud account",
-                          line: "Syncing stopped so your notes don't go into that account.",
-                          opensSheet: true)
+            return Banner(title: Self.switchedTitle, line: Self.switchedLine, opensSheet: true)
         case .signedOut?:
-            return Banner(title: "Not signed in to iCloud",
+            return Banner(title: SharedCopy.syncSignedOutCapsule,
                           line: n == 0 ? "New notes stay on \(device) until you sign in to iCloud in Settings."
                                        : "\(notes) They stay on \(device) until you sign in to iCloud in Settings.",
                           opensSheet: false)
         case .quotaFull?:
-            return Banner(title: "iCloud is full",
+            return Banner(title: Self.fullTitle,
                           line: n == 0 ? "New notes stay on \(device) and go up once iCloud has room."
                                        : "\(notes) They're safe on \(device) and go up once iCloud has room.",
                           opensSheet: false)
@@ -156,7 +154,7 @@ struct SyncHealth: Codable, Equatable {
     /// The reason after "Not synced yet · " on the note.
     var noteReason: String {
         switch problem {
-        case .quotaFull?: return "iCloud is full"
+        case .quotaFull?: return Self.fullTitle
         case .signedOut?: return "not signed in to iCloud"
         case .accountSwitched?: return "syncing is stopped"
         case nil: return "waiting for iCloud"
@@ -194,6 +192,11 @@ struct SyncHealth: Codable, Equatable {
         return WhatNow(lead: "This \(deviceKind) was syncing with a different iCloud account. Skrift stopped so notes from that account don't go into this one.",
                        facts: facts)
     }
+
+    /// The banner's words, also the Mac Settings iCloud row's (Q517): one wording for one state.
+    static let switchedTitle = "A different iCloud account"
+    static let switchedLine = "Syncing stopped so your notes don't go into that account."
+    static let fullTitle = "iCloud is full"
 
     static let pillText = "Not synced yet"
     static let showVerb = "Show"

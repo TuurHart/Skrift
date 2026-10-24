@@ -19,6 +19,8 @@ struct SettingsView: View {
     /// Snapshot injection of the Weather row's state (Q326): the key text and whether it came
     /// from the phone. Default nil → the stored settings.
     var weatherPreview: (key: String, fromPhone: Bool)? = nil
+    /// Snapshot injection of the Export-all row (Q516): its state and note count.
+    var exportAllPreview: (state: ExportAllRun.State, count: Int)? = nil
 
     @AppStorage(PrefKey.appTheme) private var appTheme = PrefKey.appThemeDefault
     @State private var settings = SettingsStore.shared.load()
@@ -143,6 +145,9 @@ struct SettingsView: View {
                         switchOn: Binding(get: { syncStateOverride.map { $0 != .off } ?? (settings.cloudKitMacSync ?? true) },
                                           set: { settings.cloudKitMacSync = $0 }),
                         interactive: interactive)
+            // D218/D219 (Q516, mock Q515): one zip of every note, under the same-account line.
+            ExportAllRow(run: exportAllPreview.map { ExportAllRun(state: $0.state) } ?? .shared,
+                         countOverride: exportAllPreview?.count, interactive: interactive)
         }
         .id(Self.syncSectionID)
     }

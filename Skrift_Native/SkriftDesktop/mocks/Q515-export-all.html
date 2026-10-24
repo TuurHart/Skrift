@@ -1,0 +1,351 @@
+<meta charset="utf-8">
+<title>Q515 Export All Notes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one column, phone-first. Device tabs (iPhone / Mac) and a three-step state picker
+   (Ready / Building / Share or Save) drive one stage. App surfaces use Skrift's Palette.swift
+   values (phone bg #f5f5f7, Mac bg #f7f7fa, surface, accent #6c5ce0 / #7c6bf5). */
+:root {
+  --page: #eceef4; --ink: #1c1c20; --ink2: #5d5d6a; --ink3: #9696a2;
+  --rule: rgba(20,20,40,.10);
+  --pbg: #f5f5f7; --mbg: #f7f7fa; --surface: #ffffff; --chip: #ebebf0;
+  --t1: #1c1c1e; --t2: #6c6c72; --t3: #a3a3aa;
+  --hair: rgba(0,0,0,.07); --hair2: rgba(0,0,0,.05); --track: rgba(0,0,0,.08);
+  --accent: #6c5ce0; --accentText: #6051c8; --accentSoft: rgba(108,92,224,.13);
+  --sheet: #f2f2f6; --scrim: rgba(0,0,0,.28); --panel: #ececf0;
+  --pick: #c2410c; --pickSoft: rgba(194,65,12,.09);
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --sys: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #090a0f; --ink: #e4e4e7; --ink2: #a0a0ad; --ink3: #6b6b7e; --rule: rgba(255,255,255,.10);
+  --pbg: #0f1117; --mbg: #0f1117; --surface: #181a23; --chip: #1e2130;
+  --t1: #e4e4e7; --t2: #8b8b97; --t3: #55556a; --hair: rgba(255,255,255,.08); --hair2: rgba(255,255,255,.05); --track: rgba(255,255,255,.12);
+  --accent: #7c6bf5; --accentText: #b9acff; --accentSoft: rgba(124,107,245,.16);
+  --sheet: #1c1e28; --scrim: rgba(0,0,0,.5); --panel: #23252f;
+  --pick: #fb923c; --pickSoft: rgba(251,146,60,.10);
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --page: #090a0f; --ink: #e4e4e7; --ink2: #a0a0ad; --ink3: #6b6b7e; --rule: rgba(255,255,255,.10);
+  --pbg: #0f1117; --mbg: #0f1117; --surface: #181a23; --chip: #1e2130;
+  --t1: #e4e4e7; --t2: #8b8b97; --t3: #55556a; --hair: rgba(255,255,255,.08); --hair2: rgba(255,255,255,.05); --track: rgba(255,255,255,.12);
+  --accent: #7c6bf5; --accentText: #b9acff; --accentSoft: rgba(124,107,245,.16);
+  --sheet: #1c1e28; --scrim: rgba(0,0,0,.5); --panel: #23252f;
+  --pick: #fb923c; --pickSoft: rgba(251,146,60,.10);
+  color-scheme: dark }
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { background: var(--page); color: var(--ink); font-family: var(--sys); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 18px 80px; display: grid; gap: 16px }
+h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; text-wrap: balance }
+h2 { font-size: 14px; margin: 0 }
+.lede { color: var(--ink2); font-size: 13.5px; line-height: 1.45; margin: 4px 0 0; max-width: 62ch }
+.mono { font-family: var(--mono) }
+.eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink3) }
+
+.picks { border: 1.5px solid var(--pick); background: var(--pickSoft); border-radius: 10px; padding: 12px 14px; display: grid; gap: 9px }
+.picks .eyebrow { color: var(--pick) }
+.pick { display: grid; grid-template-columns: 22px 1fr; gap: 6px; font-size: 13px; line-height: 1.4 }
+.pick b { color: var(--pick); font-family: var(--mono) }
+.pick em { font-style: normal; color: var(--ink2) }
+
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--page) }
+.controls { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--page); padding-block: 8px; display: grid; gap: 8px; border-bottom: 1px solid var(--rule) }
+.tabs, .seg { display: grid; border: 1px solid var(--rule); border-radius: 9px; overflow: hidden }
+.tabs { grid-template-columns: 1fr 1fr }
+.seg { grid-template-columns: repeat(3, 1fr) }
+.tabs button, .seg button { font: 600 13px var(--sys); padding: 9px 4px; min-height: 38px; border: 0; background: var(--surface); color: var(--ink2); cursor: pointer }
+.tabs button + button, .seg button + button { border-left: 1px solid var(--rule) }
+.tabs button[aria-selected="true"] { background: var(--accentSoft); color: var(--accentText) }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--page) }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+.stage { display: grid; gap: 12px; justify-items: center }
+.note { font-size: 12.5px; color: var(--ink2); line-height: 1.5; max-width: 62ch; justify-self: stretch; display: grid; gap: 6px }
+.note p { margin: 0 }
+.note code { font-family: var(--mono); font-size: 11.5px; overflow-wrap: anywhere }
+.tag { display: inline-block; font: 600 9.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 2px 5px; border-radius: 4px; vertical-align: 1px; color: var(--pick); border: 1px solid var(--pick) }
+.newbox { outline: 1.5px dashed var(--pick); outline-offset: 2px; border-radius: 10px; position: relative }
+
+/* ── iPhone ── */
+.phone { width: min(100%, 360px); height: 640px; background: var(--pbg); border: 1px solid var(--hair); border-radius: 38px; overflow: hidden; position: relative; color: var(--t1); box-shadow: 0 10px 34px rgba(0,0,0,.14) }
+.pstatus { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; font: 600 14px var(--sys) }
+.ptitle { font: 700 30px var(--sys); letter-spacing: -.02em; padding: 4px 16px 2px }
+.form { padding: 6px 16px 0; display: grid; gap: 4px }
+.shead { font-size: 12.5px; text-transform: uppercase; color: var(--t2); padding: 14px 16px 6px; letter-spacing: .01em }
+.group { background: var(--surface); border-radius: 12px; overflow: hidden }
+.cell { min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 0 16px; font-size: 16px; position: relative }
+.cell + .cell::before { content: ""; position: absolute; top: 0; left: 50px; right: 0; height: .5px; background: var(--hair) }
+.cell .ic { width: 22px; display: grid; place-items: center; color: var(--accent) }
+.cell .ic svg { width: 20px; height: 20px }
+.cell .val { margin-left: auto; color: var(--t2); font-size: 16px; display: flex; align-items: center; gap: 6px }
+.chev { width: 8px; height: 13px; color: var(--t3) }
+.foot { font-size: 12.5px; color: var(--t2); line-height: 1.35; padding: 6px 16px 0 }
+.foot b { color: var(--t1); font-weight: 600 }
+.spin { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--track); border-top-color: var(--t2); animation: sp 1s linear infinite }
+@keyframes sp { to { transform: rotate(360deg) } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none } }
+.cell.build { flex-direction: column; align-items: stretch; gap: 7px; padding: 11px 16px 12px }
+.buildrow { display: flex; align-items: center; gap: 12px }
+.bar { height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; margin-left: 34px }
+.bar i { display: block; height: 100%; width: 41%; background: var(--accent); border-radius: 2px }
+.cancel { color: var(--accent); font-size: 16px; background: none; border: 0; padding: 0; font-family: var(--sys); cursor: default }
+.tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 74px; border-top: .5px solid var(--hair); background: var(--pbg); display: grid; grid-template-columns: repeat(4, 1fr); padding-top: 8px; font-size: 10px; color: var(--t3); text-align: center }
+.tabbar span.on { color: var(--accent) }
+.tabbar i { display: block; width: 22px; height: 22px; border-radius: 6px; background: currentColor; opacity: .55; margin: 0 auto 3px }
+
+/* iOS share sheet */
+.scrim { position: absolute; inset: 0; background: var(--scrim) }
+.share { position: absolute; left: 0; right: 0; bottom: 0; background: var(--sheet); border-radius: 22px 22px 0 0; padding: 8px 0 26px; display: grid; gap: 12px }
+.grab { width: 36px; height: 5px; border-radius: 3px; background: var(--t3); opacity: .5; justify-self: center }
+.filehead { display: flex; align-items: center; gap: 12px; padding: 4px 16px 12px; border-bottom: .5px solid var(--hair) }
+.zipicon { width: 42px; height: 50px; border-radius: 6px; background: var(--surface); border: 1px solid var(--hair); display: grid; place-items: center; font: 700 9px var(--mono); color: var(--t2); flex: none }
+.filehead b { font-size: 15px; display: block }
+.filehead small { font-size: 13px; color: var(--t2) }
+.xbtn { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; background: var(--chip); display: grid; place-items: center; color: var(--t2); font-size: 15px; flex: none }
+.targets { display: flex; gap: 14px; padding: 0 16px; overflow: hidden }
+.targets div { width: 62px; flex: none; text-align: center; font-size: 11px; color: var(--t1) }
+.targets i { display: block; width: 58px; height: 58px; border-radius: 14px; background: var(--chip); margin: 0 auto 6px; position: relative }
+.targets i::after { content: attr(data-g); position: absolute; inset: 0; display: grid; place-items: center; font: 600 13px var(--sys); color: var(--t2); font-style: normal }
+.actions { margin: 0 16px; background: var(--surface); border-radius: 12px; overflow: hidden }
+.actions div { min-height: 46px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 16px; position: relative }
+.actions div + div::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: .5px; background: var(--hair) }
+.actions svg { width: 20px; height: 20px; color: var(--t1) }
+
+/* ── Mac Settings sheet ── */
+.mac { width: min(100%, 560px); background: var(--mbg); border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; box-shadow: 0 10px 34px rgba(0,0,0,.14); color: var(--t1); position: relative }
+.mhead { display: flex; align-items: center; padding: 12px 16px; border-bottom: .5px solid var(--hair) }
+.mhead b { font-size: 15px; font-weight: 600 }
+.done { margin-left: auto; background: var(--accent); color: #fff; font: 600 12.5px var(--sys); padding: 5px 12px; border-radius: 7px }
+.msects { padding: 20px; display: grid; gap: 22px }
+.card { padding: 16px; border-radius: 12px; background: var(--hair2); border: 1px solid var(--hair); display: grid; gap: 12px }
+.card.dim { opacity: .55 }
+.ctitle { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--t3) }
+.mrow { display: flex; align-items: center; gap: 8px; font-size: 12px }
+.mrow .r { margin-left: auto; color: var(--t2) }
+.mrow svg { width: 15px; height: 15px; color: var(--accent) }
+.divide { border-top: .5px solid var(--hair); padding-top: 11px }
+.gates { display: grid; gap: 5px; font-size: 11px; color: var(--t2) }
+.gates span { display: inline-block; width: 14px; color: var(--t3); font-size: 10px }
+.mute { font-size: 10.5px; color: var(--t3); line-height: 1.4 }
+.mute11 { font-size: 11px; color: var(--t3); line-height: 1.4 }
+.mbtn { font: 400 12px var(--sys); color: var(--accent); background: var(--hair); border-radius: 7px; padding: 6px 10px; border: 0; cursor: default }
+.mbar { flex: 1; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; min-width: 60px }
+.mbar i { display: block; height: 100%; width: 41%; background: var(--accent) }
+.tnum { font-variant-numeric: tabular-nums }
+
+/* NSSavePanel sheet */
+.savepanel { position: absolute; left: 50%; top: 46px; transform: translateX(-50%); width: min(92%, 440px); background: var(--panel); border: 1px solid var(--hair); border-radius: 0 0 12px 12px; box-shadow: 0 16px 40px rgba(0,0,0,.28); padding: 18px 18px 16px; display: grid; gap: 12px; font-size: 12.5px }
+.sp-row { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 8px }
+.sp-row label { text-align: right; color: var(--t1) }
+.sp-field { background: var(--surface); border: 1px solid var(--hair); border-radius: 5px; padding: 4px 7px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
+.sp-field.sel span { background: var(--accentSoft); border-radius: 2px }
+.sp-btns { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px }
+.sp-btns span { padding: 4px 14px; border-radius: 6px; background: var(--surface); border: 1px solid var(--hair) }
+.sp-btns span.def { background: var(--accent); color: #fff; border-color: transparent }
+
+/* zip tree */
+.tree { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; overflow-x: auto }
+.tree pre { margin: 0; font: 12px/1.6 var(--mono); color: var(--ink) }
+.tree .c { color: var(--ink3) }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Q515 · D218 · mock for sign-off</div>
+    <h1>Export all notes as one zip</h1>
+    <p class="lede">One new row in Settings on the iPhone and the Mac. Tap it, Skrift builds a zip of every note not in the trash, then the phone opens the share sheet and the Mac asks where to save. Your vault is never touched.</p>
+  </header>
+
+  <section class="picks" aria-label="Decisions for Tuur">
+    <div class="eyebrow">Two picks, my recommendation shown</div>
+    <div class="pick"><b>1</b><div>The row sits <strong>under iCloud sync</strong> on both apps, since it exists for the account-switch case. <em>Other option: its own "Your notes" section above Appearance.</em></div></div>
+    <div class="pick"><b>2</b><div><strong>Locked notes go in the zip.</strong> D218 says every note not in the trash, and a lock hides a note without encrypting it (C213). <em>Other option: leave locked notes out, as vault export does (C161).</em></div></div>
+  </section>
+
+  <div class="controls">
+    <div class="tabs" role="tablist" aria-label="Device">
+      <button id="tab-phone" role="tab" aria-selected="true" data-dev="phone">iPhone</button>
+      <button id="tab-mac" role="tab" aria-selected="false" data-dev="mac">Mac</button>
+    </div>
+    <div class="seg" aria-label="State">
+      <button id="st-ready" aria-pressed="true" data-st="ready">1 · Ready</button>
+      <button id="st-build" aria-pressed="false" data-st="build">2 · Building</button>
+      <button id="st-out" aria-pressed="false" data-st="out">3 · <span class="outlabel">Share</span></button>
+    </div>
+  </div>
+
+  <!-- ───────── iPhone ───────── -->
+  <section class="stage" data-dev="phone">
+    <div class="phone">
+      <div class="pstatus"><span>9:41</span><span class="mono" style="font-size:11px">●●● 82%</span></div>
+      <div class="ptitle">Settings</div>
+      <div class="form">
+        <div class="group">
+          <div class="cell">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7 18h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.1 4.5 4.5 0 0 0 7 18z"/></svg></span>
+            iCloud sync
+            <span class="val">Up to date</span>
+          </div>
+          <div class="cell">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4v16M9 4v16M13 5l4 15M19 4v16"/></svg></span>
+            Synced audiobooks
+            <span class="val"><svg class="chev" viewBox="0 0 8 13" fill="none" stroke="currentColor" stroke-width="2"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg></span>
+          </div>
+          <!-- NEW row, three states -->
+          <div class="cell newbox" data-st="ready">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg></span>
+            <span style="color:var(--accent)">Export all notes…</span>
+            <span class="val tnum">312</span>
+          </div>
+          <div class="cell build newbox" data-st="build" hidden>
+            <div class="buildrow">
+              <span class="ic"><span class="spin" aria-hidden="true"></span></span>
+              <span>Building zip…</span>
+              <span class="val tnum" style="font-size:15px">128 of 312</span>
+            </div>
+            <div class="bar"><i></i></div>
+            <div class="buildrow" style="margin-left:34px; justify-content:space-between">
+              <span style="font-size:13px;color:var(--t2)">You can leave Settings.</span>
+              <button class="cancel" tabindex="-1">Cancel</button>
+            </div>
+          </div>
+          <div class="cell newbox" data-st="out" hidden>
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg></span>
+            <span style="color:var(--accent)">Export all notes…</span>
+            <span class="val tnum">312</span>
+          </div>
+        </div>
+        <div class="foot">Your notes, names, custom words, language, destinations and polish prompts sync across your devices via iCloud. Every device needs to be signed into the same iCloud account. Audiobooks sync per-book — turn one on from its long-press menu. <b>Export all notes makes one zip of every note not in the trash, with its audio, photos and attachments.</b></div>
+        <div class="shead">Obsidian</div>
+        <div class="group">
+          <div class="cell">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 6h7l2 2h9v11H3z"/></svg></span>
+            Obsidian folder
+            <span class="val">Skrift</span>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar"><span><i></i>Notes</span><span><i></i>Library</span><span><i></i>Review</span><span class="on"><i></i>Settings</span></div>
+
+      <div data-st="out" hidden>
+        <div class="scrim"></div>
+        <div class="share" role="dialog" aria-label="iOS share sheet">
+          <div class="grab"></div>
+          <div class="filehead">
+            <div class="zipicon">ZIP</div>
+            <div><b>Skrift notes 2026-10-24.zip</b><small>Zip archive · 1.4 GB</small></div>
+            <div class="xbtn">✕</div>
+          </div>
+          <div class="targets">
+            <div><i data-g="AirDrop"></i>AirDrop</div>
+            <div><i data-g="Mail"></i>Mail</div>
+            <div><i data-g="Msgs"></i>Messages</div>
+            <div><i data-g="Drive"></i>Drive</div>
+          </div>
+          <div class="actions">
+            <div>Save to Files <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h7l2 2h9v11H3z"/></svg></div>
+            <div>Copy <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      <p data-st="ready"><span class="tag">new</span> One row in the iCloud sync section, after "Synced audiobooks" (<code>SkriftMobile/Features/Settings/SettingsView.swift:71-75</code>). The trailing number is how many notes go in. One sentence joins the section footer (<code>:77</code>). Everything else on the screen is today's.</p>
+      <p data-st="build" hidden>While it builds, the row shows the count and a bar, with Cancel. Cancel deletes the half-built zip. Switching tabs does not stop it. Nothing else on the screen changes.</p>
+      <p data-st="out" hidden>The system share sheet, holding one file named for today's date. Save to Files, AirDrop to the Mac, or send it. Closing the sheet deletes the temp zip, and the row goes back to Ready.</p>
+    </div>
+  </section>
+
+  <!-- ───────── Mac ───────── -->
+  <section class="stage" data-dev="mac" hidden>
+    <div class="mac">
+      <div class="mhead"><b>Settings</b><span class="done">Done</span></div>
+      <div class="msects">
+        <div class="card dim">
+          <div class="ctitle">Weather</div>
+          <div class="mrow">OpenWeatherMap key <span class="r mono">••••••a7</span></div>
+        </div>
+        <div class="card">
+          <div class="ctitle">Sync</div>
+          <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 18h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.1 4.5 4.5 0 0 0 7 18z"/></svg>iCloud <span class="r">Up to date</span></div>
+          <div class="mrow divide">CloudKit sync with the Mac <span class="r">On</span></div>
+          <div class="gates">
+            <div><span>↓</span>Notes from your phone and iPad come in</div>
+            <div><span>↑</span>Title, summary and copy-edit go back to your phone</div>
+            <div><span>↔</span>Edits, ratings and deletes, both ways</div>
+            <div style="color:var(--t3)">… four more lines</div>
+          </div>
+          <div class="mute">Every device needs to be signed into the same iCloud account.</div>
+
+          <!-- NEW: three states -->
+          <div class="divide newbox" style="display:grid; gap:6px; padding:11px 6px 6px" data-st="ready">
+            <div class="mrow">Export all notes <span class="r tnum">312 notes</span> <button class="mbtn" tabindex="-1">Export…</button></div>
+            <div class="mute11">One zip of every note not in the trash, with its audio, photos and attachments. Your vault isn't touched.</div>
+          </div>
+          <div class="divide newbox" style="display:grid; gap:6px; padding:11px 6px 6px" data-st="build" hidden>
+            <div class="mrow">Building zip… <div class="mbar"><i></i></div><span class="tnum" style="color:var(--t2)">128 of 312</span> <button class="mbtn" tabindex="-1">Cancel</button></div>
+            <div class="mute11">You can close Settings; it keeps going.</div>
+          </div>
+          <div class="divide newbox" style="display:grid; gap:6px; padding:11px 6px 6px" data-st="out" hidden>
+            <div class="mrow">Export all notes <span class="r tnum">312 notes</span> <button class="mbtn" tabindex="-1">Export…</button></div>
+            <div class="mute11">One zip of every note not in the trash, with its audio, photos and attachments. Your vault isn't touched.</div>
+          </div>
+        </div>
+        <div class="card dim">
+          <div class="ctitle">Connections</div>
+          <div class="mrow">…</div>
+        </div>
+      </div>
+
+      <div class="savepanel" data-st="out" hidden role="dialog" aria-label="Save panel">
+        <div class="sp-row"><label>Save As:</label><div class="sp-field sel"><span>Skrift notes 2026-10-24</span>.zip</div></div>
+        <div class="sp-row"><label>Tags:</label><div class="sp-field" style="color:var(--t3)">&nbsp;</div></div>
+        <div class="sp-row"><label>Where:</label><div class="sp-field">Downloads</div></div>
+        <div class="sp-btns"><span>Cancel</span><span class="def">Save</span></div>
+      </div>
+    </div>
+    <div class="note">
+      <p data-st="ready"><span class="tag">new</span> One row at the bottom of the Sync card, under the same-account line (<code>SkriftDesktop/Features/Settings/SettingsView.swift:139-148</code>, after <code>MacSyncCard.swift:28</code>). The button is the folder row's "Choose…" style (<code>SettingsView.swift:489-493</code>). The gate list is cut to three lines here; the real card shows all seven.</p>
+      <p data-st="build" hidden>The row turns into a bar with the count and Cancel. Closing Settings keeps the build going; reopening shows where it is. Cancel deletes the half-built zip.</p>
+      <p data-st="out" hidden>The standard Mac save panel, as a sheet on Settings, with the name preselected and Downloads as the folder. Save moves the zip there; Cancel deletes it. The row goes back to Ready.</p>
+    </div>
+  </section>
+
+  <section style="display:grid; gap:8px">
+    <h2>What is inside the zip</h2>
+    <p class="lede" style="margin:0">The same files the vault export writes (export v2, Personal and Portfolio as D189), with each note's media beside it. The phone writes what the phone has: a note the Mac has not polished yet goes in with its raw transcript.</p>
+    <div class="tree"><pre>Skrift notes 2026-10-24.zip
+└─ Skrift notes 2026-10-24/
+   ├─ Personal/
+   │  ├─ Kiln loaded at nine.md
+   │  ├─ Chain skips under load.md
+   │  ├─ … <span class="c">298 more</span>
+   │  ├─ Recordings/   <span class="c">memo audio (.m4a)</span>
+   │  ├─ Images/       <span class="c">photos</span>
+   │  └─ Documents/    <span class="c">PDFs and other attachments</span>
+   └─ Portfolio/
+      └─ _inbox/
+         ├─ Glaze test tiles.md
+         ├─ … <span class="c">10 more</span>
+         └─ <span class="c">media beside each note, as in the portfolio repo</span></pre></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  let dev = 'phone', st = 'ready';
+  function render() {
+    document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.dev === dev)));
+    document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.st === st)));
+    document.querySelector('.outlabel').textContent = dev === 'phone' ? 'Share' : 'Save';
+    document.querySelectorAll('section.stage').forEach(s => { s.hidden = s.dataset.dev !== dev; });
+    document.querySelectorAll('section.stage [data-st]').forEach(el => { el.hidden = el.dataset.st !== st; });
+  }
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { dev = b.dataset.dev; render(); }));
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { st = b.dataset.st; render(); }));
+  render();
+})();
+</script>

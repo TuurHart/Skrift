@@ -26,6 +26,8 @@ final class SyncHealthMonitor {
     @ObservationIgnored var log: (String) -> Void = { _ in }
     /// Called when syncing stops or resumes (the Mac voids its first-import stamp on a stop).
     @ObservationIgnored var onStopChanged: (Bool) -> Void = { _ in }
+    /// Called when the problem the banner shows changes (the Mac's Settings row follows it).
+    @ObservationIgnored var onProblemChanged: () -> Void = {}
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -115,6 +117,7 @@ final class SyncHealthMonitor {
         change(&next)
         guard next != health else { return }
         let stopChanged = next.isStopped != health.isStopped
+        let problemBefore = health.problem
         if stopChanged {
             log("sync health: syncing \(next.isStopped ? "STOPPED (account switch)" : "resumed")")
         }
@@ -122,6 +125,7 @@ final class SyncHealthMonitor {
         SyncHealthStore.save(next, defaults)
         SyncStopFlag.isStopped = next.isStopped
         if stopChanged { onStopChanged(next.isStopped) }
+        if next.problem != problemBefore { onProblemChanged() }
         now = Date()
         scheduleTick()
     }

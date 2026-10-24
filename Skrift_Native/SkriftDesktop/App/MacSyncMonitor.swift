@@ -105,10 +105,14 @@ final class MacSyncMonitor {
         recompute()
     }
 
+    /// Q517: the sync-health banner's problem changed (switch, full, signed out, cleared).
+    func syncHealthChanged() { recompute() }
+
     private func recompute() {
         let opened = switchOn ? (MemoCloudStore.container != nil) : true
         let new = MacSyncState.resolve(switchOn: switchOn, containerOpened: opened,
-                                       account: account, inFlight: syncing, sweepFailed: sweepFailure != nil)
+                                       account: account, inFlight: syncing, sweepFailed: sweepFailure != nil,
+                                       problem: SyncHealthMonitor.shared.health.problem)
         let detail = MacSyncState.failureDetail(account: account, sweepFailure: sweepFailure)
         if state != new { state = new }
         if failureDetail != detail { failureDetail = detail }
