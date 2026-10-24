@@ -116,6 +116,8 @@ struct MemoCard: View {
         }
         // D139: two versions outrank every other state in the pill slot.
         if EditConflictWatch.shared.ids.contains(memo.id) { m.statusPill = .twoVersions }
+        // C155: a change iCloud has not taken yet.
+        m.statusPill = .withSync(m.statusPill, unsynced: SyncHealthMonitor.shared.unsynced.contains(memo.id))
         if memo.locked {
             m.title = memo.title?.isEmpty == false ? memo.title : "Locked note"
             return m   // locked rows show title + 🔒 and NOTHING else

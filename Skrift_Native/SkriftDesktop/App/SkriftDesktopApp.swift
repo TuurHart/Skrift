@@ -92,6 +92,21 @@ struct SkriftDesktopApp: App {
         // reconcile triggers + run the launch sweep. A no-op when the user switched
         // `cloudKitMacSync` off (it defaults ON). CloudKit is the ONLY phone↔Mac transport
         // (the Bonjour/HTTP server is retired) — it carries memos, names, and vocabulary.
+        // C155: sync health watches the cloud store when Mac sync is on (a sync-off Mac never
+        // builds the container). Never under tests, headless runs or the perf library.
+        var watchesSync = !LaunchArgs.isXCTest && !HeadlessIsolation.isRequested()
+        #if DEBUG
+        if PerfLibrary.isActive { watchesSync = false }
+        #endif
+        if watchesSync, SettingsStore.shared.load().cloudKitMacSyncEnabled, let cloud = MemoCloudStore.container {
+            let monitor = SyncHealthMonitor.shared
+            monitor.log = { AppLog.cloudkit.log("\($0, privacy: .public)") }
+            monitor.onStopChanged = { stopped in
+                if stopped { CloudFirstImport.reset(stampURL: AppPaths.memoCloudFirstImportStamp) }
+            }
+            monitor.attach(cloud)
+        }
+
         #if DEBUG
         // Q313: `-perfLibrary` seeds its own CloudKit-off store first, THEN starts the reconcile
         // that ingests the rated notes into PipelineFile rows (the same path a synced memo takes).

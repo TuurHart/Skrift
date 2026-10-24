@@ -10,7 +10,7 @@ import Foundation
 enum MacQuietCard {
     @MainActor
     static func model(for memo: Memo, selected: Bool, backlinked: Set<UUID>,
-                      conflicts: Set<UUID>,
+                      conflicts: Set<UUID>, unsynced: Set<UUID> = [],
                       now: Date = Date()) -> NoteCardModel {
         let stamp = MemoDate.listDate(memo.recordedAt)   // D190: line 2's list date
         let conflicted = conflicts.contains(memo.id)
@@ -19,6 +19,7 @@ enum MacQuietCard {
         if memo.locked {
             var l = LockedRow.card(stamp: stamp, title: LockedRow.title(for: memo), selected: selected)
             if conflicted { l.statusPill = .twoVersions }
+            l.statusPill = .withSync(l.statusPill, unsynced: unsynced.contains(memo.id))   // C155
             return l
         }
         var m = NoteCardModel(stamp: stamp)
@@ -33,6 +34,7 @@ enum MacQuietCard {
         m.fadingLine = MemoSpine.rowClockLine(for: memo, backlinked: backlinked, now: now)
         m.quietLine = NoteConsent.isRated(memo) ? WayOutRules.strandedLine(for: memo) : nil
         if conflicted { m.statusPill = .twoVersions }
+        m.statusPill = .withSync(m.statusPill, unsynced: unsynced.contains(memo.id))   // C155: not in iCloud yet
         // Q106 (C115): title, quote and snippet from the ONE shared builder the rated rows and
         // the phone call.
         // Q361 (M9): built once per note version (the snippet is a regex pass over the body).

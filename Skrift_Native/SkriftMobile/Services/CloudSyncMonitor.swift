@@ -43,6 +43,7 @@ final class CloudSyncMonitor: ObservableObject {
     /// The phantom sweep (C298) runs only when this is true.
     var isCloudHealthy: Bool {
         FileManager.default.ubiquityIdentityToken != nil && lastImportSucceeded == true
+            && !SyncHealthMonitor.shared.isStopped   // C155: another account's store is never ours
     }
 
     func setBookSyncFailure(_ bookID: UUID, reason: String) { bookSyncFailures[bookID] = reason }

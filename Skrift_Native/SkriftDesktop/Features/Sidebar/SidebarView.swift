@@ -27,6 +27,8 @@ struct SidebarView: View {
     @Environment(\.modelContext) private var ctx
     /// Why a take couldn't start — drives the alert. nil = nothing to say.
     @State private var micProblem: MacRecorder.Refusal?
+    /// C155: the account-switch sheet (the banner's What now).
+    @State private var showSyncWhatNow = false
     /// ⌘F (D169): the search field takes focus.
     @FocusState private var searchFocused: Bool
     /// Files waiting on the "One note / N notes" chooser (Q74). nil = nothing pending.
@@ -104,7 +106,10 @@ struct SidebarView: View {
             }
             header
             // Q327 (D182): the iCloud capsule exists only while sync is broken, off or signed out.
-            MacSyncCapsule(state: syncStateOverride ?? MacSyncMonitor.shared.state, action: onOpenSyncSettings)
+            // C155: the sync-health banner says it when it shows, so the capsule steps aside.
+            if SyncHealthMonitor.shared.banner(device: "this Mac") == nil {
+                MacSyncCapsule(state: syncStateOverride ?? MacSyncMonitor.shared.state, action: onOpenSyncSettings)
+            }
             queue
             bottomBar
         }
@@ -350,6 +355,11 @@ struct SidebarView: View {
                 }
             }
             processButton
+
+            MacSyncHealthBanner(whatNow: $showSyncWhatNow)
+                .sheet(isPresented: $showSyncWhatNow) {
+                    MacSyncWhatNowSheet(notesHere: files.filter { $0.deletedAt == nil }.count) { showSyncWhatNow = false }
+                }
 
             searchField
 
@@ -816,7 +826,8 @@ struct SidebarView: View {
     /// locked, "2 versions" pill). Quiet rows render dimmed (m2): quiet is not urgent.
     private func quietCardModel(_ memo: Memo, selected: Bool) -> NoteCardModel {
         MacQuietCard.model(for: memo, selected: selected, backlinked: backlinkedIDs,
-                           conflicts: EditConflictWatch.shared.ids)
+                           conflicts: EditConflictWatch.shared.ids,
+                           unsynced: SyncHealthMonitor.shared.unsynced)
     }
 
     /// Open an unrated memo in the DETAIL PANE, the way the iPad opens any note
@@ -1313,6 +1324,8 @@ private struct QueueRowView: View {
         if let id = UUID(uuidString: file.id), EditConflictWatch.shared.ids.contains(id) {
             m.statusPill = .twoVersions
         }
+        // C155: a change iCloud has not taken yet.
+        m.statusPill = .withSync(m.statusPill, file: file)
         // Locked ⇒ title + 🔒 (+ the status pill, as on the phone) and NOTHING else —
         // no words, balls or chips (C91/C161, R88; the phone's `cardModel` rule).
         if file.locked {

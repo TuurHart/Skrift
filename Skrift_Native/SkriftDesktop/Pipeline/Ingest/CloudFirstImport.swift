@@ -42,6 +42,13 @@ enum CloudFirstImport {
         try? data.write(to: stampURL, options: .atomic)
     }
 
+    /// C155/R47: an account switch voids the stamp. Apple wipes a store whose account changed and
+    /// refills it from whichever account comes back, so until that account's first import finishes
+    /// a missing memo proves nothing: no orphan trash, no backfill.
+    static func reset(stampURL: URL) {
+        try? FileManager.default.removeItem(at: stampURL)
+    }
+
     private static func identity(of url: URL) -> (fileNumber: UInt64, createdAt: TimeInterval)? {
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
               let number = (attrs[.systemFileNumber] as? NSNumber)?.uint64Value,

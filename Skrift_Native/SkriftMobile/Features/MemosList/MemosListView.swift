@@ -106,6 +106,9 @@ struct MemosListView: View {
     @State var editMode: EditMode = .inactive
     @State var selected: Set<UUID> = []
     @State var syncBanner: String?
+    /// C155: the banner's Show narrowed the list to the notes iCloud has not taken yet.
+    @State var showUnsynced = false
+    @State var showSyncWhatNow = false
     @State var bannerToken = 0
     /// iPad wave 1: layout branches on the horizontal size class (NEVER device
     /// idiom — Split View/Stage Manager can make the iPad compact, and compact
@@ -390,6 +393,10 @@ struct MemosListView: View {
 
     var listContent: some View {
         VStack(spacing: 0) {
+            SyncHealthListBanner(showUnsynced: $showUnsynced, whatNow: $showSyncWhatNow)
+                .sheet(isPresented: $showSyncWhatNow) {
+                    SyncWhatNowSheet(notesHere: repository.allMemos().count) { showSyncWhatNow = false }
+                }
             searchField
                 .fullScreenCover(isPresented: $showDocScanner) {
                     DocScanView(
@@ -418,6 +425,7 @@ struct MemosListView: View {
             // ONE derived pass for the whole body eval — the per-row flatIndex
             // access used to re-run the entire filter+sort each time (O(N²)).
             let d = derived
+            let groups = showUnsynced ? NotesListGroup.only(d.groups, ids: SyncHealthMonitor.shared.unsynced) : d.groups
             // Same backlink scan `derived` already ran (never a second one per
             // render) — feeds the Mac-parity clock line on unrated rows.
             let backlinked = d.backlinked
@@ -430,7 +438,7 @@ struct MemosListView: View {
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
             List(selection: $selected) {
-                ForEach(d.groups) { group in
+                ForEach(groups) { group in
                     Section {
                         DayHeaderRow(title: group.title)   // D180: scrolls with the notes, never pins
                         // D194: one card per group — each row draws its slice of it.

@@ -47,6 +47,8 @@ enum MemoCloudStore {
         // reconcile sweep that ingests it into PipelineFile rows runs regardless of the sync switch.
         if PerfLibrary.isActive { return container }
         #endif
+        // C155/R47: a different iCloud account stops every pull and push, the orphan sweep included.
+        guard !SyncStopFlag.isStopped else { return nil }
         return SettingsStore.shared.load().cloudKitMacSyncEnabled ? container : nil
     }
 

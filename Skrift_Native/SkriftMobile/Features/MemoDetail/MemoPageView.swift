@@ -456,6 +456,7 @@ struct MemoPageView: View {
     var editorPage: some View {
         VStack(spacing: 0) {
             polishStatusBand
+            SyncHealthNoteBand(memoID: memo.id)
             NoteBodyView(
                 memo: memo,
                 player: player,
@@ -548,6 +549,7 @@ struct MemoPageView: View {
     func legacyScrollPage<C: View>(@ViewBuilder content: () -> C) -> some View {
         VStack(spacing: 0) {
             polishStatusBand
+            SyncHealthNoteBand(memoID: memo.id)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     noteHeaderCore(isCurrent: true)
