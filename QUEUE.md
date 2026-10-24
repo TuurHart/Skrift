@@ -3755,7 +3755,7 @@ gate+: yes
 do: Export v2 (and v1 before it) embeds a marker-less image capture as `![[IMG_4471.jpg]]` (the shared file's name) while the picture is copied as `photo_<memoid>_001.jpg`, so the embed points at nothing in the vault and in the Export all zip. Corpus: cap-image-no-words, cap-image-voice-ramble, cap-image-typed-note. Make the embed and the copied file use the one name (ExportProfile.pictureName). Register the changed export goldens (C57) in expected-differences-export.json and update ExportAllZipTests' recorded dangling case (hand-merge). Test `ImageCaptureEmbedTests` (desktop): every embed in those notes resolves to a file in the export.
 check: `grep -rqE "class ImageCaptureEmbedTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q519 [auto] (todo) B: the phone's vault publish drops a picture it doesn't have, like the Mac
+### Q519 [auto] (done) B: the phone's vault publish drops a picture it doesn't have, like the Mac
 spec: C196 C57
 needs: Q516
 gate+: yes
@@ -5430,3 +5430,4 @@ check: `grep -rqE "class PhoneMissingPictureTests\\b" Skrift_Native/SkriftMobile
 - 2026-10-24 09:23 Q519 added
 - 2026-10-24 09:25 Q516 -> done — gate 104s @7a27d37a
 - 2026-10-24 09:42 Q518 -> done — hand-merged (Q518 fixes the dangling capture embed per C57 (one picture naming rule): ExportAllZipTests' recorded dangling case removed, VaultExporterTests legacy-capture name now pictureName, C57 registered on 6 cap-image rows)
+- 2026-10-24 10:04 Q519 -> done — gate 74s @9635af94
