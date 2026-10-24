@@ -48,22 +48,29 @@ actor EnhancementService: Enhancing {
         loadedRepo = nil
     }
 
-    /// Copy-edit / title / summary: the deterministic steps live in the MLX-free
-    /// `CopyEditPipeline` (Q423, so the copy-edit harness replays them); this actor only
-    /// owns the model and the one generate call.
+    /// Copy-edit / title / summary through copy-edit v2 (Q426, C2): the deterministic steps
+    /// live in the MLX-free `Shared/CopyEditV2` (the corpus harness replays them); this actor
+    /// only owns the model and the one generate call.
     func copyEdit(_ transcript: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
-        try await ensureLoaded(modelRepo: modelRepo)
-        return try await CopyEditPipeline.copyEdit(transcript, prompts: prompts, generate: generator)
+        try await copyEdit(transcript, spoken: true, prompts: prompts, modelRepo: modelRepo)
     }
 
+    func copyEdit(_ transcript: String, spoken: Bool, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
+        try await ensureLoaded(modelRepo: modelRepo)
+        return try await CopyEditV2.copyEdit(transcript, spoken: spoken, prompt: prompts.effectiveCopyEdit,
+                                             generate: generator).text
+    }
+
+    /// Title and summary read the prose v2 reads (C29, C178: no `[[ ]]`, no picture marker);
+    /// a body with no words gets no model call (C177).
     func title(_ transcript: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
         try await ensureLoaded(modelRepo: modelRepo)
-        return try await CopyEditPipeline.title(transcript, prompts: prompts, generate: generator)
+        return try await CopyEditV2.turn(prompt: prompts.effectiveTitle, body: transcript, maxTokens: 64, generate: generator)
     }
 
     func summary(_ transcript: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
         try await ensureLoaded(modelRepo: modelRepo)
-        return try await CopyEditPipeline.summary(transcript, prompts: prompts, generate: generator)
+        return try await CopyEditV2.turn(prompt: prompts.effectiveSummary, body: transcript, maxTokens: 256, generate: generator)
     }
 
     /// The live model as a `ModelGenerate` (the loaded model; call `ensureLoaded` first).
@@ -72,7 +79,7 @@ actor EnhancementService: Enhancing {
     }
 
     /// One deterministic instruct turn: the prompt + the text as a single user message.
-    /// Returns the model's RAW output (`CopyEditPipeline` trims).
+    /// Returns the model's RAW output (copy-edit v2 trims).
     func generate(prompt: String, text: String, maxTokens: Int) async throws -> String {
         guard let container else { throw EnhancementError.notLoaded }
         let session = ChatSession(

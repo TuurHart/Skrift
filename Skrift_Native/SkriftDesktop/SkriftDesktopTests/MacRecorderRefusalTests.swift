@@ -10,6 +10,7 @@ import SwiftData
 /// pin is the one that costs an afternoon when it's wrong: a denial is a DEAD END that macOS
 /// will never re-prompt for, so it must carry a button to Settings, whereas an absent
 /// microphone is fixed by plugging one in and Settings would be a red herring.
+@MainActor
 final class MacRecorderRefusalTests: XCTestCase {
 
     // MARK: - which statuses are a dead end
@@ -88,6 +89,7 @@ final class MacRecorderRefusalTests: XCTestCase {
 /// the only thing that authors Memos. `MemoCloudReconciler`'s sweep calls `backfill` over every
 /// local row that lacks one, on its own schedule. It won that race against a real Mac take and
 /// rated it 0.1. D159 (2026-09-30) removed the floor altogether, so nobody can win it.
+@MainActor
 final class LocalRecordingFloorTests: XCTestCase {
 
     private func cloudContext() throws -> ModelContext {
@@ -114,7 +116,7 @@ final class LocalRecordingFloorTests: XCTestCase {
         let cloud = try cloudContext()
         let pf = take()
 
-        XCTAssertEqual(try MacMemoAuthor.backfill(files: [pf], into: cloud), 1)
+        XCTAssertEqual(try V2.backfill([pf], into: cloud), 1)
 
         let memo = try XCTUnwrap(try cloud.fetch(FetchDescriptor<Memo>()).first)
         XCTAssertEqual(memo.significance, 0,
@@ -126,7 +128,7 @@ final class LocalRecordingFloorTests: XCTestCase {
         let cloud = try cloudContext()
         let pf = PipelineFile(id: UUID().uuidString, filename: "dropped.m4a",
                               path: tempAudio().path, sourceType: .audio)
-        XCTAssertEqual(try MacMemoAuthor.backfill(files: [pf], into: cloud), 1)
+        XCTAssertEqual(try V2.backfill([pf], into: cloud), 1)
         XCTAssertEqual(try cloud.fetch(FetchDescriptor<Memo>()).first?.significance, 0)
     }
 
@@ -136,7 +138,7 @@ final class LocalRecordingFloorTests: XCTestCase {
         let cloud = try cloudContext()
         let pf = take()
         pf.significance = 0.8
-        let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: cloud)
+        let memo = try V2.author(pf, into: cloud)
         XCTAssertEqual(memo?.significance, 0.8)
     }
 
@@ -152,6 +154,7 @@ final class LocalRecordingFloorTests: XCTestCase {
 /// the row's `id`. Preferring the filename returns a UUID no Memo has, and every Mac→cloud
 /// write silently no-ops — found 2026-07-28 when clearing a bad rating on a real take updated
 /// the Mac and left the phone's copy at 0.1.
+@MainActor
 final class RecordingMemoIdentityTests: XCTestCase {
 
     private func cloudContext() throws -> ModelContext {
@@ -170,14 +173,14 @@ final class RecordingMemoIdentityTests: XCTestCase {
     func testARecordingIsKeyedByItsRowIdNotItsFilename() {
         let pf = take()
         pf.isLocalRecording = true
-        XCTAssertEqual(MacCloudWriteBack.memoID(for: pf), UUID(uuidString: pf.id),
+        XCTAssertEqual(ReconcileV2.Writers.memoID(for: pf), UUID(uuidString: pf.id),
                        "the filename's UUID names the audio file, not the Memo")
     }
 
     /// Unchanged for everything else: a phone-synced memo IS identified by its filename, and
     /// that path must not move.
     func testAPhoneMemoIsStillKeyedByItsFilename() {
-        XCTAssertEqual(MacCloudWriteBack.memoID(for: take()),
+        XCTAssertEqual(ReconcileV2.Writers.memoID(for: take()),
                        UUID(uuidString: "22222222-2222-4222-8222-222222222222"))
     }
 
@@ -190,7 +193,7 @@ final class RecordingMemoIdentityTests: XCTestCase {
         ctx.insert(Memo(id: rowID, audioFilename: pf.filename))
         try ctx.save()
 
-        XCTAssertEqual(MacCloudWriteBack.resolve(for: pf, in: ctx)?.id, rowID,
+        XCTAssertEqual(ReconcileV2.Writers.resolve(pf, in: ctx)?.id, rowID,
                        "asking the store beats guessing from a name")
     }
 
@@ -201,13 +204,13 @@ final class RecordingMemoIdentityTests: XCTestCase {
         ctx.insert(Memo(id: fileID, audioFilename: pf.filename))
         try ctx.save()
 
-        XCTAssertEqual(MacCloudWriteBack.resolve(for: pf, in: ctx)?.id, fileID)
+        XCTAssertEqual(ReconcileV2.Writers.resolve(pf, in: ctx)?.id, fileID)
     }
 
     /// A local-only file has no Memo either way — resolve must not invent one, or a write-back
     /// would orphan itself onto an unrelated note.
     func testResolveReturnsNilWhenNeitherCandidateExists() throws {
-        XCTAssertNil(MacCloudWriteBack.resolve(for: take(), in: try cloudContext()))
+        XCTAssertNil(ReconcileV2.Writers.resolve(take(), in: try cloudContext()))
     }
 
     /// The end of the chain that actually broke: the enhancement write-back for a Mac take.
@@ -220,7 +223,7 @@ final class RecordingMemoIdentityTests: XCTestCase {
         try ctx.save()
         pf.enhancedCopyedit = "polished on the Mac"
 
-        let written = try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: "mac-1")
+        let written = try V2.upsert(pf, into: ctx, device: "mac-1")
         XCTAssertEqual(written?.memoID, rowID, "the Mac's polish must reach the take it polished")
     }
 }
@@ -229,6 +232,7 @@ final class RecordingMemoIdentityTests: XCTestCase {
 /// hardware that a Bluetooth mic is the one input that can be present, selected, and ASLEEP:
 /// the dev Mac's default was "Chonky pods" (BT), awake for the first two takes ever recorded
 /// and asleep for every click after — a live-looking transport fed by zero buffers.
+@MainActor
 final class InputPickTests: XCTestCase {
 
     private let usb = MacRecorder.InputDevice(id: 41, name: "USB PnP Audio Device", isBluetooth: false)
@@ -280,6 +284,7 @@ final class InputPickTests: XCTestCase {
 /// §6): a take must not sit there looking live while nothing arrives — 1.5s with no buffer at
 /// all trips it. Expressed as a pure function of (elapsed, has a buffer arrived), so the rule
 /// is provable without a running session, a Timer, or a real clock.
+@MainActor
 final class FailFastDecisionTests: XCTestCase {
 
     func testNoBufferAtOrPastTheDeadlineTrips() {
@@ -308,6 +313,7 @@ final class FailFastDecisionTests: XCTestCase {
 /// interleaved:)`), proving a buffer in that format is always accepted — the class of bug this
 /// rule exists to make unrepresentable (a file opened for one format, fed another) can't occur
 /// because the file is never opened until a real buffer's format is in hand.
+@MainActor
 final class FirstBufferFileRuleTests: XCTestCase {
 
     func testEncoderSettingsPreserveTheBuffersRateAndChannelCount() throws {

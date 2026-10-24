@@ -45,7 +45,7 @@ final class MacMemoAuthorTests: XCTestCase {
         pf.significance = 0.6
 
         let ctx = try cloudContext()
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: nil, into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
 
         XCTAssertEqual(memo.id, id, "id derives from pf.id — the contract spine")
         XCTAssertEqual(memo.audioFilename, "Voice Memo.m4a")
@@ -65,8 +65,8 @@ final class MacMemoAuthorTests: XCTestCase {
         zero.significance = 0
         let ctx = try cloudContext()
 
-        let memo1 = try XCTUnwrap(try MacMemoAuthor.author(for: unrated, audioURL: nil, into: ctx))
-        let memo2 = try XCTUnwrap(try MacMemoAuthor.author(for: zero, audioURL: nil, into: ctx))
+        let memo1 = try XCTUnwrap(try V2.author(unrated, into: ctx))
+        let memo2 = try XCTUnwrap(try V2.author(zero, into: ctx))
 
         XCTAssertEqual(memo1.significance, 0, "nil significance authors unrated (D159: no import floor)")
         XCTAssertEqual(memo2.significance, 0, "explicit 0 stays 0 — the rating is consent, never floored")
@@ -76,14 +76,14 @@ final class MacMemoAuthorTests: XCTestCase {
         let pf = PipelineFile(id: UUID().uuidString, filename: "n.m4a", sourceType: .audio)
         pf.significance = 0.9
         let ctx = try cloudContext()
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: nil, into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
         XCTAssertEqual(memo.significance, 0.9, "a real rating above the floor must pass through unchanged")
     }
 
     func testAuthorLeavesTranscriptPendingWhenPfHasNone() throws {
         let pf = PipelineFile(id: UUID().uuidString, filename: "n.m4a", sourceType: .audio)
         let ctx = try cloudContext()
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: nil, into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
         XCTAssertNil(memo.transcript)
         XCTAssertEqual(memo.transcriptStatus, .pending)
     }
@@ -96,7 +96,7 @@ final class MacMemoAuthorTests: XCTestCase {
         let audioURL = tempAudioFile("not really audio")
         let pf = PipelineFile(id: UUID().uuidString, filename: "n.m4a", sourceType: .audio)
         let ctx = try cloudContext()
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: audioURL, into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
         XCTAssertEqual(memo.duration, 0)
     }
 
@@ -105,8 +105,8 @@ final class MacMemoAuthorTests: XCTestCase {
     func testAuthorIsIdempotent() throws {
         let pf = PipelineFile(id: UUID().uuidString, filename: "n.m4a", sourceType: .audio)
         let ctx = try cloudContext()
-        XCTAssertNotNil(try MacMemoAuthor.author(for: pf, audioURL: nil, into: ctx))
-        XCTAssertNil(try MacMemoAuthor.author(for: pf, audioURL: nil, into: ctx),
+        XCTAssertNotNil(try V2.author(pf, into: ctx))
+        XCTAssertNil(try V2.author(pf, into: ctx),
                     "a second author() for the same pf must not re-author")
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<Memo>()), 1)
     }
@@ -114,7 +114,7 @@ final class MacMemoAuthorTests: XCTestCase {
     func testAuthorSkipsNonUUIDId() throws {
         let pf = PipelineFile(id: "demo-1", filename: "n.m4a", sourceType: .audio)
         let ctx = try cloudContext()
-        XCTAssertNil(try MacMemoAuthor.author(for: pf, audioURL: nil, into: ctx))
+        XCTAssertNil(try V2.author(pf, into: ctx))
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<Memo>()), 0)
     }
 
@@ -125,7 +125,7 @@ final class MacMemoAuthorTests: XCTestCase {
         let pf = PipelineFile(id: UUID().uuidString, filename: "clip.m4a",
                               path: audioURL.path, sourceType: .audio)
         let ctx = try cloudContext()
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: audioURL, into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
 
         let memoID = memo.id   // hoisted — the #Predicate macro can't capture a model's property
         let assets = try ctx.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memoID }))
@@ -139,7 +139,7 @@ final class MacMemoAuthorTests: XCTestCase {
         let pf = PipelineFile(id: UUID().uuidString, filename: "n.md", sourceType: .note)
         pf.transcript = "an apple note, no audio at all"
         let ctx = try cloudContext()
-        let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: nil, into: ctx))
+        let memo = try XCTUnwrap(try V2.author(pf, into: ctx))
         XCTAssertEqual(memo.transcript, "an apple note, no audio at all")
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<MemoAsset>()), 0, "honest text-only note beats no note")
     }
@@ -160,7 +160,7 @@ final class MacMemoAuthorTests: XCTestCase {
         cloud.insert(Memo(id: alreadyAuthoredID, audioFilename: "already.m4a"))
         try cloud.save()
 
-        let authored = try MacMemoAuthor.backfill(files: [orphan, alreadyAuthoredPF, demoRow], into: cloud)
+        let authored = try V2.backfill([orphan, alreadyAuthoredPF, demoRow], into: cloud)
         XCTAssertEqual(authored, 1)
         XCTAssertEqual(try cloud.fetchCount(FetchDescriptor<Memo>()), 2, "one pre-seeded + one newly authored")
     }
@@ -176,7 +176,7 @@ final class MacMemoAuthorTests: XCTestCase {
         pf.enhancedTitle = "Late-night audiobook capture flow"
         let ctx = try cloudContext()
 
-        let authored = try MacMemoAuthor.backfill(files: [pf], into: ctx)
+        let authored = try V2.backfill([pf], into: ctx)
 
         XCTAssertEqual(authored, 0, "a pathless row must never leak a demo/synthetic memo into the store")
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<Memo>()), 0)
@@ -195,7 +195,7 @@ final class MacMemoAuthorTests: XCTestCase {
         pf.transcript = "mac-transcribed after the fact"
         pf.transcribeStatus = .done
 
-        let reflected = try MacMemoAuthor.reflectTranscripts(files: [pf], into: cloud)
+        let reflected = try ReconcileV2.Author.reflectTranscripts([pf], into: cloud)
 
         XCTAssertEqual(reflected, 1)
         XCTAssertEqual(memo.transcript, "mac-transcribed after the fact")
@@ -218,7 +218,7 @@ final class MacMemoAuthorTests: XCTestCase {
         pf.transcript = "rough live seed still being replaced"
         pf.transcribeStatus = .processing
 
-        let reflected = try MacMemoAuthor.reflectTranscripts(files: [pf], into: cloud)
+        let reflected = try ReconcileV2.Author.reflectTranscripts([pf], into: cloud)
 
         XCTAssertEqual(reflected, 0)
         XCTAssertNil(memo.transcript, "in-flight words must wait for their own reflect")
@@ -236,7 +236,7 @@ final class MacMemoAuthorTests: XCTestCase {
         pf.transcript = "a DIFFERENT mac transcript"
         pf.transcribeStatus = .done
 
-        let reflected = try MacMemoAuthor.reflectTranscripts(files: [pf], into: cloud)
+        let reflected = try ReconcileV2.Author.reflectTranscripts([pf], into: cloud)
 
         XCTAssertEqual(reflected, 0)
         XCTAssertEqual(memo.transcript, "the phone's own transcript",
@@ -256,7 +256,7 @@ final class MacMemoAuthorTests: XCTestCase {
         pf.transcript = "the mac re-transcribed this phone memo"
         pf.transcribeStatus = .done
 
-        let reflected = try MacMemoAuthor.reflectTranscripts(files: [pf], into: cloud)
+        let reflected = try ReconcileV2.Author.reflectTranscripts([pf], into: cloud)
 
         XCTAssertEqual(reflected, 0)
         XCTAssertNil(memo.transcript, "reflecting onto a phone-originated memo is out of this lane's scope")
@@ -275,14 +275,14 @@ final class MacMemoAuthorTests: XCTestCase {
         local.insert(pf)
         try local.save()
 
-        XCTAssertEqual(try MacMemoAuthor.backfill(files: [pf], into: cloud), 1)
+        XCTAssertEqual(try V2.backfill([pf], into: cloud), 1)
         XCTAssertEqual(try cloud.fetchCount(FetchDescriptor<Memo>()), 1)
         XCTAssertEqual(try local.fetchCount(FetchDescriptor<PipelineFile>()), 1, "still just the one pf we started with")
 
         // The EXISTING (untouched) reconciler sweep over the SAME two contexts — the authored
         // memo's id matches the pf's id exactly, so it must hit the REFLECT branch, not create
         // a second row.
-        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local)
+        let outcome = V2.sweep(cloud, into: local)
 
         XCTAssertEqual(outcome.created, 0, "the memo we just authored must dedup against the pf it was authored FROM")
         XCTAssertEqual(try local.fetchCount(FetchDescriptor<PipelineFile>()), 1)
@@ -294,7 +294,7 @@ final class MacMemoAuthorTests: XCTestCase {
     /// pipeline row, honestly labeled — not "Voice note", not an Apple Note.
     func testTypedNoteIsBornUnratedQuietAndHonestlyLabeled() throws {
         let cloud = try cloudContext()
-        let memo = try MacMemoAuthor.typedNote(into: cloud)
+        let memo = try Memo.newTyped(into: cloud)
 
         XCTAssertFalse(NoteConsent.isRated(memo), "a typed thought isn't judged yet")
         XCTAssertEqual(memo.transcriptStatus, .done, "nothing to transcribe — never in-flight")
@@ -311,7 +311,7 @@ final class MacMemoAuthorTests: XCTestCase {
     /// Once it has words, the first line is the title — same rule as every note.
     func testTypedNoteTitleDerivesFromItsFirstLine() throws {
         let cloud = try cloudContext()
-        let memo = try MacMemoAuthor.typedNote(into: cloud)
+        let memo = try Memo.newTyped(into: cloud)
         memo.transcript = "Groceries for the weekend\nmilk, eggs, that cheese Jack likes"
         XCTAssertEqual(WayOutRules.displayTitle(memo), "Groceries for the weekend")
     }

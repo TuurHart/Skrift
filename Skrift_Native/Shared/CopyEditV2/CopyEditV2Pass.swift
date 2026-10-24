@@ -51,6 +51,14 @@ extension CopyEditV2 {
         func working(body: String) -> String { copyedit.isEmpty ? body : copyedit }
     }
 
+    /// One title or summary turn outside a full pass (a Redo, Q426): over the prose the copy-edit
+    /// reads (C29, C178), trimmed; "" with no model call when the body has no words (C177).
+    static func turn(prompt: String, body: String, maxTokens: Int, generate: Generate) async throws -> String {
+        let text = prose(body)
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "" }
+        return try await generate(prompt, text, maxTokens).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Process one note (C36): the verbs its source gets, one model call each, title and
     /// summary over the same prose the copy-edit reads (C29, C178). `bodyChanged` is asked after
     /// every model call; true discards the run (C38).

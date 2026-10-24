@@ -92,6 +92,11 @@ final class Memo {
     /// True when `[[img_NNN]]` markers are already injected — tells the Mac not
     /// to re-inject them.
     var transcriptMarkersInjected: Bool = false
+    /// C151 / D46: the ASR language mode (`ASRLanguageMode.rawValue`, "english" /
+    /// "multilingual") this transcript was made with, so "Transcribe again in Dutch /
+    /// English" knows which way to go. ADDITIVE, nil default (= before the stamp; read
+    /// through `ASRLanguageMode.recorded(_:default:)`) → lightweight migration + CloudKit-safe.
+    var transcriptLanguageMode: String? = nil
 
     /// Manual importance rating (0–1, snapped to 0.1), mirroring the desktop review
     /// slider. **Gates processing, not sync: CloudKit mirrors every memo; 0 = unrated, the
@@ -129,6 +134,12 @@ final class Memo {
     /// ADDITIVE, nil default → lightweight migration.
     var editedAt: Date? = nil
 
+    /// When the user last edited the RAW transcript (C153). A polish older than this was made
+    /// from words he has since changed: every device shows the raw edit and the Mac re-polishes
+    /// (`MemoEnhancement.isStale(for:)`). Distinct from `editedAt`, which a title or tag edit
+    /// also moves. ADDITIVE, nil default → lightweight migration + CloudKit schema deploy.
+    var transcriptEditedAt: Date? = nil
+
     // D185: unused, kept for CloudKit + older builds. Note reminders were removed (phone, iPad,
     // Mac); nothing reads or writes this any more, and it no longer holds a note off the fading
     // clock. The property stays so the CloudKit schema and older installed builds keep working.
@@ -162,7 +173,7 @@ final class Memo {
     /// the transcript RAW and re-derives tiers (`Sanitiser.nameSpans`) against these on
     /// demand (`mocks/phone-name-linking.html`); they also steer the on-device Obsidian
     /// export. SYNCED both ways (C81, D20, R37): the Mac adopts it into
-    /// `PipelineFile.nameResolutionsData` (`MirroredNoteFields` "nameResolutions") and writes
+    /// `PipelineFile.nameResolutionsData` (`ReconcileV2.Fields` "nameResolutions") and writes
     /// its own decisions back (`MacCloudMetaSync.setNameResolutions`). Typed form:
     /// `NameResolutions` (Shared/Naming). ADDITIVE, nil default → lightweight migration +
     /// CloudKit-safe.

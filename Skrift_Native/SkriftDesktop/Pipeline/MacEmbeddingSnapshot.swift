@@ -41,13 +41,10 @@ enum MacEmbeddingSnapshot {
         return fileOnly(file, id: uuid)
     }
 
-    /// `MacCloudWriteBack.resolve`'s candidate order, against an in-memory map instead of
+    /// `ReconcileV2.Writers.resolve`'s candidate order, against an in-memory map instead of
     /// three store fetches per row.
     static func resolve(_ file: PipelineFile, in memosByID: [UUID: Memo]) -> Memo? {
-        let candidates = [MacCloudWriteBack.memoID(for: file),
-                          MacCloudWriteBack.uuid(fromFilename: file.filename),
-                          UUID(uuidString: file.id)]
-        for case let candidate? in candidates {
+        for candidate in ReconcileV2.Writers.candidates(for: file) {
             if let memo = memosByID[candidate] { return memo }
         }
         return nil

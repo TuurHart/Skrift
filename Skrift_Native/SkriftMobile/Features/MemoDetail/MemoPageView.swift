@@ -965,7 +965,7 @@ struct MemoPageView: View {
     /// is isolated in `ConversationTurnsSection` so only that subtree re-renders
     /// on the player clock, not this page.
     @ViewBuilder var conversationContent: some View {
-        if let turns = SpeakerTranscript.parse(memo.transcript) {
+        if let turns = SpeakerTranscript.parse(ConversationPolish.body(for: memo, polish: conversationPolish)) {
             ConversationTurnsSection(
                 memoID: memo.id,
                 player: player, clock: player.clock, timings: timings, turns: turns,
@@ -1036,28 +1036,28 @@ struct MemoPageView: View {
         // nil slot → the assign falls back to name-based relabeling.
         let slots = DiarizationStore().load(for: memo.id)?.turnSlots ?? []
         let count = SpeakerTranscript.parse(memo.transcript)?.count ?? 0
-        let slot = (slots.count == count && index >= 0 && index < slots.count) ? slots[index] : nil
+        // Turns shown from the Mac's polish (Q509) may be merged, so their index is not the
+        // diarization's: no slot, the name-based relabel instead.
+        let slot = (conversationPolish == nil && slots.count == count && index >= 0 && index < slots.count)
+            ? slots[index] : nil
         assignTarget = AssignTarget(index: index, speaker: speaker, slot: slot, turnSlots: slots)
     }
 
     /// Merge ONLY the tapped turn into another speaker (per-line) + re-fuse — fixes a
     /// mis-split line without collapsing the whole speaker. No enrollment (not a naming).
     func mergeTurn(at index: Int, into other: String) {
-        guard let updated = SpeakerTranscript.reassign(memo.transcript, turnAt: index, to: other) else { return }
-        memo.transcript = updated
-        memo.transcriptUserEdited = true
-        memo.markEdited()
-        repository.save()
+        let polish = conversationPolish
+        guard ConversationPolish.apply({ SpeakerTranscript.reassign($0, turnAt: index, to: other) },
+                                       to: memo, polish: polish) else { return }
+        commitTurnEdit(polished: polish != nil)
     }
 
     /// Commit an inline edit to one turn's text (fix a word, move a boundary word).
     func editTurnText(at index: Int, to newText: String) {
-        guard let updated = SpeakerTranscript.setText(memo.transcript, turnAt: index, to: newText),
-              updated != memo.transcript else { return }
-        memo.transcript = updated
-        memo.transcriptUserEdited = true       // Mac trusts the edited transcript
-        memo.markEdited()
-        repository.save()
+        let polish = conversationPolish
+        guard ConversationPolish.apply({ SpeakerTranscript.setText($0, turnAt: index, to: newText) },
+                                       to: memo, polish: polish) else { return }
+        commitTurnEdit(polished: polish != nil)
     }
 
     /// Resolve a turn's `[[img_NNN]]` marker (1-based) → its photo file (same mapping as
@@ -1089,6 +1089,14 @@ struct MemoPageView: View {
         // slot map still lines up, else every turn whose header resolves to the same speaker.
         memo.transcript = SpeakerNaming.rename(transcript, displayed: old, to: new, people: people,
                                                turnSlots: turnSlots, slot: slot) ?? transcript
+        // Q509: the turns on screen may be the Mac's polish; it takes the same name.
+        if let e = conversationPolish,
+           let renamed = SpeakerNaming.rename(e.copyedit, displayed: old, to: new, people: people,
+                                              turnSlots: [], slot: nil) {
+            e.copyedit = renamed
+            e.enhancedByDeviceID = DeviceID.current()
+            e.enhancedAt = Date()
+        }
         memo.transcriptUserEdited = true
         memo.markEdited()
         repository.save()
@@ -1140,11 +1148,31 @@ struct MemoPageView: View {
 
     // MARK: - Mac polish (Phase 4)
 
+    /// Q509: the Mac's current polish of a CONVERSATION, whose turns this page shows (nil =
+    /// the transcript's turns). `macPolish` stays prose-only.
+    var conversationPolish: MemoEnhancement? {
+        ConversationPolish.shown(enhancements.first, for: memo)
+    }
+
+    /// Save a turn edit. A polished one is a words edit for conflict detection the way a
+    /// polished prose edit is (`polishedBinding`); a transcript one stamps the raw words.
+    func commitTurnEdit(polished: Bool) {
+        memo.markEdited(stampWords: !polished)
+        if polished {
+            let m = memo
+            DispatchQueue.main.async {
+                guard !m.isDeleted, let ctx = m.modelContext else { return }
+                if EditConflicts.recordPolishedEdit(m, in: ctx), ctx.hasChanges { try? ctx.save() }
+            }
+        }
+        repository.save()
+    }
+
     /// The polish to SHOW — only for an ordinary monologue voice memo (captures keep
     /// their quote block; conversations route to `SpeakerTurnsView`). nil = show raw.
     /// Newest `enhancedAt` first via the @Query sort — mirrors `repository.enhancement`.
     var macPolish: MemoEnhancement? {
-        guard let e = enhancements.first, e.hasContent,
+        guard let e = MemoEnhancement.current(enhancements.first, for: memo), e.hasContent,
               !memo.isShareCapture, memo.captureQuote == nil,
               SpeakerTranscript.parse(memo.transcript) == nil else { return nil }
         return e

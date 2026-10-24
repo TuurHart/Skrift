@@ -15,6 +15,10 @@ enum VaultExporter {
         let markdownURL: URL
         let audioURL: URL?
         let imageCount: Int
+        /// C163: `outcome` is about the OLD file a destination move left, and the move was refused.
+        var refusedMove = false
+        /// C158: vault pictures this export removed because the body no longer shows them.
+        var removedPictures: [String] = []
     }
 
     /// When this note was CAPTURED — what the portfolio names an entry by. The phone's
@@ -67,6 +71,60 @@ enum VaultExporter {
                                 profile: ExportProfile.of(pf.destination))
     }
 
+    /// The folder Skrift owns for the destination this note is NOT in now — where an export
+    /// from before a re-file lives. nil when that destination has no folder picked here, or
+    /// when both destinations resolve to the same folder (then there is nothing to move).
+    static func otherHome(for pf: PipelineFile, settings: AppSettings) -> URL? {
+        let other: NoteDestination = pf.destination.isPortfolio ? .personal : .portfolio
+        let probe = PipelineFile(id: pf.id, filename: pf.filename)
+        probe.destination = other
+        guard let otherHome = exportHome(for: probe, settings: settings),
+              otherHome.standardizedFileURL != exportHome(for: pf, settings: settings)?.standardizedFileURL
+        else { return nil }
+        return otherHome
+    }
+
+    enum MoveStep {
+        case none
+        case removeOld(relativePath: String, home: URL, ledger: ExportLedger)
+        case refused(Result)
+    }
+
+    /// C163: the destination-move step of `export`, judged before anything is written.
+    /// Only a row whose last export (`pf.exported`) lies under the other home has anything to
+    /// move, so a run without a re-filed note never decodes that home's ledger (Q365: one
+    /// decode and one write per run). The ledger is the run's when it already has it open, else
+    /// a standalone one that writes only when `removeOld` changes it.
+    static func destinationMove(_ pf: PipelineFile, id: UUID, settings: AppSettings,
+                                session: ExportSession?) -> MoveStep {
+        guard let old = otherHome(for: pf, settings: settings), let last = pf.exported,
+              URL(fileURLWithPath: last).standardizedFileURL.path.hasPrefix(old.standardizedFileURL.path + "/")
+        else { return .none }
+        let ledger = session?.ledgerIfOpen(for: old) ?? .default(for: old)
+        switch DestinationMove.verdict(id: id, oldHome: old, ledger: ledger) {
+        case .nothingThere:
+            return .none
+        case .remove(let rel):
+            return .removeOld(relativePath: rel, home: old, ledger: ledger)
+        case .refuse(let outcome):
+            return .refused(Result(outcome: outcome, markdownURL: old.appendingPathComponent(outcome.relativePath),
+                                   audioURL: nil, imageCount: 0, refusedMove: true))
+        }
+    }
+
+    /// The pick-time check (the Mac's destination row): may `pf` be re-filed to `destination`?
+    /// nil = yes (nothing exported, or the old file can go); else the shared refusal sentence.
+    static func destinationChangeRefusal(_ pf: PipelineFile, to destination: NoteDestination,
+                                         settings: AppSettings) -> String? {
+        guard destination != pf.destination, pf.exportStatus == .done else { return nil }
+        let probe = PipelineFile(id: pf.id, filename: pf.filename)
+        probe.destination = destination
+        guard let old = otherHome(for: probe, settings: settings) else { return nil }
+        guard case .refuse(let outcome) = DestinationMove.verdict(id: ledgerID(for: pf), oldHome: old,
+                                                                 ledger: .default(for: old)) else { return nil }
+        return ExportOutcomeCopy.destinationMoveRefused(outcome, from: pf.destination, to: destination).text
+    }
+
     /// The id the stamp and the export ledger key this row on. A synced memo's row id IS the
     /// memo UUID; demo/synthetic rows get a stable derived one so the stamp works for every
     /// row, forever.
@@ -81,7 +139,7 @@ enum VaultExporter {
     static func workInputs(for pf: PipelineFile, cloud: ModelContext?,
                            settings: AppSettings, session: ExportSession? = nil) -> NoteWorkState.Inputs {
         var enhancement: MemoEnhancement?
-        if let cloud, let memo = MacCloudWriteBack.resolve(for: pf, in: cloud) {
+        if let cloud, let memo = ReconcileV2.Writers.resolve(pf, in: cloud) {
             let memoID = memo.id
             enhancement = (try? cloud.fetch(FetchDescriptor<MemoEnhancement>(
                 predicate: #Predicate { $0.memoID == memoID })))?.first
@@ -167,6 +225,8 @@ enum VaultExporter {
     @discardableResult
     static func export(_ pf: PipelineFile, settings: AppSettings,
                        session: ExportSession? = nil) throws -> Result {
+        // Q511: the swap switch. Off until Q436; v1 below is the shipping path.
+        if ExportV2.routes { return try exportV2(pf, settings: settings, session: session) }
         // The engine-scope gate (`ExportGate`, the SAME predicate the iPad runs): folder, a
         // locked note NEVER reaching the plaintext vault, and the D139 two-versions hold
         // (Mac-only). Rating / trash / processing are asked by the callers that act on a
@@ -187,6 +247,11 @@ enum VaultExporter {
         try FileManager.default.createDirectory(at: vaultURL, withIntermediateDirectories: true)
 
         let id = ledgerID(for: pf)
+        // C163 (Q490): re-filed to the other destination since it was exported? Edited or filed
+        // elsewhere there refuses the move, named, and nothing is written anywhere. Ours and
+        // untouched is removed below, once the new home has agreed to take the note.
+        let move = destinationMove(pf, id: id, settings: settings, session: session)
+        if case .refused(let refusal) = move { return refusal }
         // Folder names are the engine's now, not settings — see VaultWriter.
         let writer = VaultWriter(root: vaultURL, ledger: session?.ledger(for: vaultURL) ?? .default(for: vaultURL),
                                  profile: profile)
@@ -206,6 +271,9 @@ enum VaultExporter {
         case .proceed(let rel, let creates):
             relPath = rel
             rewritesOurOwnFile = !creates
+        }
+        if case .removeOld(let rel, let old, let ledger) = move {
+            DestinationMove.removeOld(relativePath: rel, id: id, oldHome: old, ledger: ledger)
         }
         // The stem the ENGINE chose — sticky across retitles, collision-resolved —
         // names the attachments too, so embeds always match their files.
@@ -274,9 +342,25 @@ enum VaultExporter {
         // Phase 2 — stamp + atomic coordinated write (or skip everything when the
         // content is already current: no mtime churn for iCloud to chew on).
         let r = try writer.commit(markdown: finalMarkdown, id: id, relativePath: relPath,
-                                  audio: audio, documents: documents)
+                                  audio: audio, documents: documents,
+                                  removedAttachments: removedPictures(compiled, for: pf, safe: safe, profile: profile))
         return Result(outcome: r.outcome, markdownURL: r.markdownURL,
-                      audioURL: r.audioURL, imageCount: imageCount)
+                      audioURL: r.audioURL, imageCount: imageCount, removedPictures: r.removedAttachments)
+    }
+
+    /// C158: the pictures whose marker left the body, as the bytes we placed them from (the
+    /// manifest entry and its file stay, C14). A legacy marker-less capture keeps its own
+    /// copy-under-original-name path and never has `<stem>_NNN` copies to remove.
+    static func removedPictures(_ compiled: String, for pf: PipelineFile, safe: String,
+                                profile: ExportProfile) -> [VaultAsset] {
+        guard let imagesDir = pf.workingFolder?.appendingPathComponent("images"),
+              !(pf.sourceType == .capture && !compiled.contains("[[img_")) else { return [] }
+        return profile.removedPictures(compiled, manifest: pictureManifest(imagesDir: imagesDir), stem: safe)
+            .compactMap { p in
+                let src = imagesDir.appendingPathComponent(p.source)
+                return FileManager.default.fileExists(atPath: src.path)
+                    ? VaultAsset(name: p.embedName, source: .file(src)) : nil
+            }
     }
 
     /// Places one picture/attachment: `(source file, preferred name, folder) -> URL written`
@@ -440,6 +524,7 @@ enum VaultExporter {
                 // name — a foreign file occupied it, so keep the reference pointed at what
                 // we actually wrote.
                 out = out.replacingOccurrences(of: "[[\(originalName)]]", with: "[[\(written.lastPathComponent)]]")
+                    .replacingOccurrences(of: "](\(originalName))", with: "](\(written.lastPathComponent))")
             }
         }
         return (out, copied)
@@ -450,8 +535,9 @@ enum VaultExporter {
     /// embeds/links (`![[x]]` / `[[x]]`). Robust to spaces in the renamed files (the
     /// wikilink form sidesteps markdown URL escaping). Returns rewritten md + copies.
     /// `id` disambiguates a name collision with a file this device doesn't own (C58).
+    /// `profile` (Q434, export v2): the portfolio's `![](x)` / `[x](x)`; nil = v1's wiki form.
     static func convertNoteAttachments(_ markdown: String, attachmentsSrc: URL, into attDir: URL, id: UUID,
-                                       place: Placer? = nil) -> (String, Int) {
+                                       place: Placer? = nil, profile: ExportProfile? = nil) -> (String, Int) {
         let fm = FileManager.default
         guard let rx = try? NSRegularExpression(pattern: "(!?)\\[[^\\]]*\\]\\(Attachments/([^)]+)\\)") else {
             return (markdown, 0)
@@ -469,7 +555,10 @@ enum VaultExporter {
                 Self.logCopyFailure(name: name); continue
             }
             copied += 1
-            replacements.append((m.range, "\(bang)[[\(written.lastPathComponent)]]"))
+            let out = written.lastPathComponent
+            replacements.append((m.range, profile == .portfolio
+                ? (bang.isEmpty ? "[\(out)](\(out))" : "![](\(out))")
+                : "\(bang)[[\(out)]]"))
         }
         return (Sanitiser.nsReplace(markdown, edits: replacements), copied)
     }

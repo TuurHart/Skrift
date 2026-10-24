@@ -21,6 +21,9 @@ enum NoteMenuItem: CaseIterable {
     case splitSpeakers
     case flattenToMonologue
     case retranscribe
+    /// C151: re-run ASR on this note in the OTHER language mode. Its menu text is per note,
+    /// `ASRLanguageMode.transcribeAgainLabel(recordedIn:)`; `label` is the generic form.
+    case transcribeAgain
     case redo
     case undoTidyUp
     // ── with the note ──
@@ -43,6 +46,7 @@ enum NoteMenuItem: CaseIterable {
         case .splitSpeakers:      return "Split speakers"
         case .flattenToMonologue: return "Flatten to monologue"
         case .retranscribe:       return "Re-transcribe"
+        case .transcribeAgain:    return "Transcribe again in another language"
         case .redo:               return "Redo"
         case .undoTidyUp:         return "Undo tidy-up"
         case .printCard:          return "Print card"
@@ -66,6 +70,7 @@ enum NoteMenuItem: CaseIterable {
         case .splitSpeakers:      return "person.2.fill"
         case .flattenToMonologue: return "text.alignleft"
         case .retranscribe:       return "waveform"
+        case .transcribeAgain:    return "globe"
         case .redo:               return "arrow.clockwise"
         case .undoTidyUp:         return "arrow.uturn.backward"
         case .printCard:          return "printer"
@@ -122,8 +127,8 @@ extension NoteMenuItem {
         switch surface {
         case .phoneList:
             switch self {
-            case .addRecording, .splitSpeakers, .flattenToMonologue, .retranscribe, .redo,
-                 .undoTidyUp, .printCard, .share:
+            case .addRecording, .splitSpeakers, .flattenToMonologue, .retranscribe, .transcribeAgain,
+                 .redo, .undoTidyUp, .printCard, .share:
                 return "the phone's list menu is quick actions; these act on the OPEN note and live in its ⋯"
             case .copyMarkdown, .revealInFinder, .openInObsidian:
                 return "no Finder, no compiled-Markdown copy on the phone (its export is Publish)"
@@ -133,6 +138,8 @@ extension NoteMenuItem {
             switch self {
             case .addRecording:
                 return "acts on the OPEN note: it lives in its ⋯ (NoteActions, Q290)"
+            case .transcribeAgain:
+                return "a per-note language choice: it lives in the open note's ⋯ (NoteActions, C151)"
             case .splitSpeakers:
                 return "not built on the Mac (the split lives on the phone)"
             case .undoTidyUp:
@@ -147,8 +154,8 @@ extension NoteMenuItem {
             }
         case .macQuietList:
             switch self {
-            case .addRecording, .splitSpeakers, .flattenToMonologue, .retranscribe, .redo,
-                 .undoTidyUp, .printCard, .share:
+            case .addRecording, .splitSpeakers, .flattenToMonologue, .retranscribe, .transcribeAgain,
+                 .redo, .undoTidyUp, .printCard, .share:
                 return "an unrated note has no pipeline row to act on; open it for the rest"
             case .copyMarkdown:
                 return "a bare unrated row cannot compile Markdown; the open note's ⋯ offers it"

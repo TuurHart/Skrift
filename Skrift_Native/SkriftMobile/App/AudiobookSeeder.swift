@@ -33,6 +33,10 @@ enum AudiobookSeeder {
                 audioFilename: "book.wav", title: title, author: author, duration: duration,
                 chapters: [AudiobookChapter(title: "Chapter 1", start: 0, duration: duration)],
                 lastPlayedAt: Date(timeIntervalSinceNow: -Double(index) * 3_600), position: position)
+            // A real file, or the library-load phantom sweep (C298) drops the seeded book.
+            let folder = store.folder(for: book.id)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try? writeSilence(to: folder.appendingPathComponent("book.wav"), seconds: 1, sampleRate: 2_000)
             store.add(book)
             for n in 0..<notes {
                 var meta = MemoMetadata()

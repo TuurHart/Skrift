@@ -5,6 +5,7 @@ import Foundation
 /// blob that syncs both ways — a decision made through the Mac adapter lands in the phone's
 /// resolution set (`Memo.nameResolutions`, what the phone's tap-to-resolve surface reads),
 /// and a phone decision lands on the Mac row the `Sanitiser` links with.
+@MainActor
 final class NameResolutionSyncTests: XCTestCase {
 
     private let people: [Person] = [
@@ -91,8 +92,7 @@ final class NameResolutionSyncTests: XCTestCase {
         let (memo, pf) = pair("Met Jack today.")
         pf.syncedSourceEditedAt = memo.lastEditedAt
         memo.linkName(alias: "Jack", to: "[[Jack Tanner]]")
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: memo, enhancement: nil, to: pf, people: people,
-                                            author: "Tuur", thisDeviceID: "mac-1"))
+        XCTAssertTrue(V2.reflect(memo, enhancement: nil, to: pf, people: people, author: "Tuur", device: "mac-1"))
         XCTAssertEqual(pf.namePicks, ["jack": "[[Jack Tanner]]"])
         XCTAssertTrue(pf.sanitised?.contains("[[Jack Tanner]]") ?? false, pf.sanitised ?? "nil")
     }

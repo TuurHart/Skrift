@@ -5,7 +5,7 @@ import Foundation
 // THE C3 capture wire struct (`Skrift_Native/CAPTURE_CONTRACT.md`) — ONE copy for
 // both apps (SharedKit wave 2; previously twinned mobile Models/SharedContent.swift
 // vs desktop CompilerBridge.swift). The phone writes it (`Memo.sharedContentData`,
-// naked blob); `MemoCloudIngest` passes that blob verbatim into the Mac's metadata
+// naked blob); `ReconcileV2.Ingest` passes that blob verbatim into the Mac's metadata
 // envelope under `"sharedContent"`; the Mac decodes with `decode(from:)` below.
 // Field names ARE the contract — never rename them. Adding a capture type means
 // extending `ShareContentType` here (both apps pick it up in the same commit).

@@ -1,6 +1,7 @@
 ---
 title: "capture_FDA21613-E326-5919-98D2-8205AD1580C2"
 date: 2026-07-27
+editedAt:
 author: Tiuri
 source: capture-file
 summary:

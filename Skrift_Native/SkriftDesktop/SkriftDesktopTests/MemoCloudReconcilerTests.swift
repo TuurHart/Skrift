@@ -17,12 +17,11 @@ final class MemoCloudReconcilerTests: XCTestCase {
 
     /// Working folders go to a TEMP dir, never the app's real audio-output directory —
     /// these tests had been materialising ingest folders into the live Dev data folder.
-    private lazy var upload = UploadService(
-        outputDir: FileManager.default.temporaryDirectory
-            .appendingPathComponent("mcr_\(UUID().uuidString)", isDirectory: true))
+    private lazy var upload = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mcr_\(UUID().uuidString)", isDirectory: true)
 
     override func tearDown() {
-        try? FileManager.default.removeItem(at: upload.outputDir)
+        try? FileManager.default.removeItem(at: upload)
         super.tearDown()
     }
 
@@ -39,7 +38,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
                         transcript: "hi", transcriptStatus: .done, transcriptConfidence: 0.9,
                         significance: significance)
         let asset = MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.audio,
-                              filename: MemoCloudIngest.audioFilename(for: memo), blob: Data(bytes.utf8))
+                              filename: ReconcileV2.Ingest.audioFilename(for: memo), blob: Data(bytes.utf8))
         cloud.insert(memo)
         cloud.insert(asset)
     }
@@ -55,7 +54,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         seedMemo(cloud, significance: 0)     // gated out (flag-to-send)
         try cloud.save()
 
-        let created = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload).created
+        let created = V2.sweep(cloud, into: local, outputDir: upload).created
         XCTAssertEqual(created, 2, "two rated memos ingest; the significance-0 one syncs but is skipped")
         XCTAssertEqual(pipelineCount(local), 2)
     }
@@ -65,9 +64,9 @@ final class MemoCloudReconcilerTests: XCTestCase {
         seedMemo(cloud, significance: 0.5)
         try cloud.save()
 
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload).created, 1)
+        XCTAssertEqual(V2.sweep(cloud, into: local, outputDir: upload).created, 1)
         // A second reconcile (foreground/import) must not duplicate already-ingested memos.
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload).created, 0)
+        XCTAssertEqual(V2.sweep(cloud, into: local, outputDir: upload).created, 0)
         XCTAssertEqual(pipelineCount(local), 1)
     }
 
@@ -83,7 +82,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         cloud.insert(memo)
         if withAsset {
             cloud.insert(MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.audio,
-                                   filename: MemoCloudIngest.audioFilename(for: memo),
+                                   filename: ReconcileV2.Ingest.audioFilename(for: memo),
                                    blob: Data("AUDIO".utf8)))
         }
     }
@@ -99,14 +98,14 @@ final class MemoCloudReconcilerTests: XCTestCase {
         seedRow(cloud, id: id, transcript: "the considerably longer keeper transcript", withAsset: false)
         try cloud.save()
 
-        let first = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        let first = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertEqual(first.created, 1, "one id → one PipelineFile")
         XCTAssertEqual(pipelineCount(local), 1)
         let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
         XCTAssertEqual(pf.transcript, "the considerably longer keeper transcript",
                        "the keeper (most content) wins, not fetch order")
 
-        let second = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        let second = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertEqual(second.created, 0)
         XCTAssertTrue(second.updatedIDs.isEmpty,
                       "repeat sweep is a NO-OP — no flip-flop between the divergent rows")
@@ -122,12 +121,11 @@ final class MemoCloudReconcilerTests: XCTestCase {
         seedRow(cloud, id: id, transcript: "keeper")
         try cloud.save()
 
-        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        let outcome = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertEqual(outcome.created, 1)
         let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
         XCTAssertEqual(pf.transcript, "keeper")
-        XCTAssertTrue(MemoCloudReconciler.sweep(from: cloud, into: local,
-                                                upload: upload).updatedIDs.isEmpty)
+        XCTAssertTrue(V2.sweep(cloud, into: local, outputDir: upload).updatedIDs.isEmpty)
     }
 
     // MARK: - Two memos, one audioFilename (the reflected=4 churn, 2026-07-27)
@@ -150,13 +148,12 @@ final class MemoCloudReconcilerTests: XCTestCase {
         }
         try cloud.save()
 
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local,
-                                                 upload: upload).created, 2,
+        XCTAssertEqual(V2.sweep(cloud, into: local, outputDir: upload).created, 2,
                        "a shared filename must not collapse two distinct memos into one row")
         XCTAssertEqual(pipelineCount(local), 2)
 
         // …and the steady state is silent: neither row is claimed by the other's memo.
-        let second = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        let second = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertEqual(second.created, 0)
         XCTAssertTrue(second.updatedIDs.isEmpty,
                       "no ping-pong — the sweep settles instead of reflecting forever")
@@ -180,8 +177,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
                                filename: filename, blob: Data("AUDIO".utf8)))
         try cloud.save()
 
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local,
-                                                 upload: upload).created, 0,
+        XCTAssertEqual(V2.sweep(cloud, into: local, outputDir: upload).created, 0,
                        "legacy row still claimed by filename — no duplicate")
         XCTAssertEqual(pipelineCount(local), 1)
     }
@@ -195,7 +191,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         let cloud = try cloudContext(), local = try localContext()
         seedMemo(cloud, significance: 0.5)
         try cloud.save()
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload).created, 1)
+        XCTAssertEqual(V2.sweep(cloud, into: local, outputDir: upload).created, 1)
         let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
         XCTAssertTrue(pf.wordTimings.isEmpty, "the asset hadn't synced when ingest ran")
 
@@ -208,12 +204,11 @@ final class MemoCloudReconcilerTests: XCTestCase {
                                blob: try JSONEncoder().encode(words)))
         try cloud.save()
 
-        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        let outcome = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertEqual(pf.wordTimings, words, "the next sweep adopts the late asset")
         XCTAssertEqual(outcome.updatedIDs, [pf.id], "heal reports the row so the open note re-renders")
 
-        XCTAssertTrue(MemoCloudReconciler.sweep(from: cloud, into: local,
-                                                upload: upload).updatedIDs.isEmpty,
+        XCTAssertTrue(V2.sweep(cloud, into: local, outputDir: upload).updatedIDs.isEmpty,
                       "idempotent — a healed row is a steady-state no-op")
     }
 
@@ -223,7 +218,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         let cloud = try cloudContext(), local = try localContext()
         seedMemo(cloud, significance: 0.5)
         try cloud.save()
-        _ = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        _ = V2.sweep(cloud, into: local, outputDir: upload)
         let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
         let macOwn = [WordTiming(word: "mac", start: 0, end: 0.5)]
         pf.wordTimings = macOwn   // BatchRunner wrote the Mac's own run
@@ -234,7 +229,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
                                blob: try JSONEncoder().encode([WordTiming(word: "phone", start: 0, end: 1)])))
         try cloud.save()
 
-        _ = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        _ = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertEqual(pf.wordTimings, macOwn, "existing timings win; the heal only fills a hole")
     }
 
@@ -244,7 +239,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         let cloud = try cloudContext(), local = try localContext()
         seedMemo(cloud, significance: 0.5)
         try cloud.save()
-        _ = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        _ = V2.sweep(cloud, into: local, outputDir: upload)
         let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
         XCTAssertTrue(pf.diarizationSegments.isEmpty)
 
@@ -256,11 +251,10 @@ final class MemoCloudReconcilerTests: XCTestCase {
                                blob: try PhoneDiarizationFixture.blob(segments: segs, slotNames: ["0": "Tuur"])))
         try cloud.save()
 
-        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        let outcome = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertEqual(pf.diarizationSegments, segs, "the next sweep adopts the late diar asset")
         XCTAssertEqual(outcome.updatedIDs, [pf.id])
-        XCTAssertTrue(MemoCloudReconciler.sweep(from: cloud, into: local,
-                                                upload: upload).updatedIDs.isEmpty,
+        XCTAssertTrue(V2.sweep(cloud, into: local, outputDir: upload).updatedIDs.isEmpty,
                       "idempotent")
     }
 
@@ -269,7 +263,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         let cloud = try cloudContext(), local = try localContext()
         seedMemo(cloud, significance: 0.5)
         try cloud.save()
-        _ = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        _ = V2.sweep(cloud, into: local, outputDir: upload)
         let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
 
         let memo = try XCTUnwrap((try? cloud.fetch(FetchDescriptor<Memo>()))?.first)
@@ -278,7 +272,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
                                blob: Data("not json".utf8)))
         try cloud.save()
 
-        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        let outcome = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertTrue(pf.wordTimings.isEmpty)
         XCTAssertTrue(outcome.updatedIDs.isEmpty, "a failed decode is not an update")
     }
@@ -305,12 +299,12 @@ final class MemoCloudReconcilerTests: XCTestCase {
         let cloud = try cloudContext(), local = try localContext()
         try seedTypedMemo(cloud, text: "Mats was tien jaar.", significance: 0.1)
 
-        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        let outcome = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertEqual(outcome.created, 1, "the rating IS the handoff — it must produce a row")
         let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
         XCTAssertEqual(pf.transcript, "Mats was tien jaar.")
         XCTAssertEqual(pf.sourceType, .note)
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload).created, 0,
+        XCTAssertEqual(V2.sweep(cloud, into: local, outputDir: upload).created, 0,
                        "and the next sweep dedups it like any other row")
     }
 
@@ -324,7 +318,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         let unrated = try seedTypedMemo(cloud, text: "not judged yet", significance: 0)
         try cloud.save()
 
-        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, upload: upload)
+        let outcome = V2.sweep(cloud, into: local, outputDir: upload)
         XCTAssertEqual(outcome.stranded, 0, "a rated memo with no row is invisible — never ship one")
         let files = (try? local.fetch(FetchDescriptor<PipelineFile>())) ?? []
         XCTAssertEqual(files.count, 2)
@@ -344,8 +338,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
                                      enhancedByDeviceID: DeviceID.current()))
         try cloud.save()
 
-        _ = MemoCloudReconciler.sweep(from: cloud, into: local,
-                                      thisDeviceID: DeviceID.current(), upload: upload)
+        _ = V2.sweep(cloud, into: local, device: DeviceID.current(), outputDir: upload)
         let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
         XCTAssertEqual(pf.enhancedCopyedit, "Polished.\n\nWith paragraphs.",
                        "the already-written polish surfaces with the note")
@@ -359,8 +352,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         let cloud = try cloudContext(), local = try localContext()
         seedMemo(cloud, significance: 0.5)
         try cloud.save()
-        _ = MemoCloudReconciler.sweep(from: cloud, into: local,
-                                      thisDeviceID: DeviceID.current(), upload: upload)
+        _ = V2.sweep(cloud, into: local, device: DeviceID.current(), outputDir: upload)
         let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
         pf.enhancedCopyedit = "the Mac's local, newer copy"
 
@@ -369,8 +361,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
                                      enhancedByDeviceID: DeviceID.current()))
         try cloud.save()
 
-        _ = MemoCloudReconciler.sweep(from: cloud, into: local,
-                                      thisDeviceID: DeviceID.current(), upload: upload)
+        _ = V2.sweep(cloud, into: local, device: DeviceID.current(), outputDir: upload)
         XCTAssertEqual(pf.enhancedCopyedit, "the Mac's local, newer copy", "no echo clobber")
     }
 }

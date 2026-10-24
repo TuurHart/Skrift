@@ -1,6 +1,7 @@
 ---
 title: "capture_ACFA1AE3-DA64-5250-808C-8F22D251F927"
 date: 2026-07-29
+editedAt:
 author: Tiuri
 source: capture-image
 summary:

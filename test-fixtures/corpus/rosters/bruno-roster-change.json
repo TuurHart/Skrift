@@ -1,0 +1,49 @@
+{
+  "_schema": "Q489 (C159/C283/D32), read by RosterReexportTests. Three rosters in order: `before` (no Bruno; the voice-en-bruno-before-roster notes were processed and exported with it), `added` (Bruno added with alias Bruno), `renamed` (the same person renamed; alias unchanged). Each is a `people` array in names.json shape.",
+  "before": [
+    {
+      "canonical": "[[Lotte Vos]]",
+      "aliases": [
+        "Lotte"
+      ],
+      "short": "Lotte",
+      "lastModifiedAt": "2026-09-01T09:00:00Z"
+    }
+  ],
+  "added": [
+    {
+      "canonical": "[[Lotte Vos]]",
+      "aliases": [
+        "Lotte"
+      ],
+      "short": "Lotte",
+      "lastModifiedAt": "2026-09-01T09:00:00Z"
+    },
+    {
+      "canonical": "[[Bruno Costa]]",
+      "aliases": [
+        "Bruno"
+      ],
+      "short": "Bruno",
+      "lastModifiedAt": "2026-09-25T09:00:00Z"
+    }
+  ],
+  "renamed": [
+    {
+      "canonical": "[[Lotte Vos]]",
+      "aliases": [
+        "Lotte"
+      ],
+      "short": "Lotte",
+      "lastModifiedAt": "2026-09-01T09:00:00Z"
+    },
+    {
+      "canonical": "[[Bruno Almeida]]",
+      "aliases": [
+        "Bruno"
+      ],
+      "short": "Bruno",
+      "lastModifiedAt": "2026-09-26T09:00:00Z"
+    }
+  ]
+}

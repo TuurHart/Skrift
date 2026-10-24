@@ -1,0 +1,45 @@
+{
+  "id": "06CEC9A6-5F73-59C4-ABE2-D69D71995DA7",
+  "slug": "voice-en-bruno-before-roster-2",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "names",
+    "roster-change"
+  ],
+  "title": "Glaze tests",
+  "recordedAt": "2026-09-22T10:00:00+01:00",
+  "createdAt": "2026-09-22T10:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "The glaze tests came out well. Lotte thinks the blue is too dark, but Bruno's tiles look right to me.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.93,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-22T10:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "C159/C283 (Q489). Processed and exported while the roster held no Bruno, so Bruno is plain text and `people:` lacks him. Adding [[Bruno Costa]] (alias Bruno) re-links this note once and re-exports its untouched vault file; renaming him to [[Bruno Almeida]] rewrites the link and `people:` there. Read by RosterReexportTests with rosters/bruno-roster-change.json; not in manifest.json."
+  }
+}

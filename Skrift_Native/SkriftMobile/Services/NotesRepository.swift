@@ -164,6 +164,8 @@ final class NotesRepository {
         // Drop the CloudKit-mirrored media blobs too (Phase 1c) — otherwise the
         // CKAssets outlive the memo and re-materialize orphaned audio on other devices.
         deleteAssets(forMemo: memo.id)
+        // C157: the note's polish row goes with it, or the Mac keeps an orphan polish forever.
+        deleteEnhancements(forMemo: memo.id)
         context.delete(memo)
         save()
     }
@@ -187,6 +189,13 @@ final class NotesRepository {
     /// copyedit where a Mac-made memo-link lives, not just the raw transcript).
     func allEnhancements() -> [MemoEnhancement] {
         (try? context.fetch(FetchDescriptor<MemoEnhancement>())) ?? []
+    }
+
+    /// Delete every polish row of a memo (there can be more than one, `enhancement(forMemo:)`).
+    /// Caller saves (`permanentlyDelete` does).
+    func deleteEnhancements(forMemo id: UUID) {
+        let d = FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == id })
+        for e in (try? context.fetch(d)) ?? [] { context.delete(e) }
     }
 
     /// Delete a memo's asset rows. Caller saves (`permanentlyDelete` does).

@@ -19,7 +19,7 @@ extension PipelineFile {
         return t.isEmpty ? nil : t
     }
 
-    /// The capture's photos on disk, in manifest order — the files `UploadService.saveImages` /
+    /// The capture's photos on disk, in manifest order — the files `ReconcileV2.Ingest.prepare` /
     /// `MemoPhotoMaterializer` wrote under `images/`. Only the ones that exist.
     var captureImageURLs: [URL] {
         guard let dir = workingFolder?.appendingPathComponent("images", isDirectory: true) else { return [] }

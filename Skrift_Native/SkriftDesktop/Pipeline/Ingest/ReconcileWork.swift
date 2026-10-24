@@ -13,7 +13,7 @@ enum ReconcileWork {
         var assetBlobFetches = 0
         /// Blob-free `MemoAsset` index fetches (`propertiesToFetch: memoID, kind`).
         var assetIndexFetches = 0
-        /// Full builds of `MemoCloudIngest.metadataJSON` (JSON parse + sorted re-serialise).
+        /// Full builds of `ReconcileV2.Ingest.metadataJSON` (JSON parse + sorted re-serialise).
         var metadataSerialisations = 0
         /// `ModelContext.save()` calls made by the pass.
         var saves = 0

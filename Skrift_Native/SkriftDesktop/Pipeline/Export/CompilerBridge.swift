@@ -68,6 +68,7 @@ extension PipelineFile {
             },
             sharedContent: sc,
             rawRecordedAt: Self.rawMetaString(audioMetadataJSON, key: "recordedAt"),
+            editedAt: memoEditedAt,
             destination: destination,
             spoken: sourceType == .audio && !path.isEmpty,
             // The ONE classifier the phone's exporter uses too (Q142): a typed row is
@@ -88,7 +89,7 @@ extension PipelineFile {
 
     /// The export title — the shared C25 ladder (`ExportNaming.title`, the iPad's rule too).
     /// `enhancedTitle` carries rungs 1+2 on the Mac: a title chosen on any device
-    /// (`MemoCloudUpdate` adopts `Memo.title`), else the Mac's own suggestion. The body is
+    /// (`ReconcileV2.Reflect` adopts `Memo.title`), else the Mac's own suggestion. The body is
     /// the RAW text (`transcript` — a capture's annotation lives there too), the same text
     /// the iPad reads its first line from.
     var exportTitle: String {

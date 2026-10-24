@@ -3,7 +3,7 @@ import SwiftData
 import os
 
 /// Mac→phone metadata write-back — the second half of "widen the narrow Mac→phone channel".
-/// The enhancement carrier (`MacCloudWriteBack`) only ever carried body/title/summary, so tags
+/// The enhancement carrier (`ReconcileV2.Writers`) only ever carried body/title/summary, so tags
 /// and importance edited on the Mac never reached the phone (and were frozen at first ingest the
 /// other way). Both are plain `Memo` fields that already sync, so — exactly like delete-sync —
 /// the Mac just writes them onto the synced `Memo`, and the phone reflects them.
@@ -11,7 +11,7 @@ import os
 /// App-only + gated like the reconcile loop (`cloudKitMacSyncEnabled` + a container); a no-op
 /// otherwise. Writes each file's CURRENT `tags`/`significance` (set moments earlier by the review
 /// UI) onto its memo. No `lastEditedAt` bump — these are synced fields on their own, and NOT
-/// bumping it keeps the reconciler's text-reflect echo-quiet. `MemoCloudUpdate` reflects the phone
+/// bumping it keeps the reconciler's text-reflect echo-quiet. `ReconcileV2.Reflect` reflects the phone
 /// direction with a plain value compare, so a Mac write converges it (no clobber loop).
 @MainActor
 enum MacCloudMetaSync {
@@ -36,7 +36,7 @@ enum MacCloudMetaSync {
         guard let ctx = MemoCloudStore.syncContainer?.mainContext else { return false }
         var wrote = false
         for pf in files {
-            guard let memo = MacCloudWriteBack.resolve(for: pf, in: ctx), mutate(pf, memo) else { continue }
+            guard let memo = ReconcileV2.Writers.resolve(pf, in: ctx), mutate(pf, memo) else { continue }
             if recordEdits { EditConflicts.recordEdit(memo, in: ctx) }
             wrote = true
         }
@@ -46,14 +46,12 @@ enum MacCloudMetaSync {
         return true
     }
 
-    /// Mirror each file's PASSIVE fields onto its synced `Memo` — the set is declared once in
-    /// `MirroredNoteFields` (a field with no `push` is event-only in this direction, which is
-    /// how importance keeps its "nil is ambiguous" rule). Safe for any files: non-synced /
+    /// Mirror each file's PASSIVE fields onto its synced `Memo` (`ReconcileV2.Writers.pushMeta`:
+    /// tags, and a rating only when set, so importance keeps its "nil is ambiguous" rule). Safe for any files: non-synced /
     /// non-memo rows are skipped, and a memo already at the same values isn't churned.
     static func mirror(_ files: [PipelineFile]) {
         writeBatch(files, "meta-sync") { pf, memo in
-            var pushed = false
-            for field in MirroredNoteFields.pushable where field.push!(pf, memo) { pushed = true }
+            var pushed = ReconcileV2.Writers.pushMeta(pf, to: memo)
             // Pre-2026-10 Mac-only name decisions go out once (fills an EMPTY memo only).
             if NameResolutionsMirror.migrateLegacy(pf, to: memo) { pushed = true }
             return pushed
@@ -86,7 +84,7 @@ enum MacCloudMetaSync {
             memo.destination = d
             // D188: the movie syncs whatever the destination and filing never deletes it; this only
             // heals a movie that was not written yet (a pre-D188 Personal video). Idempotent.
-            if let ctx = memo.modelContext { MacMemoAuthor.syncVideoAsset(for: pf, memo: memo, in: ctx) }
+            if let ctx = memo.modelContext { ReconcileV2.Author.keptMovie(pf, memo: memo, in: ctx) }   // Q431
             return true
         }
     }

@@ -559,7 +559,7 @@ enum Snapshot {
         let body = "Yo claude. I got a problem. Well first off, once I click the record button, it says starting.\n"
             + "Check what the overhead is and why it takes a while. It happened twice, so not a fluke."
         let when = Date()
-        // `duration` as a NUMBER — the shape `MemoCloudIngest` writes for every synced
+        // `duration` as a NUMBER — the shape `ReconcileV2.Ingest` writes for every synced
         // note, and the one the reader used to ignore (no chip, no player).
         let meta = try? JSONSerialization.data(withJSONObject: [
             "location": ["placeName": "Cais do Sodré"],
@@ -1596,8 +1596,8 @@ enum Snapshot {
         writePNG(view, to: path)
     }
 
-    /// Q143: the synthetic corpus's captures pushed through the REAL ingest (`MemoCloudIngest` →
-    /// `UploadService` → working folders on disk), then each one's review pane drawn: link
+    /// Q143: the synthetic corpus's captures pushed through the REAL ingest (`ReconcileV2.Ingest`
+    /// prepare → working folders on disk), then each one's review pane drawn: link
     /// (description), image (pixels), PDF (first page + page chip + text disclosure), an
     /// UNRATED link (honest banner, placeholder), and a video with a typed thought (annotation
     /// lead). Writes `<dir>/<name>.png`. Triggered by: `-snapshot-capture-corpus <dir> -corpus <corpus>`.
@@ -1608,8 +1608,7 @@ enum Snapshot {
         let corpusURL = URL(fileURLWithPath: (corpusPath as NSString).expandingTildeInPath, isDirectory: true)
         _ = try? CorpusSeed.seed(from: corpusURL, into: ctx, recordingsDirectory: tmp.appendingPathComponent("rec"))
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-        var upload = UploadService()
-        upload.outputDir = tmp.appendingPathComponent("out")
+        let outputDir = tmp.appendingPathComponent("out")
 
         // corpus note id → (output name, tweak applied to the memo before ingest, rated?)
         let wanted: [(id: String, name: String, tweak: (Memo) -> Void, rated: Bool)] = [
@@ -1639,10 +1638,14 @@ enum Snapshot {
             if let old = try? ctx.fetch(FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.id == rowID })), !old.isEmpty {
                 for o in old { ctx.delete(o) }
             }
-            guard let pf = try? MemoCloudIngest.ingest(memo: memo, assets: assets, upload: upload,
-                                                       into: ctx) else {
+            // Q431: v2's ingest (the gates the sweep applies: live and rated).
+            guard memo.deletedAt == nil, NoteConsent.isRated(memo),
+                  let prepared = try? ReconcileV2.Ingest.prepare(memo, assets: assets, outputDir: outputDir) else {
                 print("renderCaptureCorpus: \(w.name) — ingest returned nil"); continue
             }
+            let pf = ReconcileV2.Ingest.makeRow(prepared, memo: memo)
+            ctx.insert(pf)
+            try? ctx.save()
             if !w.rated { pf.significance = 0 }
             let coordinator = ProcessingCoordinator()
             let view = NoteDisplayView(file: pf, coordinator: coordinator, scrollable: false)

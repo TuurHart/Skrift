@@ -15,6 +15,9 @@ final class OpenNoteRosterRefresh {
     private(set) var file: PipelineFile?
     /// How many times a synced roster change re-derived the open note.
     private(set) var refreshCount = 0
+    /// The roster the open note's body was last linked with (Q489: `RosterRelink.rederive`
+    /// adopts a Mac edit still only in `sanitised` under it before re-linking).
+    private var linkedWith: [Person] = []
 
     private let people: () -> [Person]
     private let author: () -> String
@@ -45,13 +48,18 @@ final class OpenNoteRosterRefresh {
     deinit { if let token { center.removeObserver(token) } }
 
     /// The note now on screen (nil when none is).
-    func open(_ file: PipelineFile?) { self.file = file }
+    func open(_ file: PipelineFile?) {
+        self.file = file
+        linkedWith = people()
+    }
 
     /// Re-derive the open note over the CURRENT roster. A note that was never name-linked
     /// (no `sanitised` yet) is left to its first processing run.
     func refresh() {
         guard let file, file.sanitised != nil else { return }
-        MemoCloudUpdate.resanitiseAndCompile(file, people: people(), author: author())
+        let now = people()
+        RosterRelink.rederive(file, linkedWith: linkedWith, people: now, author: author())
+        linkedWith = now
         refreshCount += 1
         afterRefresh(file)
     }

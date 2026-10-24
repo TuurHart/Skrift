@@ -74,20 +74,14 @@ actor MLXPolishEngine: PolishEngine {
 
     // MARK: - PolishEngine
 
-    /// True once the model weights are actually on disk (not merely a config/tokenizer
-    /// partial). Probes the HF blob store — the library's own cache path, so it can never
-    /// drift from where `#hubDownloader()` writes — and reuses `ModelInventory.sizeOnDisk`
-    /// (the cited pattern). Advisory only: the download path is idempotent, so a wrong read
-    /// costs a Settings label, never correctness. Exact detection is device-owed to confirm.
+    /// True once every model file is on disk at its exact expected byte count (C292) —
+    /// `ResumableModelDownloader` records the Hub's sizes when it downloads and checks each
+    /// file against them. A truncated download is never "downloaded", however big. The
+    /// download path is idempotent, so a false here only means the next polish resumes it.
     func isModelOnDisk() async -> Bool {
-        guard let repoID = Repo.ID(rawValue: modelRepo) else { return false }
-        let blobs = HubCache.default.blobsDirectory(repo: repoID, kind: .model)
-        return (ModelInventory.sizeOnDisk(blobs) ?? 0) > Self.modelDiskFloorBytes
+        ResumableModelDownloader().isComplete(id: modelRepo,
+                                              revision: PolishPrompts.revision(for: modelRepo))
     }
-
-    /// Weights present (not just a partial). 0.5 GB is far above any config/tokenizer and
-    /// far below the full ~4.6 GB, so a half-fetched repo reads as not-downloaded.
-    private static let modelDiskFloorBytes: Int64 = 500_000_000
 
     /// Fetch (idempotent) = load the container with a progress handler; it downloads what's
     /// missing and keeps it cached. Loading into memory here means the following `polish`
@@ -96,82 +90,33 @@ actor MLXPolishEngine: PolishEngine {
         try await ensureLoaded(onProgress: onProgress)
     }
 
-    /// The one copy-edit LLM turn, budget-sized from ITS input (PolishPrompts,
-    /// restored 2026-08-18 — the fixed 1024 cut every long note mid-generation).
-    /// Returning the input unchanged rides the escrow back to the raw body
-    /// (never ship a cut note). Shared by the full polish AND the per-part redo.
-    private func copyEditGenerate(_ input: String) async throws -> String {
-        let cap = PolishPrompts.copyEditTokenBudget(forInput: input)
-        let out = try await run(prompt: PolishPromptsStore.copyEdit(), text: input, maxTokens: cap)
-        if PolishPrompts.looksTruncated(output: out, cap: cap) {
-            DevLog.log("polish: copy-edit hit the \(cap)-token cap — keeping the unedited body")
-            return input
-        }
-        if PolishPrompts.lostTooMuch(input: input, output: out) {
-            DevLog.log("polish: copy-edit ate the note (\(input.count) → \(out.count) chars) — keeping the unedited body")
-            return input
-        }
-        // The wall cure (Dutch/mixed long text gets no breaks from the model).
-        return PolishPrompts.ensureParagraphs(out)
-    }
-
     /// Re-run ONE part — the Mac's Redo ▸ Title/Copy-edit/Summary, on the iPad
     /// (Tuur 2026-08-18: the ⋯ "should also have the same redo options"). Same
-    /// prompts, same escrow, same budget as the full pass; a redone summary
+    /// prompts, same v2 guards as the full pass; a redone summary
     /// deliberately ignores the min-words threshold (the Mac's rule — a manual
     /// redo is an override).
-    func redo(_ part: NoteRedoItem, transcript: String) async throws -> String {
+    func redo(_ part: NoteRedoItem, transcript: String, source: CopyEditV2.Source) async throws -> String {
         try await ensureLoaded()
-        switch part {
-        case .copyEdit:
-            return try await PolishEscrow.copyEdit(transcript, generate: copyEditGenerate)
-        case .title:
-            return try await titleTurn(plain: PolishEscrow.plainForTitleSummary(transcript))
-        case .summary:
-            return try await summaryTurn(plain: PolishEscrow.plainForTitleSummary(transcript))
-        }
+        // Q426: copy-edit v2, the Mac's exact pass (`PolishV2` is the pure half).
+        return try await PolishV2.redo(part, transcript: transcript, source: source,
+                                       prompts: PolishV2.prompts(), generate: liveGenerate)
     }
 
-    /// Output-token ceilings for the two short turns (copy-edit sizes its own, from its input).
-    private static let titleTokenBudget = 64
-    private static let summaryTokenBudget = 256
-
-    /// The title turn — one spelling for the full polish and the per-part redo.
-    private func titleTurn(plain: String) async throws -> String {
-        try await run(prompt: PolishPromptsStore.title(), text: plain, maxTokens: Self.titleTokenBudget)
+    /// The loaded model as copy-edit v2's one generate call (raw output; v2 trims and guards).
+    private nonisolated var liveGenerate: CopyEditV2.Generate {
+        { prompt, text, maxTokens in try await self.run(prompt: prompt, text: text, maxTokens: maxTokens) }
     }
 
-    /// The summary turn — one spelling for the full polish and the per-part redo.
-    private func summaryTurn(plain: String) async throws -> String {
-        try await run(prompt: PolishPromptsStore.summary(), text: plain, maxTokens: Self.summaryTokenBudget)
-    }
-
-    /// Polish a RAW transcript → the three pieces the Mac writes. Copy-edit runs through the
-    /// full `PolishEscrow` (quote protection + link/image escrow); title always runs; summary
-    /// is skipped on short transcripts (Mac parity — `BatchRunner`/`effectiveSummaryMinWords`).
-    /// Progress is coarse (per-step) — generation gives no fine-grained signal.
-    func polish(transcript: String,
+    /// Polish a RAW transcript → the three pieces the Mac writes, through copy-edit v2 (Q426):
+    /// the same `CopyEditV2.runPass` as the Mac — quote, links, pictures, held lines and
+    /// emphasis escrowed, the guards and the fallbacks, title and summary over the same prose,
+    /// summary only past the word threshold.
+    func polish(transcript: String, source: CopyEditV2.Source,
                 onStep: @escaping @Sendable (PolishStep, Double) -> Void) async throws -> PolishResult {
-        // The fractions are the real pass boundaries (copy-edit is by far the
-        // longest — a full-transcript generation vs a 64/256-token one), so the
-        // bar moves in proportion to the work, not in equal thirds.
         onStep(.copyEdit, 0.05)
         try await ensureLoaded()   // no-op when the download path already loaded it
-        onStep(.copyEdit, 0.10)
-
-        let copyedit = try await PolishEscrow.copyEdit(transcript, generate: copyEditGenerate)
-        onStep(.title, 0.55)
-
-        let plain = PolishEscrow.plainForTitleSummary(transcript)
-        let title = try await titleTurn(plain: plain)
-        onStep(.summary, 0.75)
-
-        let summary = PolishEscrow.wordsMeetSummaryThreshold(transcript)
-            ? try await summaryTurn(plain: plain)
-            : ""
-        onStep(.summary, 1.0)
-
-        return PolishResult(copyedit: copyedit, title: title, summary: summary)
+        return try await PolishV2.polish(transcript: transcript, source: source, prompts: PolishV2.prompts(),
+                                         generate: liveGenerate, onStep: onStep)
     }
 
     // MARK: - Model lifecycle (ported 1:1 from EnhancementService)
@@ -227,6 +172,11 @@ actor MLXPolishEngine: PolishEngine {
                     HubCache.default.repoDirectory(repo: repoID, kind: .model)] {
             if fm.fileExists(atPath: dir.path) { try? fm.removeItem(at: dir) }
         }
+        // And the copy `ResumableModelDownloader` actually loads from — `isModelOnDisk`
+        // reads it, so leaving it would keep the card on "Downloaded" after Remove.
+        let snapshot = ResumableModelDownloader().snapshotDirectory(
+            id: modelRepo, revision: PolishPrompts.revision(for: modelRepo))
+        if fm.fileExists(atPath: snapshot.path) { try? fm.removeItem(at: snapshot) }
         Self.log.info("polish model removed from disk")
     }
 

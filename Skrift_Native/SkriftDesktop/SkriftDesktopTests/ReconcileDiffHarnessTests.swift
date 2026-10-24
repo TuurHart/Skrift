@@ -5,40 +5,40 @@ import SwiftData
 ///
 /// C44: every corpus note's Mac row, recorded field by field from v1's sweep, lives in
 /// `test-fixtures/corpus/goldens/v1-rows/<slug>.json` (DATA, not code; a note that gets no row
-/// records `"row": null`). C5: every registered sweep engine runs over the seeded corpus and each
+/// records `"row": null`). v1 was deleted at Q432, so these goldens are frozen: the C5 reference
+/// a later engine is still judged against. C5: every registered sweep engine runs over the seeded corpus and each
 /// row is classed identical / expected-different / unexplained against that golden; a slug
 /// registered in `expected-differences-rows.json` whose row still equals v1's FAILS (matched bug).
 /// C41: a second sweep changes nothing. C52 / R40: launch, activation and CloudKit import each
 /// ask ONE coalescer, the sweep reads through a fresh context, no timer, and a failed cloud
 /// fetch is logged and surfaced.
 ///
-/// Re-record (v1 only, synthetic corpus only, never a real store):
-/// `TEST_RUNNER_SKRIFT_RECORD_ROW_GOLDENS=1 xcodebuild test -scheme UnitTests
-///  -only-testing:SkriftDesktopTests/ReconcileDiffHarnessTests/testEveryRowAgainstV1Golden_C5_C44`
+/// A new stored `PipelineFile` field is added to every golden by hand (`testRowRecordCoversEveryStoredField`),
+/// with the value v1 would have written; there is no engine left to re-record them from.
 @MainActor
 final class ReconcileDiffHarnessTests: XCTestCase {
 
     // MARK: - the engine protocol
 
-    /// One sweep implementation runnable over the seeded corpus (v1 today; v2 registers here).
+    /// One sweep implementation runnable over the seeded corpus.
     protocol SweepEngine {
         var name: String { get }
         @MainActor func sweep(cloud: ModelContext, local: ModelContext, people: [Person],
-                              upload: UploadService, now: Date) -> MemoCloudReconciler.SweepOutcome
+                              outputDir: URL, now: Date) -> ReconcileV2.Outcome
     }
 
-    /// v1 = the shipping `MemoCloudReconciler.sweep` (the change detector, never the judge).
-    struct V1SweepEngine: SweepEngine {
-        let name = "v1"
+    /// v2 (Q429) = `ReconcileV2.sweep` in `Shared/ReconcileV2/`, the app's sweep since Q431.
+    struct V2SweepEngine: SweepEngine {
+        let name = "v2"
         func sweep(cloud: ModelContext, local: ModelContext, people: [Person],
-                   upload: UploadService, now: Date) -> MemoCloudReconciler.SweepOutcome {
-            MemoCloudReconciler.sweep(from: cloud, into: local, people: people,
-                                      author: ReconcileDiffHarnessTests.author,
-                                      thisDeviceID: ReconcileDiffHarnessTests.device, now: now, upload: upload)
+                   outputDir: URL, now: Date) -> ReconcileV2.Outcome {
+            ReconcileV2.sweep(cloud: cloud, local: local,
+                              context: .init(people: people, author: ReconcileDiffHarnessTests.author,
+                                             thisDeviceID: ReconcileDiffHarnessTests.device, now: now, outputDir: outputDir))
         }
     }
 
-    static let engines: [SweepEngine] = [V1SweepEngine()]
+    static let engines: [SweepEngine] = [V2SweepEngine()]
 
     // MARK: - fixed inputs (the golden must not depend on the clock, the machine or a temp path)
 
@@ -62,7 +62,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
     struct Run {
         let cloud: ModelContext
         let local: ModelContext
-        let upload: UploadService
+        let outputDir: URL
         let people: [Person]
         let manifest: CorpusSeed.Manifest
     }
@@ -96,7 +96,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
         let people = try JSONDecoder().decode([Person].self, from: Data(contentsOf: root.appendingPathComponent("names.json")))
         let manifest = try JSONDecoder().decode(CorpusSeed.Manifest.self,
                                                 from: Data(contentsOf: root.appendingPathComponent("manifest.json")))
-        return Run(cloud: cloud, local: local, upload: UploadService(outputDir: temp("out")),
+        return Run(cloud: cloud, local: local, outputDir: temp("out"),
                    people: people, manifest: manifest)
     }
 
@@ -136,15 +136,18 @@ final class ReconcileDiffHarnessTests: XCTestCase {
             "transcribeStatus": pf.transcribeStatus.rawValue, "sanitiseStatus": pf.sanitiseStatus.rawValue,
             "enhanceStatus": pf.enhanceStatus.rawValue, "exportStatus": pf.exportStatus.rawValue,
             "uploadedAt": date(pf.uploadedAt), "lastActivityAt": date(pf.lastActivityAt),
-            "syncedSourceEditedAt": date(pf.syncedSourceEditedAt),
+            "syncedSourceEditedAt": date(pf.syncedSourceEditedAt), "memoEditedAt": date(pf.memoEditedAt),
+            "memoCreatedAt": date(pf.memoCreatedAt), "memoTitleIsHis": pf.memoTitleIsHis,
             "syncedSourceDeletedAt": date(pf.syncedSourceDeletedAt),
             "locked": pf.locked, "remindAt": date(pf.remindAt), "imageOCRText": opt(pf.imageOCRText),
             "transcript": opt(pf.transcript), "sanitised": opt(pf.sanitised),
+            "transcriptLanguageMode": opt(pf.transcriptLanguageMode),
             "ambiguousNamesJSON": blob(pf.ambiguousNamesJSON), "nameResolutionsData": blob(pf.nameResolutionsData),
             "legacyUnlinkedNames": pf.legacyUnlinkedNames, "legacyNamePicksJSON": blob(pf.legacyNamePicksJSON),
             "wordTimingsJSON": blob(pf.wordTimingsJSON), "diarizationSegmentsJSON": blob(pf.diarizationSegmentsJSON),
             "enhancedTitle": opt(pf.enhancedTitle), "titleSuggested": opt(pf.titleSuggested),
             "enhancedCopyedit": opt(pf.enhancedCopyedit), "enhancedSummary": opt(pf.enhancedSummary),
+            "pendingPolishBlock": opt(pf.pendingPolishBlock),
             "tags": pf.tags, "tagSuggestions": opt(pf.tagSuggestions), "significance": opt(pf.significance),
             "destinationRaw": pf.destinationRaw, "exported": opt(pf.exported), "compiledText": opt(pf.compiledText),
             "includeAudioInExport": pf.includeAudioInExport, "error": opt(pf.error),
@@ -208,7 +211,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
             let memo = memoByID[entry.id]
             let expectsRow = memo.map { $0.deletedAt == nil && NoteConsent.isRated($0) } ?? false
             out[entry.slug] = try Self.record(slug: entry.slug, memoID: entry.id, expectsRow: expectsRow,
-                                              row: rowByID[entry.id], outDir: run.upload.outputDir)
+                                              row: rowByID[entry.id], outDir: run.outputDir)
         }
         return out
     }
@@ -232,24 +235,14 @@ final class ReconcileDiffHarnessTests: XCTestCase {
     // MARK: - C5 / C44: every engine's rows against v1's golden
 
     func testEveryRowAgainstV1Golden_C5_C44() throws {
-        let recording = ProcessInfo.processInfo.environment["SKRIFT_RECORD_ROW_GOLDENS"] == "1"
         let expected = try Self.loadExpectedDifferences()
         for engine in Self.engines {
             let run = try seededRun()
             let outcome = engine.sweep(cloud: run.cloud, local: run.local, people: run.people,
-                                       upload: run.upload, now: Self.now)
+                                       outputDir: run.outputDir, now: Self.now)
             XCTAssertNil(outcome.fetchFailure, "\(engine.name): the corpus store must read")
             XCTAssertEqual(outcome.ingestFailures, 0, "\(engine.name)")
             let recs = try records(run)
-
-            if recording, engine.name == "v1" {
-                try FileManager.default.createDirectory(at: Self.goldenDir, withIntermediateDirectories: true)
-                for (slug, rec) in recs {
-                    try Self.serialise(rec).write(to: Self.goldenDir.appendingPathComponent("\(slug).json"))
-                }
-                print("ReconcileDiffHarness: recorded \(recs.count) v1 row goldens")
-                continue
-            }
 
             var identical = 0, expectedDifferent = 0
             var unexplained: [String] = [], matchedBug: [String] = [], missing: [String] = []
@@ -271,7 +264,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
                 }
             }
             print("ReconcileDiffHarness[\(engine.name)]: identical \(identical), expected-different \(expectedDifferent), unexplained \(unexplained.count)")
-            XCTAssertTrue(missing.isEmpty, "\(engine.name): no golden for \(missing) — record with SKRIFT_RECORD_ROW_GOLDENS=1")
+            XCTAssertTrue(missing.isEmpty, "\(engine.name): no golden for \(missing)")
             XCTAssertTrue(unexplained.isEmpty, "\(engine.name) unexplained (C5):\n" + unexplained.joined(separator: "\n"))
             XCTAssertTrue(matchedBug.isEmpty, "\(engine.name) unfixed registered bugs (C5):\n" + matchedBug.joined(separator: "\n"))
             XCTAssertGreaterThanOrEqual(identical + expectedDifferent, 100, "\(engine.name): the whole corpus is classed")
@@ -306,24 +299,22 @@ final class ReconcileDiffHarnessTests: XCTestCase {
 
     // MARK: - C41: a second sweep changes nothing
 
-    /// Known C41 violations in v1, each self-expiring (the test fails once the note settles on
-    /// the second sweep, so the entry must then be removed).
-    /// - pic-missing-file: the memo's manifest names a photo whose blob never synced. v1's first
-    ///   ingest writes no `image_manifest.json` (`UploadService.saveImages` returns early with zero
-    ///   photos); the second sweep's `MemoPhotoMaterializer` writes it, reports a heal and bumps
-    ///   `lastActivityAt`. The third sweep is a no-op.
-    static let secondSweepConflicts: [String: Set<String>] = [
-        "pic-missing-file": ["lastActivityAt", "folder"],
+    /// Known C41 violations per engine, each self-expiring (the test fails once the note settles
+    /// on the second sweep, so the entry must then be removed). v2 has none; v1 had
+    /// pic-missing-file (its manifest was written by the second sweep's heal).
+    static let secondSweepConflicts: [String: [String: Set<String>]] = [
+        "v2": [:],
     ]
 
     func testSecondSweepChangesNothing_C41() throws {
         for engine in Self.engines {
             let run = try seededRun()
-            _ = engine.sweep(cloud: run.cloud, local: run.local, people: run.people, upload: run.upload, now: Self.now)
+            _ = engine.sweep(cloud: run.cloud, local: run.local, people: run.people, outputDir: run.outputDir, now: Self.now)
             let first = try records(run)
-            let again = engine.sweep(cloud: run.cloud, local: run.local, people: run.people, upload: run.upload,
+            let again = engine.sweep(cloud: run.cloud, local: run.local, people: run.people, outputDir: run.outputDir,
                                      now: Self.now.addingTimeInterval(3600))
-            let conflictIDs = Set(run.manifest.notes.filter { Self.secondSweepConflicts[$0.slug] != nil }.map(\.id))
+            let conflicts = Self.secondSweepConflicts[engine.name] ?? [:]
+            let conflictIDs = Set(run.manifest.notes.filter { conflicts[$0.slug] != nil }.map(\.id))
             XCTAssertEqual(again.created, 0, "\(engine.name): second sweep created rows")
             XCTAssertEqual(Set(again.updatedIDs).subtracting(conflictIDs), [], "\(engine.name): second sweep rewrote rows")
             XCTAssertEqual(again.ingestFailures, 0, "\(engine.name)")
@@ -331,7 +322,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
             let second = try records(run)
             for (slug, rec) in first {
                 let diffs = Self.differingFields(rec, try XCTUnwrap(second[slug]))
-                if let known = Self.secondSweepConflicts[slug] {
+                if let known = conflicts[slug] {
                     XCTAssertEqual(Set(diffs), known,
                                    "\(engine.name) \(slug): known C41 conflict changed shape or was fixed — update secondSweepConflicts")
                 } else {
@@ -339,7 +330,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
                 }
             }
             // Every note, the known conflicts included, is settled by the third sweep.
-            let third = engine.sweep(cloud: run.cloud, local: run.local, people: run.people, upload: run.upload,
+            let third = engine.sweep(cloud: run.cloud, local: run.local, people: run.people, outputDir: run.outputDir,
                                      now: Self.now.addingTimeInterval(7200))
             XCTAssertEqual(third.created, 0)
             XCTAssertEqual(third.updatedIDs, [], "\(engine.name): third sweep still rewrote rows")
@@ -368,17 +359,16 @@ final class ReconcileDiffHarnessTests: XCTestCase {
     func testFailedCloudFetchIsReportedNotSwallowed_R40() throws {
         let run = try seededRun()
         let failing: (ModelContext) throws -> [Memo] = { _ in throw InjectedFetchError() }
-        let outcome = MemoCloudReconciler.sweep(from: run.cloud, into: run.local, people: run.people,
-                                                author: Self.author, thisDeviceID: Self.device, now: Self.now,
-                                                upload: run.upload, fetchMemos: failing)
+        let outcome = ReconcileV2.sweep(cloud: run.cloud, local: run.local,
+                                        context: V2.context(people: run.people, author: Self.author, device: Self.device,
+                                                            now: Self.now, outputDir: run.outputDir),
+                                        fetchMemos: failing)
         let failure = try XCTUnwrap(outcome.fetchFailure, "a failed fetch must not read as an empty store")
         XCTAssertTrue(failure.contains("injected store read failure"), failure)
         XCTAssertEqual(outcome.created, 0)
         XCTAssertEqual(try run.local.fetchCount(FetchDescriptor<PipelineFile>()), 0)
 
-        let pass = try MemoCloudReconciler.pass(from: run.cloud, into: run.local, people: run.people,
-                                                author: Self.author, thisDeviceID: Self.device, now: Self.now,
-                                                upload: run.upload, firstImportDone: true, fetchMemos: failing)
+        let pass = V2.pass(run.cloud, into: run.local, people: run.people, author: Self.author, device: Self.device, now: Self.now, outputDir: run.outputDir, firstImportDone: true, fetchMemos: failing)
         XCTAssertNotNil(pass.sweep.fetchFailure)
         XCTAssertEqual(pass.authored, 0)
 
@@ -393,9 +383,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
                        "a good sweep clears it")
 
         // The same store, read normally, ingests: the failure was the fetch, not the data.
-        let ok = MemoCloudReconciler.sweep(from: run.cloud, into: run.local, people: run.people,
-                                           author: Self.author, thisDeviceID: Self.device, now: Self.now,
-                                           upload: run.upload)
+        let ok = V2.sweep(run.cloud, into: run.local, people: run.people, author: Self.author, device: Self.device, now: Self.now, outputDir: run.outputDir)
         XCTAssertNil(ok.fetchFailure)
         XCTAssertGreaterThan(ok.created, 60)
     }
@@ -442,9 +430,7 @@ final class ReconcileDiffHarnessTests: XCTestCase {
         try writer.save()
         let local = ModelContext(try ModelContainer(for: PipelineFile.self,
                                                     configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
-        let outcome = MemoCloudReconciler.sweep(from: MemoCloudReconciler.freshCloudContext(container), into: local,
-                                                thisDeviceID: Self.device, now: Self.now,
-                                                upload: UploadService(outputDir: temp("fresh")))
+        let outcome = V2.sweep(MemoCloudReconciler.freshCloudContext(container), into: local, device: Self.device, now: Self.now, outputDir: temp("fresh"))
         XCTAssertEqual(outcome.created, 1)
     }
 
@@ -471,7 +457,8 @@ final class ReconcileDiffHarnessTests: XCTestCase {
         for timer in ["Timer.", "Timer(", "makeTimerSource", "scheduledTimer"] {
             XCTAssertFalse(wiring.contains(timer), "C52: no heartbeat timers (\(timer))")
         }
-        let core = try code("Pipeline/Ingest/MemoCloudReconciler.swift")
-        XCTAssertFalse(core.contains("try? cloudContext.fetch(FetchDescriptor<Memo>())"), "R40: the memo fetch is never try?'d")
+        let core = try code("../Shared/ReconcileV2/ReconcileV2.swift")
+        XCTAssertFalse(core.contains("try? fetchMemos("), "R40: the memo fetch is never try?'d")
+        XCTAssertTrue(core.contains("let all = try fetchMemos(cloud)"), "R40: the memo fetch throws to the caller")
     }
 }

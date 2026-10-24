@@ -15,24 +15,62 @@ enum MacEditRoundTrip {
 
     /// `before` (the stored polish) goes through the SAME process + unlink trip as the live
     /// body, because re-linking is not byte-stable (short-name demotion), so only a real body
-    /// change registers (Q42).
+    /// change registers (Q42). `conversation` (Q508): the stored body is speaker turns, linked
+    /// by the turn linker (headers claim their speaker, same-speaker turns merge); the de-link
+    /// works turn by turn already (`**[[Bruno Costa]]:**` → `**Bruno:**`), so only the linker
+    /// the comparison re-links with differs.
     static func compute(body: String, before: String?, people: [Person],
-                        neverLink: Set<String>, namePicks: [String: String]) -> Result {
+                        neverLink: Set<String>, namePicks: [String: String],
+                        conversation: Bool = false) -> Result {
         let raw = Sanitiser.unlinkToSpoken(body, people: people)
-        let beforeRoundTripped = before.map {
-            Sanitiser.unlinkToSpoken(Sanitiser.process(text: $0, people: people,
-                                                       neverLink: neverLink,
-                                                       namePicks: namePicks).sanitised, people: people)
+        let beforeRoundTripped = before.map { text -> String in
+            let linked = conversation
+                ? Sanitiser.processConversation(text: text, people: people, neverLink: neverLink,
+                                                namePicks: namePicks).sanitised
+                : Sanitiser.process(text: text, people: people, neverLink: neverLink,
+                                    namePicks: namePicks).sanitised
+            return Sanitiser.unlinkToSpoken(linked, people: people)
         }
         return Result(raw: raw, bodyMoved: beforeRoundTripped != raw)
     }
 
+    /// Q489, THE rule for a body edit made on the Mac: the row's copy-edit carries it. The review
+    /// editor writes into `sanitised` (linked); every re-derivation (a phone edit's recompile, a
+    /// roster re-link, the open note's refresh) rebuilds from the copy-edit, and the polish
+    /// write-back sends the copy-edit. So a real body change also lands there, de-linked: the
+    /// same text the cloud gets. The edit write-back adopts it after each typing pause; `settle`
+    /// adopts one still only in `sanitised` (the pause itself, or an edit from an older build)
+    /// right before any of those paths reads the copy-edit.
+    static func adopt(_ trip: Result, into pf: PipelineFile) {
+        guard trip.bodyMoved, pf.sanitised != nil else { return }
+        pf.enhancedCopyedit = trip.raw
+    }
+
+    /// `body` (the linked body) against `working` (the copy-edit → transcript it should derive
+    /// from), both linked with `people` and the note's name decisions: a difference is his edit,
+    /// adopted. A conversation is compared through the turn linker, so its headers stay turns.
+    static func settle(_ pf: PipelineFile, body: String?, working: String, linkedWith people: [Person],
+                       neverLink: Set<String>, namePicks: [String: String]) {
+        guard let body, !working.isEmpty else { return }
+        adopt(compute(body: body, before: working, people: people, neverLink: neverLink, namePicks: namePicks,
+                      conversation: SpeakerTranscript.isConversation(working, source: pf.noteSource)),
+              into: pf)
+    }
+
+    /// `settle` on the row as it stands now.
+    static func settle(_ pf: PipelineFile, linkedWith people: [Person]) {
+        settle(pf, body: pf.sanitised,
+               working: CompilerInput.workingBody(raw: pf.transcript, copyedit: pf.enhancedCopyedit).text,
+               linkedWith: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
+    }
+
     /// `compute` on a background executor: the main actor only awaits the result.
     static func offMain(body: String, before: String?, people: [Person],
-                        neverLink: Set<String>, namePicks: [String: String]) async -> Result {
+                        neverLink: Set<String>, namePicks: [String: String],
+                        conversation: Bool = false) async -> Result {
         await Task.detached(priority: .userInitiated) {
             compute(body: body, before: before, people: people,
-                    neverLink: neverLink, namePicks: namePicks)
+                    neverLink: neverLink, namePicks: namePicks, conversation: conversation)
         }.value
     }
 }

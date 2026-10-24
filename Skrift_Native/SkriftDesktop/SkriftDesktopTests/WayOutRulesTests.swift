@@ -3,6 +3,7 @@ import XCTest
 /// `Pipeline/WayOutRules` — the Queue band (②), one-trash footer count (③), and
 /// the "On its way out" conveyor (④). Pure logic, no views/ModelContext — the
 /// MLX-free `UnitTests` scheme.
+@MainActor
 final class WayOutRulesTests: XCTestCase {
 
     private let now = Date()
@@ -139,7 +140,7 @@ final class WayOutRulesTests: XCTestCase {
 
     func testIsMacOnlyTrueForAFileWithNoDerivableIDAtAll() {
         // No memo_/capture_ filename, and the id itself isn't UUID-shaped —
-        // MacCloudWriteBack.memoID(for:) can't even produce a candidate.
+        // ReconcileV2.Writers.memoID(for:) can't even produce a candidate.
         let pf = pipelineFile(id: "demo-legacy-1")
         XCTAssertTrue(WayOutRules.isMacOnly(pf, memoIDs: []))
     }

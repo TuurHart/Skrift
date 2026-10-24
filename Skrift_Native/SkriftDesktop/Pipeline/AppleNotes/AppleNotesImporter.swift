@@ -72,7 +72,7 @@ enum AppleNotesImporter {
     @MainActor
     private static func authorMemo(for pf: PipelineFile, cloudContext: ModelContext?) throws {
         guard let cloudContext else { return }
-        if let memo = try MacMemoAuthor.author(for: pf, audioURL: nil, into: cloudContext) {
+        if let memo = try ReconcileV2.Author.author(pf, into: cloudContext) {   // Q431: the one author
             memo.tags = pf.tags
         }
         try cloudContext.save()

@@ -477,16 +477,20 @@ enum RunFile {
             do {
                 let archive = try Archive(url: URL(fileURLWithPath: epubPath), accessMode: .read)
                 var entries: [String: Data] = [:]
+                var unreadable: [String: String] = [:]
                 for entry in archive where entry.type == .file {
-                    var data = Data()
-                    _ = try archive.extract(entry) { data.append($0) }
-                    entries[entry.path] = data
+                    if let data = try? VerifiedZip.data(entry, in: archive) {   // CRC-checked (Q502)
+                        entries[entry.path] = data
+                    } else {
+                        unreadable[entry.path] = EPubSkip.damagedReason
+                    }
                 }
-                let book = try EPubParse.parse(entries: entries)
+                let book = try EPubParse.parse(entries: entries, unreadable: unreadable)
                 let blocks = book.blocks.map { AlignmentCore.Block(text: $0.text, sourceFile: $0.sourceFile) }
                 let bookWords = book.blocks.map { $0.text.split(separator: " ").count }.reduce(0, +)
                 log("== ALIGNCHECK \(URL(fileURLWithPath: epubPath).lastPathComponent) ==")
                 log("book: \(book.blocks.count) blocks, \(bookWords) words, toc \(book.toc.count) entries, drm \(book.drm)")
+                for skip in book.skipped { log("skipped part: \(skip.part) — \(skip.reason)") }
 
                 struct Sidecar: Decodable {
                     struct W: Decodable { let word: String; let start: Double; let end: Double }
@@ -524,7 +528,7 @@ enum RunFile {
     /// call the sidebar's drop target / + Upload panel makes) over ONE local file into the
     /// REAL SwiftData store, print the created PipelineFile id, and exit. Closes the headless
     /// loop for Mac-local captures: relaunch the GUI app afterwards and its reconcile sweep
-    /// authors the synced Memo for the new row (`MacMemoAuthor.backfill`), then `-processfile`
+    /// authors the synced Memo for the new row (`ReconcileV2.Author.backfill`), then `-processfile`
     /// the id and relaunch again for the transcript reflect. QUIT the GUI app first — a
     /// second instance races the shared store.
     nonisolated static func runIngestFileIfRequested() {
@@ -629,7 +633,7 @@ enum RunFile {
             // ② nothing the RATING gates may have run — which means `enhance`, and not
             // `sanitise`. Reported but not asserted, because it flaps for a legitimate reason:
             // when a sweep lands during the run it reflects the Mac's own fresh transcript back
-            // through `MemoCloudUpdate`, which deterministically re-links names (no LLM, no
+            // through `ReconcileV2.Reflect`, which deterministically re-links names (no LLM, no
             // rating involved) and marks the step done. That is the sync layer doing its job,
             // not the capture path leaking into processing — `BatchRunner` returns on
             // `stopAfterTranscribe` well before its own sanitise step.
@@ -752,7 +756,7 @@ enum RunFile {
             // A throw here (`typedNote`, `save`, the fetch) used to vanish inside the Task: `exit()`
             // was never reached and the process carried on as a GUI app. `Harness.main` catches,
             // prints `>>> ERROR: …` and exits 1.
-            let memo = try MacMemoAuthor.typedNote(into: cloudCtx)
+            let memo = try Memo.newTyped(into: cloudCtx)
             memo.transcript = body
             memo.transcriptUserEdited = true
             log(">>> typed note \(memo.id) — unrated, no row yet")

@@ -13,7 +13,7 @@ import SwiftData
 ///    text and synced memo are exactly as they were. The caller keeps the clip file.
 /// 2. `land` writes the words + new duration onto the row and its synced `Memo` (the raw
 ///    transcript and the audio asset). The memo MUST get the combined transcript: the reconcile
-///    sweep (`MemoCloudUpdate` path 3) copies `memo.transcript` over a row whose transcript
+///    sweep (`ReconcileV2.Reflect`, a raw transcript edit) copies `memo.transcript` over a row whose transcript
 ///    differs, which would otherwise erase the appended words from the Mac on the next sweep.
 ///
 /// Pure over an explicit `ModelContext` (no container, no settings), so the host-less unit
@@ -84,14 +84,17 @@ enum MacAppendRecording {
                 source: .speech, userEdited: true))
             // A polished note shows its copy-edit; the new words go there too, so the body you
             // look at holds them (the Mac editor's own rule: write the layer that is shown).
-            if let copy = pf.enhancedCopyedit,
-               !copy.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                pf.enhancedCopyedit = joined(copy, words)
+            if let copy = pf.enhancedCopyedit, AppendPolish.showsPolishedBody(copy) {
+                let next = AppendPolish.appended(copyedit: copy, pending: pf.pendingPolishBlock ?? "", block: words)
+                pf.enhancedCopyedit = next.copyedit
+                // C152: and the note goes back for a pass that polishes only the new block.
+                pf.pendingPolishBlock = next.pending
+                if pf.enhanceStatus == .done { pf.enhanceStatus = .pending }
             }
             pf.transcriptUserEdited = true
             pf.transcribeStatus = .done
             // Re-link names + recompile over the new working body (no LLM).
-            MemoCloudUpdate.resanitiseAndCompile(pf, people: people, author: author)
+            ReconcileV2.Reflect.recompile(pf, people: people, author: author)
         }
         pf.lastActivityAt = now
 
@@ -120,12 +123,13 @@ enum MacAppendRecording {
             wt.byteCount = data.count
         }
         memo.markEdited(now)
+        pf.memoEditedAt = memo.editedAt   // C284: the export's `editedAt:` without waiting for a sweep
         try cloud.save()
         // The polished body moved too: write it back now, as a Mac body edit does
         // (`MacCloudEditSync`), so the sweep can't revert the copy-edit to the cloud's older one.
         if !words.isEmpty, !(pf.enhancedCopyedit ?? "").isEmpty {
-            try MacCloudWriteBack.upsert(for: pf, into: cloud, deviceID: deviceID, now: now,
-                                         bodyOverride: Sanitiser.unlinkToSpoken(pf.bestBodyText, people: people))
+            try ReconcileV2.Writers.upsertEnhancement(for: pf, into: cloud, deviceID: deviceID, now: now,
+                                                      body: Sanitiser.unlinkToSpoken(pf.bestBodyText, people: people))
         }
     }
 
@@ -141,7 +145,7 @@ enum MacAppendRecording {
     }
 
     /// The metadata blob with `duration` set to `seconds` (number of seconds, the shape
-    /// `MemoCloudIngest.metadataJSON` writes); every other key kept.
+    /// `ReconcileV2.Ingest.metadataJSON` writes); every other key kept.
     static func withDuration(_ seconds: TimeInterval, in json: Data?) -> Data? {
         var obj = json.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] } ?? [:]
         obj["duration"] = seconds

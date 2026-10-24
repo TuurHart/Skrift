@@ -44,7 +44,7 @@ struct FakePolishEngine: PolishEngine {
 
     func removeModel() async throws {}
 
-    func polish(transcript: String,
+    func polish(transcript: String, source: CopyEditV2.Source,
                 onStep: @escaping @Sendable (PolishStep, Double) -> Void) async throws -> PolishResult {
         for step in PolishStep.allCases {
             onStep(step, Double(step.rawValue) / Double(PolishStep.total))
@@ -55,7 +55,7 @@ struct FakePolishEngine: PolishEngine {
                             summary: "Fake summary")
     }
 
-    func redo(_ part: NoteRedoItem, transcript: String) async throws -> String {
+    func redo(_ part: NoteRedoItem, transcript: String, source: CopyEditV2.Source) async throws -> String {
         try? await Task.sleep(for: .seconds(2))
         return switch part {
         case .title: "Fake redone title"

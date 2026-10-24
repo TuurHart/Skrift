@@ -55,6 +55,19 @@ final class ReconcileCoalescer {
     }
 }
 
+/// The app's reconcile entry points (`MemoCloudReconciler+Wiring`): the triggers, the coalescer,
+/// and the pass that calls reconcile v2 (`ReconcileV2.pass`).
+@MainActor
+enum MemoCloudReconciler {
+    /// Set once by `start()` (the App wiring) so the launch/active/import observers register
+    /// only once.
+    static var didStart = false
+
+    /// C52: the ONE coalescer every trigger goes through (see `reconcileSoon` in the app
+    /// wiring, which creates it) — stored here because extensions can't hold stored statics.
+    static var coalescer: ReconcileCoalescer?
+}
+
 extension MemoCloudReconciler {
     /// C52: the context a sweep reads the cloud store through — ALWAYS a new one. A CloudKit
     /// import writes to the persistent store but does not refresh objects an older context

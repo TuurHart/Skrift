@@ -196,6 +196,12 @@ struct MemoDetailView: View {
         if !memo.isShareCapture, SpeakerTranscript.isConversation(memo.transcript, source: memo.linkSource) {
             Button { showFlattenConfirm = true } label: { menuLabel(.flattenToMonologue) }
         }
+        // C151: the other language mode, this note only (the setting stays the default).
+        if MemoSaver.canTranscribeAgain(memo) {
+            Button { transcribeAgain(memo) } label: {
+                Label(transcribeAgainLabel(memo), systemImage: NoteMenuItem.transcribeAgain.systemImage)
+            }
+        }
         // Redo ▸ Title / Copy-edit / Summary — the Mac's submenu, same shared
         // vocabulary (`NoteRedoItem`), same gates (Tuur 2026-08-18: the iPad ⋯
         // "should also have the same redo options"): only on an already-polished
@@ -603,6 +609,9 @@ struct MemoDetailView: View {
                     Button(NoteMenuItem.splitSpeakers.label + "…", action: { showSplitOptions = true })
                 }
             }
+            if let memo = currentMemo, MemoSaver.canTranscribeAgain(memo) {
+                Button(transcribeAgainLabel(memo), action: { transcribeAgain(memo) })
+            }
             // Q180 (note-menu-07): the dialog cannot nest a submenu, so Redo is one flat row per
             // part (`NoteRedoItem.flatLabel`), under the SAME gate as the ⋯ menu's submenu.
             if let memo = currentMemo, redoOffered(memo) {
@@ -985,6 +994,28 @@ struct MemoDetailView: View {
             // Q87: the spinner used to just vanish. Say it (only on the note still open).
             if outcome == .oneVoice { showSplitToast(SplitSpeakersCopy.oneVoice) }
             if outcome == .cancelled { showSplitToast(SplitSpeakersCopy.cancelled) }
+        }
+    }
+
+    /// "Transcribe again in Dutch" / "… in English" — the other mode from the one this note
+    /// was made in (C151).
+    func transcribeAgainLabel(_ memo: Memo) -> String {
+        ASRLanguageMode.transcribeAgainLabel(recordedIn: MemoSaver.recordedMode(memo))
+    }
+
+    func transcribeAgain(_ memo: Memo) {
+        let id = memo.id
+        let mode = MemoSaver.recordedMode(memo).other
+        Task {
+            var landed = false
+            await BackgroundTask.run(name: "transcribe-again") {
+                landed = await MemoSaver().transcribeAgain(id: id, in: mode)
+            }
+            if landed {
+                NoteEditorChrome.shared.current?.load(force: true)
+            } else {
+                showSplitToast(ASRLanguageMode.transcribeAgainFailed)
+            }
         }
     }
 

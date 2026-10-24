@@ -1,6 +1,7 @@
 ---
 title: "memo_51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65"
 date: 2026-07-23
+editedAt:
 author: Tiuri
 source: Video
 summary:

@@ -46,7 +46,7 @@ struct SkriftDesktopApp: App {
         RunFile.runAsrSweepIfRequested()
         RunFile.runVaultExportIfRequested()
         RunFile.runProcessFileIfRequested()
-        RunFile.runRecordCopyEditIfRequested()
+        RunFile.runReconcilePassIfRequested()
         RunFile.runRecordCopyEditV2IfRequested()
         RunFile.runIngestFileIfRequested()
         RunFile.runRecordIngestIfRequested()
@@ -81,6 +81,12 @@ struct SkriftDesktopApp: App {
         // Q342: the feedback bubble + sheet (FeedbackKit, same app id as the phone). After the
         // headless modes above, which exit before reaching here; skipped under XCTest/-snapshot.
         MacFeedbackWiring.startIfInteractive()
+
+        // C39 (Q426): a stale local prompt copy is migrated away at first launch, before the
+        // prompt sync runs. Never under a headless/isolated run (it would rewrite the real file).
+        if !HeadlessIsolation.isRequested() && !LaunchArgs.isXCTest {
+            SettingsStore.shared.migrateStalePromptsOnce()
+        }
 
         // CloudKit-Mac client (MAC_CLOUDKIT_PLAN.md 8d): register the launch/foreground/import
         // reconcile triggers + run the launch sweep. A no-op when the user switched

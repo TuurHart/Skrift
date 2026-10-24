@@ -228,6 +228,8 @@ final class ProcessingCoordinator {
                                      imageManifest: hasAudio ? Self.imageManifest(for: pf.path) : [],
                                      clipStarts: hasAudio ? IngestService.clipStarts(forAudioAt: pf.path) : [],
                                      retranscribe: retranscribeIDs.contains(pf.id),
+                                     languageMode: retranscribeIDs.contains(pf.id)
+                                        ? languageRequests.removeValue(forKey: pf.id) : nil,
                                      requireSplit: isSplit,
                                      cancelCheck: cancelCheck)
                 if pf.sanitised != nil { pf.sanitiseStatus = .done }
@@ -321,7 +323,7 @@ final class ProcessingCoordinator {
         }
         // Push the words onto the synced Memos so they reach the phone.
         if let cloudCtx = MemoCloudStore.container?.mainContext {
-            let reflected = (try? MacMemoAuthor.reflectTranscripts(files: targets, into: cloudCtx)) ?? 0
+            let reflected = ReconcileV2.Author.reflectTranscripts(targets, into: cloudCtx)   // Q431
             try? cloudCtx.save()
             // The quiet sidebar row renders the MEMO (`WayOutRules.displayTitle` over
             // the sidebar's own fetched array), while the pane renders this row live —
@@ -348,11 +350,14 @@ final class ProcessingCoordinator {
         // never sees the polish. Log it so it's diagnosable (a durable retry queue is the
         // documented Phase-2 follow-up). A `nil` return is an intentional skip (not a synced
         // memo / nothing to write), not a failure.
+        // Q489: a Mac body edit still only in `sanitised` goes out as his words, never the old
+        // polish (a Redo title after an edit used to push the copy-edit it replaced).
+        MacEditRoundTrip.settle(pf, linkedWith: NamesStore.shared.livePeople())
         do {
             // `passRan: true` — the guard above already proved `enhanceStatus == .done`,
             // so reaching here IS "a pass ran on this file", empty result or not.
-            try MacCloudWriteBack.upsert(for: pf, into: container.mainContext,
-                                         deviceID: DeviceID.current(), passRan: true)
+            try ReconcileV2.Writers.upsertEnhancement(for: pf, into: container.mainContext,
+                                                      deviceID: DeviceID.current(), passRan: true)
         } catch {
             AppLog.cloudkit
                 .error("write-back failed for \(pf.id, privacy: .public): \(String(describing: error), privacy: .public)")
@@ -401,6 +406,9 @@ final class ProcessingCoordinator {
     private(set) var splitNotices: [String: String] = [:]
     private var splitNoticeTokens: [String: Int] = [:]
     private var splitFlags: [String: SplitCancelFlag] = [:]
+    /// C151: a re-transcribe that names its language mode ("Transcribe again in Dutch"), by
+    /// file id, consumed by the pass that runs it.
+    private var languageRequests: [String: ASRLanguageMode] = [:]
 
     #if DEBUG
     /// Snapshot helper: force the split progress / notice states for the headless renders.
@@ -618,7 +626,10 @@ final class ProcessingCoordinator {
     /// stale state with the fresh transcript. (Stale diarization segments fed wrong
     /// voice-enrollment slices; a stale sanitised body kept showing the OLD text
     /// when a fresh run failed midway.)
-    func retranscribe(_ pf: PipelineFile, context: ModelContext) async {
+    ///
+    /// `mode` (C151): the ⋯ transcribe-again verb (`ASRLanguageMode.transcribeAgainLabel`) — this note only, in that ASR
+    /// language mode; nil = the setting (plain Re-transcribe).
+    func retranscribe(_ pf: PipelineFile, context: ModelContext, in mode: ASRLanguageMode? = nil) async {
         guard !isRunning else { lastError = Self.busyMessage; return }
         // Missing audio file is an ERROR on the row, not a silent clear (C51/R9) — checked
         // before touching anything, so a re-transcribe over a deleted file leaves the note
@@ -639,6 +650,7 @@ final class ProcessingCoordinator {
         pf.enhanceStatus = .pending
         pf.error = nil
         try? context.save()
+        if let mode { languageRequests[pf.id] = mode } else { languageRequests[pf.id] = nil }
         await process(fileIDs: [pf.id], context: context, retranscribeIDs: [pf.id])
     }
 
@@ -701,7 +713,8 @@ final class ProcessingCoordinator {
                 let isConversation = SpeakerTranscript.isConversation(transcript, source: pf.noteSource)
                 let c = isConversation
                     ? transcript
-                    : try await enhancer.copyEdit(transcript, prompts: settings.prompts, modelRepo: repo)
+                    : try await enhancer.copyEdit(transcript, spoken: pf.sourceType != .note,
+                                                  prompts: settings.prompts, modelRepo: repo)
                 pf.enhancedCopyedit = c
                 // re-link names on the fresh copy-edit so the body stays consistent
                 // (honoring the note's persisted "unlink all mentions" choices)
@@ -743,6 +756,9 @@ final class ProcessingCoordinator {
     /// — and flag the count so the silent mis-resolution can't slip by. `previousPeople` is the
     /// live roster snapshot taken BEFORE the change.
     func rescanRoster(previousPeople old: [Person], context: ModelContext) {
+        // C159 (Q489): every roster change re-links all processed notes once and re-exports
+        // the vault ones — the reconcile pass runs that (`RosterRelink`), so ask for one now.
+        MemoCloudReconciler.reconcileSoon(.localChange)
         let new = NamesStore.shared.livePeople()
         let collided = RosterAudit.newlyAmbiguous(old: old, new: new)
         guard !collided.isEmpty else { return }

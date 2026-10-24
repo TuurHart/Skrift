@@ -102,6 +102,8 @@ enum LaunchFlags {
     /// Present the unified "Text" sheet over the seeded book on launch
     /// (mock book-text-unified.html) — same deterministic-render idea.
     static var showTextSheet: Bool { args.boolFlag("-showTextSheet") }
+    /// With -showTextSheet: draw a mid-run book-text import toast (Q494, C290 progress bar).
+    static var showTextProgress: Bool { args.boolFlag("-showTextProgress") }
     /// Present the A0 "Give this book text" import prompt over the seeded book.
     static var showTextPrompt: Bool { args.boolFlag("-showTextPrompt") }
     /// DEBUG render hook: the real `BookShelfTile` in every state (uploading %, re-align, …).

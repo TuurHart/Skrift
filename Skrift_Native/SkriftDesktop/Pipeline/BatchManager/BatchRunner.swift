@@ -26,8 +26,15 @@ enum BatchRunnerError: LocalizedError {
 /// host-tests with stubs. Mirrors `backend/services/batch_manager.py` (one
 /// model-grouped run; no mid-flight gates). The caller persists the PipelineFile +
 /// writes the compiled.md / word-timing sidecars.
+///
+/// MAIN ACTOR (Q505): every row it mutates belongs to a main-actor `ModelContext`. As a plain
+/// struct in Swift 5.9 mode its `async run` executed on the global executor (SE-0338), so it
+/// changed SwiftData rows off their context's thread — the heap corruption behind the desktop
+/// suite's SwiftData-dealloc crashes, and the same writes in the Mac's real Process path. The
+/// engines stay off main: each model call is an await into its own actor.
+@MainActor
 struct BatchRunner {
-    private static let log = Logger(subsystem: "com.skrift.desktop", category: "batch")
+    nonisolated private static let log = Logger(subsystem: "com.skrift.desktop", category: "batch")
 
     var transcriber: Transcribing
     var enhancer: Enhancing
@@ -56,6 +63,7 @@ struct BatchRunner {
     func run(_ pf: PipelineFile, audioURL: URL?, imageManifest: [ImageManifestEntry] = [],
              clipStarts: [Double] = [],
              stopAfterTranscribe: Bool = false, retranscribe: Bool = false,
+             languageMode: ASRLanguageMode? = nil,
              requireSplit: Bool = false, cancelCheck: (@Sendable () -> Bool)? = nil) async throws {
         // Captures (C3) never transcribe or diarize — their annotation is already text.
         // Enhancement-lite runs on the annotation: title + tags + summary, NO copy-edit
@@ -86,7 +94,13 @@ struct BatchRunner {
             }
             let result: TranscriptionResult
             do {
-                result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
+                // C151: the ⋯ transcribe-again verb (`ASRLanguageMode.transcribeAgainLabel`) names the mode; else the setting.
+                if let languageMode {
+                    result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest,
+                                                              mode: languageMode)
+                } else {
+                    result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
+                }
             } catch {
                 // A failed ASR pass is a transcribe-stage error on the row — the OLD
                 // transcript/derivatives haven't been touched yet, so they stay put (C51/R9).
@@ -120,6 +134,7 @@ struct BatchRunner {
             // summary, suggested title, compiled draft — so the run below can't mix stale
             // state with the fresh transcript.
             if retranscribe {
+                pf.pendingPolishBlock = nil   // C152: a fresh transcript gets a whole pass
                 pf.diarizationSegments = []
                 pf.sanitised = nil
                 pf.ambiguousNames = nil
@@ -131,6 +146,7 @@ struct BatchRunner {
             // D210: a video note's movie leads the body as its inline video block.
             pf.transcript = NoteAttachment.leadingKeptMovie(newTranscript, manifest: keptMovieManifest(pf))
             pf.wordTimings = result.wordTimings   // persist for karaoke (was discarded)
+            if let mode = result.languageMode ?? languageMode { pf.transcriptLanguageMode = mode.rawValue }
             didTranscribe = true
             pf.transcribeStatus = .done
         }
@@ -181,6 +197,14 @@ struct BatchRunner {
             return
         }
 
+        // C152: words appended to an already-polished note. Polish ONLY that block; the
+        // earlier polish (copy-edit, title, summary) stays as it was.
+        if !didTranscribe, let block = pf.pendingPolishBlock, !block.isEmpty,
+           AppendPolish.showsPolishedBody(pf.enhancedCopyedit ?? "") {
+            try await polishAppendedBlock(pf, block: block, transcript: transcript)
+            return
+        }
+
         // 2. Enhance — every LLM step runs on the RAW transcript.
         pf.enhanceStatus = .processing
         // MID-RUN EDIT GUARD: the review editor writes straight into
@@ -189,9 +213,12 @@ struct BatchRunner {
         // anything typed meanwhile. Snapshot the editable body; if it changes
         // under us the stale derivation is DISCARDED (status back to .pending,
         // a reprocess re-derives from the edited body).
+        // The raw transcript is watched too (C153): a phone raw edit reflected mid-run moves
+        // `transcript` while the body shown can still be this run's own copy-edit.
         var bodySnapshot = pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript
+        let rawSnapshot = pf.transcript
         func bodyEditedMidRun() -> Bool {
-            (pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript) != bodySnapshot
+            (pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript) != bodySnapshot || pf.transcript != rawSnapshot
         }
         let prompts = settings.prompts
         let repo = settings.enhancementModelRepo
@@ -207,9 +234,10 @@ struct BatchRunner {
         // must NOT be routed to the turn linker (it would drop the note's preamble and
         // skip copy-edit). Notes/captures always take the monologue path.
         let isConversation = SpeakerTranscript.isConversation(transcript, source: pf.noteSource)
+        // Q426: copy-edit v2 needs to know typed from spoken (C34: a typed note is never re-paragraphed).
         var copyedit = isConversation
             ? transcript
-            : try await enhancer.copyEdit(transcript, prompts: prompts, modelRepo: repo)
+            : try await enhancer.copyEdit(transcript, spoken: pf.sourceType != .note, prompts: prompts, modelRepo: repo)
         // Audiobook quote protection — the outer byte-assert (backlog spec 8): an
         // audiobook capture opens with a "> " quote block (contract C1) that must
         // survive copy-edit byte-identical. The enhancer protects it internally; if
@@ -219,21 +247,20 @@ struct BatchRunner {
             Self.log.warning("file \(pf.id, privacy: .public): quote block mutated by copy-edit — keeping the unedited transcript")
             copyedit = transcript
         }
+        // C275: spoken hashtags become real tags, by rule, in the body he sees (never in a
+        // conversation's verbatim turns, never inside a book quote).
+        if !isConversation { copyedit = SpokenHashtags.shownBody(copyedit, vocabulary: settings.customWords) }
         if bodyEditedMidRun() {
             Self.log.warning("file \(pf.id, privacy: .public): body edited during copy-edit — stale run discarded, reprocess to re-derive")
             pf.enhanceStatus = .pending
             return
         }
+        let priorCopyedit = pf.enhancedCopyedit
         pf.enhancedCopyedit = copyedit
         // Our own write above IS the editable body now — rebase the guard so it
         // only trips on an outside (user) edit, not on this pipeline write.
         bodySnapshot = pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript
         let suggestedTitle = try await enhancer.title(transcript, prompts: prompts, modelRepo: repo)
-        pf.titleSuggested = suggestedTitle
-        // Keep a title the user/phone already set; only fill from the LLM if empty.
-        if (pf.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
-            pf.enhancedTitle = suggestedTitle
-        }
         // Skip the summary on SHORT notes (user 2026-06-15) — a brief memo doesn't need
         // one. A manual "Redo summary" still generates it regardless (deliberate override).
         let summaryText = SummaryRule.meetsThreshold(transcript, minWords: settings.effectiveSummaryMinWords)
@@ -243,8 +270,20 @@ struct BatchRunner {
         // (sanitise + compile would bake a body the user has since replaced).
         if bodyEditedMidRun() {
             Self.log.warning("file \(pf.id, privacy: .public): body edited during enhance — stale run discarded, reprocess to re-derive")
+            if pf.transcript != rawSnapshot {
+                // A raw edit landed after this run wrote its copy-edit (C153): take the copy-edit
+                // back too, so the body is the edit, not a polish of the words it replaced.
+                pf.enhancedCopyedit = priorCopyedit
+                ReconcileV2.Reflect.recompile(pf, people: people, author: settings.authorName)
+            }
             pf.enhanceStatus = .pending
             return
+        }
+        // The title lands after the last guard too, so a discarded run writes none of it.
+        pf.titleSuggested = suggestedTitle
+        // Keep a title the user/phone already set; only fill from the LLM if empty.
+        if (pf.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
+            pf.enhancedTitle = suggestedTitle
         }
         pf.enhancedSummary = summaryText
 
@@ -275,6 +314,35 @@ struct BatchRunner {
         pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: people)
     }
 
+    /// C152: copy-edit `block` alone and splice it over the raw tail of the shown body, then
+    /// re-link + recompile. A conversation is never copy-edited (its turns stay verbatim), and a
+    /// body whose tail he has since edited is left alone (`AppendPolish.splice` → nil); either
+    /// way the block is no longer pending. Edited WHILE the model ran → discard, stay pending.
+    /// C275 (Q504): the spliced body gets the same spoken-hashtag rule as a whole pass.
+    private func polishAppendedBlock(_ pf: PipelineFile, block: String, transcript: String) async throws {
+        let before = pf.enhancedCopyedit ?? ""
+        let isConversation = SpeakerTranscript.isConversation(transcript, source: pf.noteSource)
+        pf.enhanceStatus = .processing
+        var body = before
+        if !isConversation {
+            let polished = try await enhancer.copyEdit(block, spoken: pf.sourceType != .note, prompts: settings.prompts,
+                                                       modelRepo: settings.enhancementModelRepo)
+            guard (pf.enhancedCopyedit ?? "") == before else {
+                Self.log.warning("file \(pf.id, privacy: .public): body edited during the appended-block polish — discarded, stays pending")
+                pf.enhanceStatus = .pending
+                return
+            }
+            if let spliced = AppendPolish.splice(copyedit: before, pending: block, polished: polished) {
+                body = SpokenHashtags.shownBody(spliced, vocabulary: settings.customWords)
+            }
+        }
+        pf.enhancedCopyedit = body
+        pf.pendingPolishBlock = nil
+        pf.relinkNames(working: body, isConversation: isConversation, people: people)
+        pf.enhanceStatus = .done
+        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: people)
+    }
+
     // MARK: Capture pipeline (C3 enhancement-lite)
 
     /// Enhancement-lite for captures: title + summary + tags on the annotation; NO
@@ -282,7 +350,7 @@ struct BatchRunner {
     /// Empty annotation: skip all LLM steps, fall back to a title from sharedContent
     /// (urlTitle → first words of text → image filename — all from the metadata blob).
     private func runCapture(_ pf: PipelineFile) async throws {
-        // transcribeStatus is already .done from UploadService; never run ASR here.
+        // transcribeStatus is already .done from ingest; never run ASR here.
         let annotation = (pf.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let sc = SharedContent.decode(from: pf.audioMetadataJSON)
         pf.enhanceStatus = .processing
@@ -322,7 +390,7 @@ struct BatchRunner {
     /// Title fallback chain for an empty-annotation capture:
     /// urlTitle → first 8 words of text snippet → image filename → "Capture".
     /// Only used when the user typed no annotation in the share sheet.
-    static func captureFallbackTitle(_ sc: SharedContent?, existingTitle: String?) -> String {
+    nonisolated static func captureFallbackTitle(_ sc: SharedContent?, existingTitle: String?) -> String {
         // Honor a title the phone pre-set (unlikely for captures, but consistent).
         if let t = existingTitle?.trimmingCharacters(in: .whitespaces), !t.isEmpty { return t }
         // The capture rung of the shared C25 ladder — the export names files with it too.

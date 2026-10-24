@@ -9,6 +9,7 @@ import SwiftData
 /// `MacMemoAuthor.author` attaches the audio only) is pinned with `XCTExpectFailure`, so the
 /// gate stays green until v2 fixes it and goes RED the day it is fixed without the flag being
 /// removed — the pre-registered required difference, in code.
+@MainActor
 final class RoundTripParityTests: XCTestCase {
 
     private func cloudContext() throws -> ModelContext {
@@ -27,7 +28,7 @@ final class RoundTripParityTests: XCTestCase {
         let cloud = try cloudContext()
         try CorpusSeed.seed(from: root, into: cloud, recordingsDirectory: makeTempDir())
         let pipeline = try pipelineContext()
-        let upload = UploadService(outputDir: makeTempDir())
+        let upload = makeTempDir()
         let assets = try cloud.fetch(FetchDescriptor<MemoAsset>())
 
         var compared = 0
@@ -40,13 +41,13 @@ final class RoundTripParityTests: XCTestCase {
                   let wt = mine.first(where: { $0.kind == MemoAsset.Kind.wordTimings }),
                   let words = try? JSONDecoder().decode([WordTiming].self, from: wt.blob), !words.isEmpty,
                   memo.transcriptUserEdited || (memo.transcriptConfidence ?? 0) >= 0.7 else { continue }
-            guard let row = try MemoCloudIngest.ingest(memo: memo, assets: mine, upload: upload, into: pipeline) else { continue }
+            guard let row = try V2.ingest(memo, assets: mine, outputDir: upload, into: pipeline) else { continue }
             XCTAssertFalse(row.wordTimings.isEmpty, "\(memo.id): the Mac row must adopt the phone's timings")
 
             // Mac → phone: author a fresh memo from the row, as the Mac does for its own takes.
             let back = try cloudContext()
             let audioURL = URL(fileURLWithPath: row.path)
-            guard let authored = try MacMemoAuthor.author(for: row, audioURL: audioURL, into: back) else {
+            guard let authored = try V2.author(row, into: back) else {
                 XCTFail("\(memo.id): author returned nil"); continue
             }
             let authoredID = authored.id
@@ -56,9 +57,7 @@ final class RoundTripParityTests: XCTestCase {
             compared += 1
         }
         XCTAssertGreaterThan(compared, 20, "the corpus must exercise this path")
-        // SPEC R34 / C245 — pre-registered: today the Mac authors WITHOUT the timings.
-        XCTExpectFailure("R34: MacMemoAuthor.author attaches the audio only (MacMemoAuthor.swift:92); v2 must carry wordTimings + diarization") {
-            XCTAssertEqual(timingsLost, 0, "Mac-authored memos lost their word timings: \(timingsLost) of \(compared)")
-        }
+        // SPEC R34 / C245 — fixed by Q482: the Mac authors its takes WITH the timings (`TimingAssets`).
+        XCTAssertEqual(timingsLost, 0, "Mac-authored memos lost their word timings: \(timingsLost) of \(compared)")
     }
 }

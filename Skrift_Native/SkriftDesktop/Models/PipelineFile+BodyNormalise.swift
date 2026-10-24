@@ -13,7 +13,7 @@ import SwiftData
 /// (when the body pass has not already fixed it) and — when the CloudKit store is at hand — the
 /// synced `MemoEnhancement.copyedit`. On the synced row ONLY `copyedit` is written:
 /// `enhancedAt` / `enhancedByDeviceID` / `processedAt` stay, so the rewrite never wins an LWW
-/// race against another device's newer polish and never claims authorship; `MacCloudWriteBack`
+/// race against another device's newer polish and never claims authorship; `ReconcileV2.Writers`
 /// (which stamps `enhancedAt = now`) is deliberately NOT used. It is not a words edit either: no
 /// `EditConflicts.recordEdit`, so no edit vector or `MemoEditHead` moves.
 extension PipelineFile {
@@ -54,7 +54,7 @@ extension PipelineFile {
 
     /// The synced polish row for this note in `cloud`, if any (newest `enhancedAt` first).
     private func cloudEnhancement(in cloud: ModelContext?) -> MemoEnhancement? {
-        guard let cloud, let memoID = MacCloudWriteBack.resolve(for: self, in: cloud)?.id else { return nil }
+        guard let cloud, let memoID = ReconcileV2.Writers.resolve(self, in: cloud)?.id else { return nil }
         let rows = (try? cloud.fetch(FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
         return rows.max { $0.enhancedAt < $1.enhancedAt }
     }

@@ -276,24 +276,6 @@ final class MemoLinkTests: XCTestCase {
         XCTAssertEqual(coordinator.reconstruct(tv.attributedText), raw, "byte-exact round trip")
     }
 
-    func testEscrowStripsAndReattachRestores() {
-        let raw = "See [[memo:\(idA.uuidString)|Harbor walk]] for detail."
-        let (stripped, links) = MemoLinkSyntax.escrowForEditing(raw)
-        XCTAssertEqual(stripped, "See Harbor walk for detail.", "the LLM reads natural prose")
-        XCTAssertEqual(links.count, 1)
-        // A benign copy-edit that recases the title still reattaches (surface kept).
-        let edited = "See harbor walk for the detail."
-        XCTAssertEqual(MemoLinkSyntax.reattach(edited: edited, links: links),
-                       "See [[memo:\(idA.uuidString)|harbor walk]] for the detail.")
-    }
-
-    func testReattachFailsWhenTheTitleWasEditedAway() {
-        let raw = "See [[memo:\(idA.uuidString)|Harbor walk]]."
-        let (_, links) = MemoLinkSyntax.escrowForEditing(raw)
-        XCTAssertNil(MemoLinkSyntax.reattach(edited: "See the waterfront stroll.", links: links),
-                     "a lost title must force the caller's fallback to the unedited body")
-    }
-
     func testSanitiserNeverLinksInsideALinkTitle() {
         // "Hendri" is a distinctive, auto-linkable name — but INSIDE a memo-link
         // title it must stay untouched (nested [[…]] would corrupt the syntax).

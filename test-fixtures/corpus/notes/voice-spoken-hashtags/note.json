@@ -1,0 +1,114 @@
+{
+  "id": "E341AD41-18CC-583C-988C-B268B32AFED6",
+  "slug": "voice-spoken-hashtags",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "spoken-hashtags",
+    "custom-vocab"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-24T22:40:00+01:00",
+  "createdAt": "2026-09-24T22:40:00+01:00",
+  "editedAt": null,
+  "duration": 9.71,
+  "audio": "audio.m4a",
+  "transcript": "Watched the Benfica game with the team tonight, and the new spindle is finally running. Hashtag production. C and C hashtag design hashtag GFR. Okay.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.9,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-24T22:40:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Synthetic twin of the real 0:31 Benfica note (2026-09-24, Skrift Dev): it ends 'Hashtag production. C and C hashtag design hashtag GFR. Okay.'. By rule, never the model: the shown body ends in ONE tag line '#production #cnc #design #gfr' (C and C = the vocab word CNC, C85), the trailing Okay dropped; the raw transcript keeps every word. `cases` pins the rule on EN + NL text.",
+    "vocabulary": [
+      "CNC",
+      "GFR"
+    ],
+    "shown": "Watched the Benfica game with the team tonight, and the new spindle is finally running.\n\n#production #cnc #design #gfr",
+    "cases": [
+      {
+        "name": "en-trailing-run-with-vocab-acronym",
+        "lang": "en",
+        "vocabulary": [
+          "CNC",
+          "GFR"
+        ],
+        "raw": "Watched the Benfica game with the team tonight, and the new spindle is finally running. Hashtag production. C and C hashtag design hashtag GFR. Okay.",
+        "shown": "Watched the Benfica game with the team tonight, and the new spindle is finally running.\n\n#production #cnc #design #gfr"
+      },
+      {
+        "name": "en-acronym-needs-the-vocab-word",
+        "lang": "en",
+        "vocabulary": [],
+        "raw": "Watched the Benfica game with the team tonight, and the new spindle is finally running. Hashtag production. C and C hashtag design hashtag GFR. Okay.",
+        "shown": "Watched the Benfica game with the team tonight, and the new spindle is finally running. #production. C and C\n\n#design #gfr"
+      },
+      {
+        "name": "en-inline",
+        "lang": "en",
+        "vocabulary": [],
+        "raw": "I need some hashtag motivation before the second firing.",
+        "shown": "I need some #motivation before the second firing."
+      },
+      {
+        "name": "en-one-closing-the-sentence-stays-inline",
+        "lang": "en",
+        "vocabulary": [],
+        "raw": "Felt good about the glaze hashtag motivation.",
+        "shown": "Felt good about the glaze #motivation."
+      },
+      {
+        "name": "en-hash-tag-two-words",
+        "lang": "en",
+        "vocabulary": [],
+        "raw": "Kiln is cooling down. Hash tag pottery. OK.",
+        "shown": "Kiln is cooling down.\n\n#pottery"
+      },
+      {
+        "name": "nl-trailing-run",
+        "lang": "nl",
+        "vocabulary": [],
+        "raw": "Vandaag weer naar de werkplaats. Hashtag motivatie hashtag keramiek. Oké.",
+        "shown": "Vandaag weer naar de werkplaats.\n\n#motivatie #keramiek"
+      },
+      {
+        "name": "nl-inline",
+        "lang": "nl",
+        "vocabulary": [],
+        "raw": "Ik heb echt hashtag motivatie nodig vandaag.",
+        "shown": "Ik heb echt #motivatie nodig vandaag."
+      },
+      {
+        "name": "no-hashtags-okay-stays",
+        "lang": "en",
+        "vocabulary": [
+          "CNC",
+          "GFR"
+        ],
+        "raw": "The C and C machine is fine. Okay.",
+        "shown": "The C and C machine is fine. Okay."
+      }
+    ]
+  }
+}

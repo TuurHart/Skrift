@@ -76,6 +76,9 @@ struct CompilerInput: Sendable {
     /// Fallback for `recordedAt` when the metadata blob didn't decode into `metadata`
     /// (e.g. a capture's raw dict) — the desktop bridge fills it via `rawMetaString`.
     var rawRecordedAt: String? = nil
+    /// C284: the note's last content edit (`Memo.editedAt`; the Mac mirrors it onto its row).
+    /// nil = never edited → `editedAt:` written empty.
+    var editedAt: Date? = nil
     /// WHERE this note is going. Decides the portfolio-only frontmatter — see the Compiler.
     var destination: NoteDestination = .personal
     /// HOW the words got here — the portfolio's `voice:` key. Set EXPLICITLY by each app, never

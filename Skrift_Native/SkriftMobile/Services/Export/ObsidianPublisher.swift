@@ -166,6 +166,10 @@ struct ObsidianPublisher {
     /// C63 / D210: the poster frame (JPEG) a video note puts in the vault in place of its movie.
     /// nil = make it from `movieProvider`'s file. Asked only when a write actually happens.
     var posterProvider: ((Memo) -> Data?)? = nil
+    /// R38 (Q513): the bytes of a `.file` capture's shared document (its synced `document`
+    /// asset). nil = none on this device; export v2 then leaves the document out, never a
+    /// dangling embed.
+    var documentProvider: (Memo) -> Data? = { _ in nil }
     /// Test hook — nil uses the per-root default ledger.
     var ledgerOverride: ExportLedger? = nil
 
@@ -199,6 +203,10 @@ struct ObsidianPublisher {
                     .first { ($0.kind == MemoAsset.Kind.file || $0.kind == MemoAsset.Kind.video)
                         && $0.filename == entry.filename && !$0.blob.isEmpty }
                     .map { .data($0.blob) }
+            },
+            documentProvider: { memo in
+                NotesRepository.shared.assets(forMemo: memo.id)
+                    .first { $0.kind == MemoAsset.Kind.document && !$0.blob.isEmpty }?.blob
             }
         )
     }
@@ -228,6 +236,32 @@ struct ObsidianPublisher {
         let scope = destination.openScope(manage: manageScope)
         defer { scope.close() }
 
+        // C163 (Q490): re-filed to the other destination since this device exported it? Edited
+        // or filed away there refuses the move, named, and nothing is written. Ours and
+        // untouched is removed once the new home has agreed to take the note (below).
+        var oldScope: ExportDestinationRoot.Scope?
+        defer { oldScope?.close() }
+        var removeOld: (() -> Void)?
+        let otherDestination: NoteDestination = memo.destination.isPortfolio ? .personal : .portfolio
+        if let other = ExportDestinationRoot.resolve(
+            for: otherDestination, vault: vaultProvider,
+            portfolioFolder: portfolioFolderProvider, portfolioScopeRoot: portfolioScopeRoot) {
+            let oldHome = VaultLayout.home(forPicked: other.picked, profile: other.profile)
+            if oldHome.standardizedFileURL != VaultLayout.home(forPicked: vaultRoot, profile: profile).standardizedFileURL {
+                oldScope = other.openScope(manage: manageScope)
+                let oldLedger = ExportLedger.default(for: oldHome)
+                switch DestinationMove.verdict(id: memo.id, oldHome: oldHome, ledger: oldLedger) {
+                case .nothingThere:
+                    break
+                case .refuse(let outcome):
+                    return PublishReport(outcome, relativePath: outcome.relativePath)
+                case .remove(let rel):
+                    removeOld = { DestinationMove.removeOld(relativePath: rel, id: memo.id, oldHome: oldHome,
+                                                            ledger: oldLedger) }
+                }
+            }
+        }
+
         // Resolve the PICK into the folder Skrift owns — the same call the Mac makes, or the
         // two apps would write to different places in one vault again (iOS at the picked
         // root, the Mac inside `Skrift/`). That divergence is the whole thing we're removing.
@@ -238,7 +272,8 @@ struct ObsidianPublisher {
                                  profile: profile)
         // ONE title ladder with the Mac (C25 via `ExportNaming`): user title → the Mac's
         // suggested title → first body line → …, so both name the same note the same file.
-        let enhancement = enhancementProvider(memo.id)
+        // Q506: a polish older than his last raw edit is not exported; his words are.
+        let enhancement = MemoEnhancement.current(enhancementProvider(memo.id), for: memo)
         let title = MemoExporter.exportTitle(for: memo, people: people, enhancement: enhancement)
         let fallback = memo.audioFilename.isEmpty ? "memo_\(memo.id.uuidString).m4a" : memo.audioFilename
 
@@ -250,6 +285,7 @@ struct ObsidianPublisher {
         case .proceed(let rel, _):
             relPath = rel
         }
+        removeOld?()
         let stem = PublishOutcome.stem(ofRelativePath: relPath)
 
         // Memo-link stems: the ledger's sticky filename first (rename-safe), else the
@@ -260,38 +296,72 @@ struct ObsidianPublisher {
                 stems[id] = PublishOutcome.stem(ofRelativePath: rel)
             } else if let target = memoProvider(id) {
                 stems[id] = ExportNaming.stem(title: MemoExporter.exportTitle(for: target, people: people,
-                                                                              enhancement: enhancementProvider(id)),
+                                                                              enhancement: MemoEnhancement.current(enhancementProvider(id), for: target)),
                                               filename: target.audioFilename)
             }
         }
 
-        let markdown = MemoExporter.markdown(for: memo, people: people, author: author,
-                                             enhancement: enhancement,
-                                             linkStems: stems, profile: profile)
-        // Photo markers → real embeds, names derived from the MANIFEST alone so the
-        // heavy blobs are only fetched when a write actually happens.
         let manifest = memo.metadata?.imageManifest ?? []
-        let (photoConverted, embedNames) = Self.convertPhotoMarkers(
-            ExportBody.shown(markdown), manifest: manifest, stem: stem,
-            profile: profile)
-        // D199 / C57: `[[vid_NNN]]` / `[[file_NNN]]` → embeds of the file copied beside the note,
-        // through the same shared conversion the Mac runs. Names come from the manifest alone.
         let attachmentEntries = memo.metadata?.attachmentManifest ?? []
         var attachmentPlan: [(entry: NoteAttachmentEntry, embedName: String)] = []
         // C63 / D210: the kept movie never goes to the vault; its poster frame does, in its place -
         // when this device has the movie to take the frame from, else the marker drops.
         var posterEmbed: String?
         let hasMovie = posterProvider != nil || movieProvider(memo) != nil
-        let (converted, _) = ExportBody.convertAttachmentMarkers(
-            photoConverted, manifest: attachmentEntries, stem: stem, profile: profile,
-            poster: { _, preferred in
+        let converted: String
+        let embedNames: [(String, String)]
+        let removedPictures: [PlacedPicture]
+        var document: VaultAsset?
+        if ExportV2.routes {
+            // Q511: export v2, the swap switch (off until Q436). Names come from the manifest alone.
+            var note = Self.v2Note(memo, people: people, author: author, enhancement: enhancement,
+                                   linkStems: stems, title: title)
+            // R38 (Q513): a `.file` capture's document goes with the note, as on the Mac.
+            if memo.isShareCapture, let sc = memo.sharedContent, sc.type == .file,
+               let source = sc.fileName ?? sc.filePath, let blob = documentProvider(memo) {
+                let name = ExportV2.documentName(stem: stem, sourceName: source)
+                note.documentName = name
+                document = VaultAsset(name: name, source: .data(blob))
+            }
+            let out = ExportV2.compile(note,
+                                       profile: profile, stem: stem,
+                                       placeAttachment: { source, preferred in
+                guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
+                attachmentPlan.append((entry, preferred))
+                return preferred
+            }, poster: { _, preferred in
                 guard hasMovie else { return nil }
                 posterEmbed = preferred
                 return preferred
-            }) { source, preferred in
-            guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
-            attachmentPlan.append((entry, preferred))
-            return preferred
+            })
+            converted = out.markdown
+            embedNames = out.pictures.map { ($0.source, $0.embedName) }
+            removedPictures = out.removedPictures
+        } else {
+            let markdown = MemoExporter.markdown(for: memo, people: people, author: author,
+                                                 enhancement: enhancement,
+                                                 linkStems: stems, profile: profile)
+            // Photo markers → real embeds, names derived from the MANIFEST alone so the
+            // heavy blobs are only fetched when a write actually happens.
+            let photos = Self.convertPhotoMarkers(ExportBody.shown(markdown), manifest: manifest, stem: stem,
+                                                  profile: profile)
+            embedNames = photos.1
+            // D199 / C57: `[[vid_NNN]]` / `[[file_NNN]]` → embeds of the file copied beside the note,
+            // through the same shared conversion the Mac runs. Names come from the manifest alone.
+            converted = ExportBody.convertAttachmentMarkers(
+                photos.0, manifest: attachmentEntries, stem: stem, profile: profile,
+                poster: { _, preferred in
+                    guard hasMovie else { return nil }
+                    posterEmbed = preferred
+                    return preferred
+                }) { source, preferred in
+                guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
+                attachmentPlan.append((entry, preferred))
+                return preferred
+            }.markdown
+            // C158: a picture whose marker left the body has its vault copy removed (below).
+            removedPictures = profile.removedPictures(ExportBody.shown(markdown),
+                                                      manifest: manifest.map(\.filename), stem: stem)
         }
 
         // Cheap unchanged check BEFORE touching any blob: candidate vs on-disk,
@@ -305,8 +375,12 @@ struct ObsidianPublisher {
             return PublishReport(outcome: .skippedUnchanged, relativePath: relPath, assetCount: 0)
         }
 
-        // A real write — now the blobs.
-        let photoBlobs = embedNames.isEmpty ? [:] : photosProvider(memo.id)
+        // A real write — now the blobs. C158: a picture whose marker left the body has its
+        // vault copy removed when ours and untouched, judged against the same blob.
+        let photoBlobs = embedNames.isEmpty && removedPictures.isEmpty ? [:] : photosProvider(memo.id)
+        let removedAssets: [VaultAsset] = removedPictures.compactMap { p in
+            photoBlobs[p.source].map { VaultAsset(name: p.embedName, source: .data($0)) }
+        }
         var attachments: [VaultAsset] = embedNames.compactMap { source, embedName in
             photoBlobs[source].map { VaultAsset(name: embedName, source: .data($0)) }
         }
@@ -330,14 +404,39 @@ struct ObsidianPublisher {
         // C63 / C136 / D172: a video filed Inspiration / Idea / Project brings its movie, beside
         // the note like the picture. The Obsidian vault never gets it (a 200 MB clip has no
         // business in a notes folder), and a Personal note never reaches this branch.
-        var documents: [VaultAsset] = []
+        var documents: [VaultAsset] = document.map { [$0] } ?? []
         if profile == .portfolio, memo.destination.isPortfolio, let movie = movieProvider(memo) {
             documents.append(VaultAsset(name: stem + "." + movie.pathExtension, source: .file(movie)))
         }
 
         let r = try writer.commit(markdown: converted, id: memo.id, relativePath: relPath,
-                                  attachments: attachments, audio: audio, documents: documents)
+                                  attachments: attachments, audio: audio, documents: documents,
+                                  removedAttachments: removedAssets)
         return PublishReport(r.outcome, relativePath: relPath, assetCount: attachments.count)
+    }
+
+    /// Q511: what export v2 reads about a memo on this device — the input the Mac builds from its
+    /// row (`VaultExporter.v2Note`), from the memo itself: the recording's day (C64), when it was
+    /// made and how long it runs (D12), whether he typed the title (C130), the pictures' OCR (R38).
+    static func v2Note(_ memo: Memo, people: [Person], author: String, enhancement: MemoEnhancement?,
+                       linkStems: [UUID: String], title: String) -> ExportV2.Note {
+        var input = MemoExporter.compilerInput(for: memo, people: people, enhancement: enhancement,
+                                               linkStems: linkStems)
+        if !MemoDate.isUnknown(memo.recordedAt) {
+            input.rawRecordedAt = ISO8601DateFormatter().string(from: memo.recordedAt)
+        }
+        var note = ExportV2.Note(input: input, title: title)
+        note.heGaveTitle = !(memo.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        note.createdAt = memo.createdAt
+        note.duration = memo.audioFilename.isEmpty || memo.duration <= 0 ? nil : memo.duration
+        note.people = people
+        note.author = author
+        let pictures = memo.metadata?.imageManifest ?? []
+        note.pictureManifest = pictures.map(\.filename)
+        note.pictureText = Dictionary(uniqueKeysWithValues: pictures.enumerated().compactMap { i, e in
+            e.text.map { (i + 1, $0) } })
+        note.attachments = memo.metadata?.attachmentManifest ?? []
+        return note
     }
 
     /// Replace `[[img_NNN]]` markers with this profile's embeds of `<stem>_NNN.ext`, through

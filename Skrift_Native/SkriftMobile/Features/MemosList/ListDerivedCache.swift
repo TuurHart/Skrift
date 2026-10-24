@@ -335,12 +335,18 @@ final class ListDerivedCache: ObservableObject {
                           facts: inout [RowFacts]) -> ListBase {
         var memos: [Memo] = []
         tracking.full { memos = MemoDuplicates.canonicalRows(rawMemos) }
+        // Q506: the polish each row may read — none from a polish older than his last raw edit.
+        var current: [MemoEnhancement] = []
+        tracking.full {
+            let byID = Dictionary(memos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            current = enhancements.filter { e in byID[e.memoID].map { MemoEnhancement.current(e, for: $0) != nil } ?? true }
+        }
         var backlinked: Set<UUID> = backlinks?.linkedIDs ?? []
         if backlinks == nil {
             // No index built yet: scan every transcript (and copy-edit) once. Any change to one of
             // them stales the whole set, so it is one whole-base region.
             tracking.full {
-                backlinked = MemoLifecycle.backlinkedIDs(in: memos, copyedits: Backlinks.copyeditsByMemoID(enhancements))
+                backlinked = MemoLifecycle.backlinkedIDs(in: memos, copyedits: Backlinks.copyeditsByMemoID(current))
             }
         }
         var enhanced = Set<UUID>()
@@ -348,7 +354,7 @@ final class ListDerivedCache: ObservableObject {
         var polish: [UUID: (title: String, summary: String)] = [:]
         tracking.full {
             enhanced = Set(enhancements.lazy.filter(\.isProcessed).map(\.memoID))
-            for e in enhancements {
+            for e in current {
                 let t = e.title.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !t.isEmpty, titles[e.memoID] == nil { titles[e.memoID] = t }
                 if polish[e.memoID] == nil { polish[e.memoID] = (e.title, e.summary) }

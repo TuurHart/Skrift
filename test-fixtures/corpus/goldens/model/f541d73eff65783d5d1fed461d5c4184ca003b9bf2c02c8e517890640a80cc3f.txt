@@ -1,0 +1,1 @@
+The list must not show memo garbage. A generated or first-line title wins over a raw one.

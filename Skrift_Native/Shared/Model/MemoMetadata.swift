@@ -248,7 +248,7 @@ struct DaylightInfo: Codable, Equatable, Sendable {
 }
 
 /// A timestamped photo taken during recording. `offsetSeconds` is recording
-/// time (paused time excluded) and drives `[[img_NNN]]` marker placement.
+/// time (paused and interrupted time excluded, C149) and drives `[[img_NNN]]` marker placement.
 /// Also the element of the Mac's per-file `image_manifest.json` sidecar.
 struct ImageManifestEntry: Codable, Equatable, Sendable {
     var filename: String

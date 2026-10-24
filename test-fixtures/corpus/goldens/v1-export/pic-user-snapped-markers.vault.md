@@ -1,6 +1,7 @@
 ---
 title: "memo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0"
 date: 2026-08-06
+editedAt: 2026-09-13T21:00:00
 author: Tiuri
 source: Voice-memo
 summary:

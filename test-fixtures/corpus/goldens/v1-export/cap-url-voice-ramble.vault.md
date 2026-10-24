@@ -1,6 +1,7 @@
 ---
 title: "capture_7E905A2D-71A7-51DD-A133-4D9E285F9877"
 date: 2026-07-31
+editedAt:
 author: Tiuri
 source: capture-url
 url: https://example-frames.pt/lugged

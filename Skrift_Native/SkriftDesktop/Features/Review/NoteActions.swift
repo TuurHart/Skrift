@@ -173,7 +173,7 @@ struct NoteActions: View {
         let body = file.bestBodyText
         if body.contains("[[img_") || body.contains("[[vid_") || body.contains("[[file_"),
            let ctx = MemoCloudStore.container?.mainContext,
-           let memo = MacCloudWriteBack.resolve(for: file, in: ctx), MacNoteAttachments.hasBlocks(memo: memo) {
+           let memo = ReconcileV2.Writers.resolve(file, in: ctx), MacNoteAttachments.hasBlocks(memo: memo) {
             Menu(NoteAttachment.attachmentViewTitle) {
                 ForEach([NoteAttachment.Size.small, .large], id: \.self) { size in
                     Button(size == .small ? NoteAttachment.setAllSmallTitle : NoteAttachment.setAllLargeTitle) {
@@ -206,6 +206,12 @@ struct NoteActions: View {
         }
         if canRetranscribe {
             Button(NoteMenuItem.retranscribe.label) { Task { await coordinator.retranscribe(file, context: ctx) } }
+            // C151: the other ASR language mode, this note only (the setting stays the default).
+            let recorded = ASRLanguageMode.recorded(file.transcriptLanguageMode, default: .from(
+                multilingual: SettingsStore.shared.load().transcriptionIsMultilingual))
+            Button(ASRLanguageMode.transcribeAgainLabel(recordedIn: recorded)) {
+                Task { await coordinator.retranscribe(file, context: ctx, in: recorded.other) }
+            }
         }
         if redoOffered {
             Menu(NoteMenuItem.redo.label) {

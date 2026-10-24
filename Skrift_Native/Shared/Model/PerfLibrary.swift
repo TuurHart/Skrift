@@ -27,9 +27,7 @@ enum PerfLibrary {
     /// the Mac's per-build "Skrift Dev" folder).
     static var directory: URL {
         #if os(iOS)
-        let dir = URL.applicationSupportDirectory
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
+        return AppPaths.ensureDirectory(URL.applicationSupportDirectory)
         #else
         return AppPaths.appSupportDirectory
         #endif
@@ -69,6 +67,8 @@ enum PerfLibrary {
         }
         #if os(macOS)
         try? fm.removeItem(at: AppPaths.audioOutputDirectory)   // the " Perf" working folders, perf-only under the flag
+        // C280: the accessor creates its folder once per launch, so a reset puts it back itself.
+        try? fm.createDirectory(at: AppPaths.audioOutputDirectory, withIntermediateDirectories: true)
         #endif
         try? fm.removeItem(at: AppPaths.recordingsDirectory)   // already the perf folder under the flag
         try? fm.createDirectory(at: AppPaths.recordingsDirectory, withIntermediateDirectories: true)

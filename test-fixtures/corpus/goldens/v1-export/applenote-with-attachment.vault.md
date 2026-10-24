@@ -1,6 +1,7 @@
 ---
 title: "Kiln shelf layout"
 date: 2026-07-13
+editedAt:
 author: Tiuri
 source: Apple-Note
 summary:

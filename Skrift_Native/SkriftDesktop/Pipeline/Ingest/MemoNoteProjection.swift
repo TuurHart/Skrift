@@ -3,7 +3,7 @@ import SwiftData
 
 /// An UNRATED memo, projected into the type the note view already renders.
 ///
-/// **Why this exists.** The RATING is what pipelines a memo (`MemoCloudIngest`
+/// **Why this exists.** The RATING is what pipelines a memo (`ReconcileV2.Ingest`
 /// gates on `significance > 0`), so an unrated `Memo` has no `PipelineFile` — and
 /// `NoteDisplayView`/`NoteProperties`/`NoteBody` are all typed to one. The first two
 /// attempts at "open an unrated note" answered that by building a SECOND renderer
@@ -18,7 +18,7 @@ import SwiftData
 /// so "the rating IS the flag" holds by construction rather than by policing.
 ///
 /// **Deliberately faithful, not improved.** The projection maps the memo through
-/// `MemoCloudIngest.metadataJSON` — the exact blob a real ingest would have written —
+/// `ReconcileV2.Ingest.metadataJSON` — the exact blob a real ingest would have written —
 /// so the chips row, the capture blocks and the book-quote styling derive through the
 /// same accessors a pipelined note uses. Matching what a normal note ACTUALLY does is the
 /// whole point: a projection that quietly did better would read as a difference.
@@ -46,7 +46,7 @@ enum MemoNoteProjection {
     /// `ModelContext` — it is a view-model that happens to already have a type.
     /// `id` is the memo UUID (the contract spine), which is also what lets the
     /// existing Mac→phone write-back resolve the memo from it
-    /// (`MacCloudWriteBack.memoID(for:)`).
+    /// (`ReconcileV2.Writers.memoID(for:)`).
     static func file(for memo: Memo) -> PipelineFile {
         let kind = SourceKind.of(memo)
         let pf = PipelineFile(id: memo.id.uuidString,
@@ -69,11 +69,11 @@ enum MemoNoteProjection {
         pf.significance = memo.significance > 0 ? memo.significance : nil
         pf.locked = memo.locked
         pf.remindAt = memo.remindAt
-        pf.imageOCRText = MemoCloudIngest.ocrText(for: memo)
+        pf.imageOCRText = ReconcileV2.Ingest.ocrText(for: memo)
         // The SAME blob a real ingest writes → place/weather/daypart chips, the capture
         // banner + shared-content block, and the audiobook quote card all derive through
         // the identical accessors a pipelined note uses.
-        pf.audioMetadataJSON = MemoCloudIngest.metadataJSON(for: memo)
+        pf.audioMetadataJSON = ReconcileV2.Ingest.metadataJSON(for: memo)
         // Only the transcribe step can be truthfully claimed (the phone did it). The rest
         // are pending because they genuinely haven't run — which is also what keeps the
         // title chooser away (it needs a `titleSuggested` the Mac hasn't produced).

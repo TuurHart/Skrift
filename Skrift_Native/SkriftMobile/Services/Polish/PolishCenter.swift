@@ -47,12 +47,13 @@ protocol PolishEngine: Sendable {
     /// like the desktop `EnhancementService`, via the SAME Shared helpers.
     /// Reports the CURRENT step plus an overall 0…1 fraction, so the bar can
     /// show a determinate line the way the Mac's run bar does.
-    func polish(transcript: String,
+    /// `source` (Q426): what the words are — copy-edit v2 gives each source its own verbs (C36).
+    func polish(transcript: String, source: CopyEditV2.Source,
                 onStep: @escaping @Sendable (PolishStep, Double) -> Void) async throws -> PolishResult
     /// Re-run ONE part (the Mac's Redo ▸ Title/Copy-edit/Summary). Same prompts,
     /// same escrow, same budget as the full pass. Part names come from the shared
     /// menu vocabulary (`NoteRedoItem`) — one word set, both apps.
-    func redo(_ part: NoteRedoItem, transcript: String) async throws -> String
+    func redo(_ part: NoteRedoItem, transcript: String, source: CopyEditV2.Source) async throws -> String
 }
 
 /// Device gate for the on-demand polisher. The iPhone never qualifies (the
@@ -162,7 +163,7 @@ final class PolishCenter {
     /// enhancement. Fire-and-forget from UI; phases drive the indicators.
     func polishNow(_ memo: Memo, repository: NotesRepository = .shared) {
         guard canPolish(memo) else { return }
-        // Pressing Polish IS a judgment — so it RATES the note (the `MacMemoAuthor`
+        // Pressing Polish IS a judgment — so it RATES the note (the `ReconcileV2.Author`
         // 0.1-floor precedent). Without this, an unrated note could be polished on
         // demand and stay unrated: still fading, still invisible to the Mac,
         // polished-but-dying. The rating is consent, and this is the user giving it;
@@ -197,7 +198,7 @@ final class PolishCenter {
         }
         phases[id] = .processing(step: step, fraction: 0.2)
         do {
-            let out = try await engine.redo(part, transcript: transcript)
+            let out = try await engine.redo(part, transcript: transcript, source: memo.copyEditV2Source)
             // The existing sidecar row is the target — redo is only offered when a
             // polish exists (menu gate); a vanished row means the note was un-polished
             // mid-run, and writing a fresh partial enhancement would call it processed.
@@ -207,7 +208,7 @@ final class PolishCenter {
             }
             switch part {
             case .title: e.title = out
-            case .copyEdit: e.copyedit = out
+            case .copyEdit: e.copyedit = SpokenHashtags.shownBody(out, vocabulary: CustomVocabularyStore.words())   // C275
             case .summary: e.summary = out
             }
             e.enhancedByDeviceID = DeviceID.current()
@@ -240,7 +241,7 @@ final class PolishCenter {
                 }
             }
             phases[id] = .processing(step: .copyEdit, fraction: 0)
-            let result = try await engine.polish(transcript: transcript) { step, fraction in
+            let result = try await engine.polish(transcript: transcript, source: memo.copyEditV2Source) { step, fraction in
                 Task { @MainActor in self.phases[id] = .processing(step: step, fraction: fraction) }
             }
             write(result, forMemo: id, repository: repository)
@@ -367,7 +368,8 @@ final class PolishCenter {
             repository.context.insert(fresh)
             return fresh
         }()
-        enhancement.copyedit = result.copyedit
+        // C275: spoken hashtags become real tags, by rule, in the body he reads (raw keeps the words).
+        enhancement.copyedit = SpokenHashtags.shownBody(result.copyedit, vocabulary: CustomVocabularyStore.words())
         enhancement.title = result.title
         enhancement.summary = result.summary
         enhancement.enhancedByDeviceID = DeviceID.current()

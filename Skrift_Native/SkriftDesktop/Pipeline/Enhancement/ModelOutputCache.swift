@@ -3,8 +3,8 @@ import Foundation
 
 /// Recorded model outputs (C7, C286): one file per model call,
 /// `<dir>/<sha256(prompt + input)>.txt`, holding the model's raw output. Recorded once over
-/// the synthetic corpus by the DEBUG `-recordcopyedit` harness (MLX app); replayed MLX-free
-/// by `CopyEditDiffHarnessTests`. The key is the exact prompt text followed by the exact
+/// the synthetic corpus by the DEBUG `-recordcopyeditv2` recorder (MLX app); replayed MLX-free
+/// by the copy-edit harness tests. The key is the exact prompt text followed by the exact
 /// input text the model was given (UTF-8, no separator), hex-encoded.
 struct ModelOutputCache: Sendable {
     let directory: URL
@@ -12,7 +12,7 @@ struct ModelOutputCache: Sendable {
     /// A replay asked for a call nobody recorded. Never silent: the error names the key.
     struct Miss: LocalizedError {
         let key: String
-        var errorDescription: String? { "model-output cache miss: \(key).txt (re-record with -recordcopyedit)" }
+        var errorDescription: String? { "model-output cache miss: \(key).txt (re-record with -recordcopyeditv2)" }
     }
 
     static func key(prompt: String, input: String) -> String {

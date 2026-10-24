@@ -4,6 +4,7 @@ import Foundation
 /// Part B (phone→Mac live sync) tests for `MemoCloudUpdate.apply`: reflect a NEWER phone edit
 /// to an already-ingested memo into its `PipelineFile` — re-link + recompile, no LLM — while the
 /// echo guard ignores the Mac's own write-back and the watermark makes each edit reflect once.
+@MainActor
 final class MemoCloudUpdateTests: XCTestCase {
 
     private let mac = "mac-1"
@@ -38,8 +39,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let m = memo(id, transcript: "Original transcript.", editedAt: t0.addingTimeInterval(10))
         m.destination = .portfolio
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "Me", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "Me", device: mac))
         XCTAssertEqual(pf.destination, .portfolio)
     }
 
@@ -53,8 +53,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let m = memo(id, transcript: "Original transcript.", editedAt: t0.addingTimeInterval(10))
         m.destination = .portfolio
 
-        _ = MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                  people: [], author: "Me", thisDeviceID: mac)
+        _ = V2.reflect(m, enhancement: nil, to: pf, people: [], author: "Me", device: mac)
         XCTAssertEqual(pf.destination, .portfolio)
     }
 
@@ -74,8 +73,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let pf = ingestedFile(id: id, at: t0)
         let m = memo(id, transcript: "Edited on the phone.", editedAt: t0.addingTimeInterval(10))
 
-        let changed = MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "Me", thisDeviceID: mac)
+        let changed = V2.reflect(m, enhancement: nil, to: pf, people: [], author: "Me", device: mac)
         XCTAssertTrue(changed)
         XCTAssertEqual(pf.transcript, "Edited on the phone.")
         XCTAssertEqual(pf.sanitised, "Edited on the phone.", "re-sanitised (no people → unchanged text)")
@@ -90,11 +88,9 @@ final class MemoCloudUpdateTests: XCTestCase {
         let pf = ingestedFile(id: id, at: t0)
         let m = memo(id, transcript: "First edit.", editedAt: t0.addingTimeInterval(10))
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         // Same edit time → nothing newer → no work (idempotent, never loops).
-        XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                             people: [], author: "", thisDeviceID: mac))
+        XCTAssertFalse(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
     }
 
     // MARK: - Path 2: polished copy-edit edit (phone-authored enhancement)
@@ -109,8 +105,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let enh = MemoEnhancement(memoID: id, copyedit: "Phone-edited copy-edit.",
                                   enhancedByDeviceID: "phone-9", enhancedAt: t0.addingTimeInterval(10))
 
-        let changed = MemoCloudUpdate.apply(memo: m, enhancement: enh, to: pf,
-                                            people: [], author: "", thisDeviceID: mac)
+        let changed = V2.reflect(m, enhancement: enh, to: pf, people: [], author: "", device: mac)
         XCTAssertTrue(changed)
         XCTAssertEqual(pf.enhancedCopyedit, "Phone-edited copy-edit.")
         XCTAssertEqual(pf.sanitised, "Phone-edited copy-edit.")
@@ -130,8 +125,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let enh = MemoEnhancement(memoID: id, copyedit: "Phone-edited copy-edit.",
                                   enhancedByDeviceID: "phone-9", enhancedAt: t0.addingTimeInterval(10))
 
-        let changed = MemoCloudUpdate.apply(memo: m, enhancement: enh, to: pf,
-                                            people: [], author: "", thisDeviceID: mac)
+        let changed = V2.reflect(m, enhancement: enh, to: pf, people: [], author: "", device: mac)
         XCTAssertTrue(changed, "a differing phone copy-edit is applied regardless of timestamps/watermark")
         XCTAssertEqual(pf.enhancedCopyedit, "Phone-edited copy-edit.")
         XCTAssertEqual(pf.sanitised, "Phone-edited copy-edit.")
@@ -150,8 +144,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let ownEnh = MemoEnhancement(memoID: id, copyedit: "Mac's own write-back.",
                                      enhancedByDeviceID: mac, enhancedAt: t0.addingTimeInterval(30))
 
-        let changed = MemoCloudUpdate.apply(memo: m, enhancement: ownEnh, to: pf,
-                                            people: [], author: "", thisDeviceID: mac)
+        let changed = V2.reflect(m, enhancement: ownEnh, to: pf, people: [], author: "", device: mac)
         XCTAssertFalse(changed, "the Mac never re-reflects its own write-back")
         XCTAssertEqual(pf.enhancedCopyedit, "Mac copy-edit.", "untouched")
     }
@@ -161,8 +154,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let t0 = Date()
         let m = memo(id, transcript: "Original transcript.", editedAt: t0)   // == baseline
         let pf = baselined(ingestedFile(id: id, at: t0), to: m)   // as a real ingest leaves it
-        XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                             people: [], author: "", thisDeviceID: mac))
+        XCTAssertFalse(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
     }
 
     func testTrashedMemoMirrorsTrashButSkipsTextRecompile() {
@@ -174,8 +166,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         m.deletedAt = trashedAt
 
         // The trash state DOES mirror onto the row (delete-sync)…
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         XCTAssertEqual(pf.deletedAt, trashedAt)
         // …but the pending text edit is NOT reflected and nothing recompiles — it's in the bin.
         XCTAssertEqual(pf.transcript, "Original transcript.", "a trashed memo's text edit is not reflected")
@@ -187,10 +178,13 @@ final class MemoCloudUpdateTests: XCTestCase {
     /// Baseline a row whose blob already matches the memo's (as a real ingest leaves it),
     /// so mirror tests isolate the mirror change from a blob refresh.
     private func baselined(_ pf: PipelineFile, to m: Memo) -> PipelineFile {
-        pf.audioMetadataJSON = MemoCloudIngest.metadataJSON(for: m)
+        pf.audioMetadataJSON = ReconcileV2.Ingest.metadataJSON(for: m)
         pf.transcript = m.transcript
         pf.tags = m.tags                 // as MemoCloudIngest now leaves them
         pf.significance = m.significance
+        pf.memoEditedAt = m.editedAt     // the editedAt mirror's first-contact adopt (C284)
+        pf.memoCreatedAt = m.createdAt   // Q511: the createdAt / titleIsHis mirrors' adopt
+        pf.memoTitleIsHis = !(m.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return pf
     }
 
@@ -202,15 +196,13 @@ final class MemoCloudUpdateTests: XCTestCase {
         pf.compiledText = "COMPILED-BEFORE"
 
         m.locked = true
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         XCTAssertTrue(pf.locked, "lock flag mirrored")
         XCTAssertEqual(pf.compiledText, "COMPILED-BEFORE", "meta-only change must not recompile")
 
         // Unlock mirrors back too (and the wiring re-exports on the same sweep).
         m.locked = false
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         XCTAssertFalse(pf.locked)
     }
 
@@ -221,8 +213,7 @@ final class MemoCloudUpdateTests: XCTestCase {
 
         let remind = Date().addingTimeInterval(3600)
         m.remindAt = remind
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         XCTAssertEqual(pf.remindAt, remind)
     }
 
@@ -236,10 +227,9 @@ final class MemoCloudUpdateTests: XCTestCase {
         m.metadata = MemoMetadata(imageManifest: [
             ImageManifestEntry(filename: "img_001.jpg", offsetSeconds: 1, text: "WHITEBOARD ROADMAP"),
         ])
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         XCTAssertEqual(pf.imageOCRText, "WHITEBOARD ROADMAP")
-        XCTAssertEqual(pf.audioMetadataJSON, MemoCloudIngest.metadataJSON(for: m),
+        XCTAssertEqual(pf.audioMetadataJSON, ReconcileV2.Ingest.metadataJSON(for: m),
                        "stored blob refreshed to the new manifest")
     }
 
@@ -253,8 +243,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         m.tags = ["work", "ideas"]
         m.markEdited(t0.addingTimeInterval(10))
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         XCTAssertEqual(pf.tags, ["work", "ideas"], "a phone tag edit reflects onto the Mac row")
     }
 
@@ -266,8 +255,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         m.significance = 0.9
         m.markEdited(t0.addingTimeInterval(10))
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         XCTAssertEqual(try XCTUnwrap(pf.significance), 0.9, accuracy: 0.0001, "a phone importance edit reflects")
     }
 
@@ -281,8 +269,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let trashedAt = t0.addingTimeInterval(30)
         m.deletedAt = trashedAt                                    // the phone binned it
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         XCTAssertEqual(pf.deletedAt, trashedAt, "the phone trash mirrors onto the Mac row")
         XCTAssertEqual(pf.syncedSourceDeletedAt, trashedAt, "reflect watermark advanced")
     }
@@ -296,8 +283,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         pf.deletedAt = trashedAt                 // the Mac has it trashed…
         pf.syncedSourceDeletedAt = trashedAt     // …reflected from an earlier phone trash
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac))
         XCTAssertNil(pf.deletedAt, "the phone restore clears the Mac row's trash")
         XCTAssertNil(pf.syncedSourceDeletedAt)
     }
@@ -311,8 +297,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         pf.deletedAt = macTrashedAt              // trashed ONLY on the Mac (pre-delete-sync)…
         pf.syncedSourceDeletedAt = nil           // …never reflected from the phone
 
-        XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                             people: [], author: "", thisDeviceID: mac),
+        XCTAssertFalse(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac),
                        "an active memo whose deletedAt didn't change must not touch the row")
         XCTAssertEqual(pf.deletedAt, macTrashedAt, "the Mac-local trash survives the sweep")
     }
@@ -327,8 +312,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         pf.deletedAt = trashedAt
         pf.syncedSourceDeletedAt = trashedAt     // already reflected
 
-        XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                             people: [], author: "", thisDeviceID: mac),
+        XCTAssertFalse(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "", device: mac),
                        "same trash state → no work, no loop")
     }
 
@@ -343,8 +327,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let m = memo(id, transcript: "Original transcript.", editedAt: t0.addingTimeInterval(10))
         m.title = "The one Tuur picked"
 
-        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                            people: [], author: "Me", thisDeviceID: mac))
+        XCTAssertTrue(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "Me", device: mac))
         XCTAssertEqual(pf.enhancedTitle, "The one Tuur picked")
     }
 
@@ -358,12 +341,10 @@ final class MemoCloudUpdateTests: XCTestCase {
         let m = memo(id, transcript: "Original transcript.", editedAt: t0)
         m.title = "Same title"
 
-        _ = MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                  people: [], author: "Me", thisDeviceID: mac)
+        _ = V2.reflect(m, enhancement: nil, to: pf, people: [], author: "Me", device: mac)
         XCTAssertEqual(pf.enhancedTitle, "Same title")
 
-        XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                             people: [], author: "Me", thisDeviceID: mac),
+        XCTAssertFalse(V2.reflect(m, enhancement: nil, to: pf, people: [], author: "Me", device: mac),
                        "settled title → no work on the next sweep")
     }
 
@@ -379,8 +360,7 @@ final class MemoCloudUpdateTests: XCTestCase {
         let m = memo(id, transcript: "Original transcript.", editedAt: t0.addingTimeInterval(10))
         m.title = "   "   // i.e. nobody has chosen a title
 
-        _ = MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                  people: [], author: "Me", thisDeviceID: mac)
+        _ = V2.reflect(m, enhancement: nil, to: pf, people: [], author: "Me", device: mac)
         XCTAssertEqual(pf.enhancedTitle, "Mac's generated suggestion", "adopt-only, never clear")
     }
 }

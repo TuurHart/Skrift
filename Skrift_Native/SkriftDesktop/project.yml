@@ -90,6 +90,7 @@ targets:
       # parsing/trust, fusion, voice match, BPE merge, image markers).
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/ExportV2
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
       # Ingress: the ONE share / drop dispatcher (C238, C198), shared with the phone.
@@ -98,6 +99,8 @@ targets:
       - path: ../Shared/BodyV2
       # Copy-edit v2 (Q424): beside v1 until the swap (C2).
       - path: ../Shared/CopyEditV2
+      # Reconcile v2 (Q429): beside v1 until the swap (C2). Mac-only: it builds `PipelineFile` rows.
+      - path: ../Shared/ReconcileV2
       # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).
       - path: ../Shared/Corpus
       - path: ../Shared/Recording
@@ -107,6 +110,8 @@ targets:
       # Model download: the resumable/streaming replacement for #hubDownloader().
       # APP TARGETS ONLY — it imports MLXLMCommon, which test bundles don't link.
       - path: ../Shared/ModelDownload
+      # Zip: the one CRC-checked zip reader (Q502) — APP TARGETS ONLY, it imports ZIPFoundation.
+      - path: ../Shared/Zip
       # Session: the shared LockGate (per-device unlock state for locked notes).
       - path: ../Shared/Session
       # UI: shared SwiftUI helpers (FlowLayout — one copy across both apps + the extension).
@@ -229,6 +234,7 @@ targets:
       # Shared cross-app source (host-less test bundle compiles it directly, like Models/Pipeline).
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/ExportV2
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
       # Q438: the ONE share / drop dispatcher (pure, Foundation + UTType), IngressDispatchTests.
@@ -237,6 +243,8 @@ targets:
       - path: ../Shared/BodyV2
       # Copy-edit v2 (Q424): beside v1 until the swap (C2).
       - path: ../Shared/CopyEditV2
+      # Reconcile v2 (Q429): beside v1 until the swap (C2). Mac-only: it builds `PipelineFile` rows.
+      - path: ../Shared/ReconcileV2
       # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).
       - path: ../Shared/Corpus
       - path: ../Shared/Recording
@@ -322,6 +330,7 @@ targets:
       - path: Features/Shell/MacFeedbackScreens.swift
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/ExportV2
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
       # Q439: IngestService calls the shared dispatcher.
