@@ -18,13 +18,13 @@ struct ExportAllRow: View {
             HStack(spacing: 8) {
                 switch run.state {
                 case .building(let done, let total):
-                    Text("Building zip…").font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                    Text(SharedCopy.exportAllBuilding).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
                     bar(total == 0 ? 0 : Double(done) / Double(total))
                     Text("\(done) of \(total)").font(.system(size: 12)).monospacedDigit()
                         .foregroundStyle(Theme.textSecondary)
                     button("Cancel") { run.cancel() }
                 default:
-                    Text("Export all notes").font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                    Text(SharedCopy.exportAllLabel).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
                     Spacer()
                     if let n = countOverride ?? count {
                         Text("\(n) notes").font(.system(size: 12)).monospacedDigit()
@@ -47,7 +47,7 @@ struct ExportAllRow: View {
         switch run.state {
         case .building: return "You can close Settings; it keeps going."
         case .failed(let message): return message
-        default: return "One zip of every note not in the trash, with its audio, photos and attachments. Your vault isn't touched."
+        default: return SharedCopy.exportAllRowHelp
         }
     }
 

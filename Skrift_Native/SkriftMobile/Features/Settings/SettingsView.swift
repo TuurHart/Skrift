@@ -73,8 +73,11 @@ struct SettingsView: View {
                     } label: {
                         Label("Synced audiobooks", systemImage: "books.vertical")
                     }
+
+                    // D218/D219 (Q516, mock Q515): one zip of every note not in the trash.
+                    ExportAllSettingsRow()
                 } footer: {
-                    Text("\(SharedCopy.syncWhatSyncs) \(SharedCopy.syncSameAccount) Audiobooks sync per-book — turn one on from its long-press menu.")
+                    Text("\(SharedCopy.syncWhatSyncs) \(SharedCopy.syncSameAccount) Audiobooks sync per-book — turn one on from its long-press menu. \(SharedCopy.exportAllHelp)")
                 }
 
                 // Obsidian publish — the picked folder IS the destination (2026-07-26,
