@@ -3728,7 +3728,7 @@ gate+: yes
 do: C42 says an untrusted `.done` phone transcript (not userEdited, confidence < 0.7) is not adopted and the Mac re-transcribes. Today (v1 and v2 alike) the gate holds only in Ingest.prepare: the fresh-row reflect then copies memo.transcript onto the row, so the untrusted words sit on the Mac row (and show in its body) until the Mac re-transcribes; golden v1-rows/voice-en-untrusted.json records it. Make the reflect honour the same trust rule (one shared predicate), leave the row's transcript empty and pending until the Mac's own ASR fills it. The v2 row golden for voice-en-untrusted changes: register it in expected-differences-rows.json with C42 (hand-merge). Test `UntrustedTranscriptRowTests` (desktop).
 check: `grep -rqE "class UntrustedTranscriptRowTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q515 [tuur] (todo) A: mockup: Export all notes as a zip (phone and Mac Settings)
+### Q515 [tuur] (done) A: mockup: Export all notes as a zip (phone and Mac Settings)
 spec: D218
 needs: -
 do: Mock the Settings row "Export all notes…" on the phone and the Mac, the progress while it builds, and the share sheet / save step, drawn from current Settings source (file:line refs), in Skrift_Native/SkriftDesktop/mocks/Q515-export-all.html, published as an Artifact. Tuur signs it off.
@@ -5398,3 +5398,4 @@ check: `grep -rqE "class ExportAllZipTests\\b" Skrift_Native/SkriftDesktop/Skrif
 - 2026-10-24 08:06 Q484 -> done
 - 2026-10-24 08:22 Q515 added
 - 2026-10-24 08:22 Q516 added
+- 2026-10-24 08:28 Q515 -> done
