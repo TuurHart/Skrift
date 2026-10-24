@@ -3728,6 +3728,19 @@ gate+: yes
 do: C42 says an untrusted `.done` phone transcript (not userEdited, confidence < 0.7) is not adopted and the Mac re-transcribes. Today (v1 and v2 alike) the gate holds only in Ingest.prepare: the fresh-row reflect then copies memo.transcript onto the row, so the untrusted words sit on the Mac row (and show in its body) until the Mac re-transcribes; golden v1-rows/voice-en-untrusted.json records it. Make the reflect honour the same trust rule (one shared predicate), leave the row's transcript empty and pending until the Mac's own ASR fills it. The v2 row golden for voice-en-untrusted changes: register it in expected-differences-rows.json with C42 (hand-merge). Test `UntrustedTranscriptRowTests` (desktop).
 check: `grep -rqE "class UntrustedTranscriptRowTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
+### Q515 [tuur] (todo) A: mockup: Export all notes as a zip (phone and Mac Settings)
+spec: D218
+needs: -
+do: Mock the Settings row "Export all notes…" on the phone and the Mac, the progress while it builds, and the share sheet / save step, drawn from current Settings source (file:line refs), in Skrift_Native/SkriftDesktop/mocks/Q515-export-all.html, published as an Artifact. Tuur signs it off.
+check: Tuur signed off the mock.
+
+### Q516 [auto] (todo) A: build Export all notes as a zip per the mock
+spec: D218 C2
+needs: Q515
+gate+: yes
+do: Per the signed-off mock: one shared exporter (Skrift_Native/Shared) compiles every note not in the trash with export v2 into the vault layout (Personal and Portfolio folders, as D189), adds each note's audio, photos and attachments beside it, zips to a temp file and opens the share sheet (phone) / save panel (Mac). Streams to disk (no whole-library in memory); shows progress; cancellable. Never touches his real vault. Test `ExportAllZipTests` (desktop, on the synthetic corpus): every live corpus note appears once with its assets, trashed notes do not.
+check: `grep -rqE "class ExportAllZipTests\\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5383,3 +5396,5 @@ check: `grep -rqE "class UntrustedTranscriptRowTests\\b" Skrift_Native/SkriftDes
 - 2026-10-24 08:04 Q432 -> done — hand-merged (Tuur said yes 2026-10-24 to deleting v1 reconcile (tag v1-reconcile); ports ~40 protected tests with the assertion changes in its report; 3 v1-export goldens re-recorded for Q514)
 - 2026-10-24 08:06 Q435 -> done
 - 2026-10-24 08:06 Q484 -> done
+- 2026-10-24 08:22 Q515 added
+- 2026-10-24 08:22 Q516 added
