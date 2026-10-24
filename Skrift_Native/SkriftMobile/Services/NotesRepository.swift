@@ -178,6 +178,16 @@ final class NotesRepository {
         return (try? context.fetch(descriptor)) ?? []
     }
 
+    /// Q519 (C196): the photo filenames this device holds for a memo, without their bytes (a
+    /// partial fetch never reads `blob`), so the publish can drop a missing picture's embed
+    /// before it decides whether to write.
+    func photoNames(forMemo id: UUID) -> Set<String> {
+        let photo = MemoAsset.Kind.photo
+        var descriptor = FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == id && $0.kind == photo })
+        descriptor.propertiesToFetch = [\.filename]
+        return Set(((try? context.fetch(descriptor)) ?? []).map(\.filename))
+    }
+
     /// The Mac's polish for a memo (the CloudKit write-back), or nil. App-level one-per-memo
     /// (reconciled by `memoID`); newest `enhancedAt` wins if two ever exist.
     func enhancement(forMemo id: UUID) -> MemoEnhancement? {

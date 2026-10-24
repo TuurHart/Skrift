@@ -144,6 +144,9 @@ struct ObsidianPublisher {
     var memoProvider: (UUID) -> Memo? = { _ in nil }
     /// The Mac's synced polish for a memo, when it exists — preferred over raw.
     var enhancementProvider: (UUID) -> MemoEnhancement? = { _ in nil }
+    /// Q519 (C196): the photo filenames this device holds, without their bytes. nil = the keys of
+    /// `photosProvider` (tests); a picture not in it loses its embed, as on the Mac and in the zip.
+    var photoNamesProvider: ((UUID) -> Set<String>)? = nil
     /// Photo blobs by filename (fetched only when a write actually happens).
     var photosProvider: (UUID) -> [String: Data] = { _ in [:] }
     /// The original audio blob (fetched only when a write actually happens).
@@ -183,6 +186,7 @@ struct ObsidianPublisher {
             peopleProvider: { NamesStore.shared.load().people },
             memoProvider: { id in NotesRepository.shared.memo(id: id) },
             enhancementProvider: { id in NotesRepository.shared.enhancement(forMemo: id) },
+            photoNamesProvider: { id in NotesRepository.shared.photoNames(forMemo: id) },
             photosProvider: { id in
                 var out: [String: Data] = [:]
                 for a in NotesRepository.shared.assets(forMemo: id) where a.kind == MemoAsset.Kind.photo {
@@ -323,8 +327,11 @@ struct ObsidianPublisher {
                 note.documentName = name
                 document = VaultAsset(name: name, source: .data(blob))
             }
+            // Q519 (C196): a picture this device does not hold drops its embed, as on the Mac.
+            let held = manifest.isEmpty ? [] : (photoNamesProvider?(memo.id) ?? Set(photosProvider(memo.id).keys))
             let out = ExportV2.compile(note,
                                        profile: profile, stem: stem,
+                                       placePicture: { source, name in held.contains(source) ? name : nil },
                                        placeAttachment: { source, preferred in
                 guard let entry = attachmentEntries.first(where: { $0.filename == source }) else { return nil }
                 attachmentPlan.append((entry, preferred))
