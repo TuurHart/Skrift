@@ -52,6 +52,9 @@ enum LaunchFlags {
     /// Open a specific root tab on launch: "notes" / "books" / "journal" /
     /// "settings" — per-tab screenshot verification of the global mini-player.
     static var openTab: String? { args.stringValue("-openTab") }
+    /// Q516: start "Export all notes…" a few seconds after Settings appears, so the Simulator can
+    /// screenshot the building row and the share sheet (with `-openTab settings`).
+    static var exportAllOnLaunch: Bool { args.boolFlag("-exportAllOnLaunch") }
     /// Seed a synthetic audiobook (generated silent audio) + open it as a PAUSED
     /// session, so the GLOBAL mini-player capsule exists in the Simulator — the
     /// capsule was un-screenshotable before this (a real book is device-only),

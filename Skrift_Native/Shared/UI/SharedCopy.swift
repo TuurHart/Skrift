@@ -149,6 +149,13 @@ enum SharedCopy {
     static let syncWhatSyncs = "Your notes, names, custom words, language, destinations and polish prompts sync across your devices via iCloud."
     /// Only the Mac said this; every device needs it.
     static let syncSameAccount = "Every device needs to be signed into the same iCloud account."
+    /// D218 (Q516, mock Q515): "Export all notes…" on both apps' Settings.
+    static let exportAllLabel = "Export all notes"
+    static let exportAllBuilding = "Building zip…"
+    static let exportAllContents = "zip of every note not in the trash, with its audio, photos and attachments."
+    /// The phone's iCloud footer sentence; the Mac row's line under it.
+    static let exportAllHelp = "\(exportAllLabel) makes one \(exportAllContents)"
+    static let exportAllRowHelp = "One \(exportAllContents) Your vault isn't touched."
     /// Q327 (D182): the signed-out wording, once for both apps. The Mac's Settings row and list
     /// capsule read it today; the phone's iCloud row and list take the same two when it gains the check.
     static let syncSignedOutRow = "Not signed in"
