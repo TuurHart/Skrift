@@ -478,7 +478,7 @@ needs: Q56
 do: Q56 made BodyTextView restyle only the edited paragraph and debounce the full pass 1 s, so typing inside a heading or link shows plain styling for up to 1 s (never rendered on screen). Install Skrift Dev on the Mac from the session branch (build → pkill → ditto to /Applications/Skrift Dev.app → open), type in a long note inside a heading and a link. If the flash bothers him: keep the edited paragraph's heading/link styling live. ALSO (speed sweep 2, plan/perf2/f-mac-ui.md M6b, static read): type in a long note, then within 1 s drag the sidebar or resize the window — does any just-typed text disappear?
 Also, in the same Dev window: does the sidebar's left edge cut the first letter of every row and day header ("ODAY", "AT 19 SEP")? The headless snapshot always shows it (Q35, Q37, Q65); a real window has never been checked.
 check: On the Mac, type a heading and a link in a note. Does the brief flash while typing feel fine, or should it go?
-ask: On the Mac, type a heading and a link in a note. The styling can lag up to a second behind your typing. Does that bother you? Also: right after typing, drag the sidebar or resize the window. Do any letters you just typed disappear?
+ask: On the Mac, type a heading and a link in a note. The styling can lag up to a second behind your typing. Does that bother you? Right after typing, drag the sidebar or resize the window: do any letters you just typed disappear? And does the sidebar cut off the first letter of its rows ("ODAY" instead of "TODAY")?
 
 ### Q64 [tuur] (done) iPhone 17 Pro: quick note full screen, ✎ opens a new note, toolbar stays
 spec: C112 C114
@@ -2732,7 +2732,7 @@ spec: D186 C282
 needs: Q366
 do: -
 check: Phone and Mac flows re-recorded with `plan/perf2/tools/`; no D186 budget missed, or Tuur waved the miss.
-ask: On the Dev build with the perf library, record the 7-minute flow on the iPhone 17 Pro and a short Mac flow in Instruments; I read them with flow.py.
+ask: Speed check before the update: on the phone, use Skrift normally for about 7 minutes (record, open notes, search, scroll) while I record it with Instruments on the Mac, then do a short session on the Mac. I set it up, you just use the app.
 
 ### Q370 [tuur] (todo) update the real Skrift on the phone (and Mac) once Dev checks pass — no public release (D201)
 spec: -
@@ -3650,6 +3650,7 @@ spec: C291 D-A0
 needs: Q495
 do: -
 check: Tuur picked: (a) keep Q495 as built: adding an ePub to a book that is still being transcribed is blocked with "Add it now, it matches up on its own once the book is transcribed" shown only before the job starts; or (b) restore the signed audiobook A0 promise (add any time, the text waits and matches up after transcription) and drop C291. His answer lands in SPEC Decisions.
+ask: When you add an ePub to an audiobook that is still being transcribed, should Skrift (a) refuse until the transcript is done, as it does now, or (b) take it straight away and match the text up once the transcript is ready, as the mock you signed promised?
 
 ### Q504 [auto] (done) A: an appended block also turns spoken hashtags into tags
 spec: C275 C152
@@ -3767,6 +3768,13 @@ spec: -
 needs: -
 do: MemoLinkTests.testInsertMemoLinkReplacesTheTypedTrigger (SkriftMobileTests/NoteBodyTests.swift:294) fails on cde84537: after typing `[[` and picking a note, the transcript is `Hello [[memo:<id>|Harbor]]` without the trailing space the picker inserts, so the next word he types runs into the link. Found by lane C during Q437; fails without Q437. Find where the space is lost (NoteBodyView.Coordinator.insertMemoLink or the commit path trimming the body) and fix the editor, not the test.
 check: `plan/mtest.sh MemoLinkTests`
+
+### Q521 [tuur] (todo) phone: does a note ever open empty (no words, player at 0:00/0:00)?
+spec: BUGS.md "A note opened with no text" (FeedbackKit d2ae60e2, d1c33c07)
+needs: -
+do: On Dev 195 on the iPhone 17 Pro: force-quit Skrift, reopen, tap the top note of the list; repeat a few times, also right after a new recording syncs. On an empty open, pull `Documents/devlog.txt` with devicectl and diagnose; no note text read.
+check: Tuur opened the top note several times from a fresh start and it always showed its words, or the devlog of an empty open is pulled.
+ask: On the phone, swipe Skrift closed, open it again and tap the top note. Repeat a few times. Does a note ever open with no words and the player at 0:00? If it does, say which note and when.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5441,3 +5449,4 @@ check: `plan/mtest.sh MemoLinkTests`
 - 2026-10-24 14:57 Q520 added
 - 2026-10-24 15:07 Q520 -> done — hand-merged (C19: stored body ends trimmed; test aligned to the spec, editor unchanged)
 - 2026-10-25 08:15 Q443 -> done — 2026-10-25: Tuur imported + deployed the merged schema (12 record types) to iCloud.com.skrift.mobile; Production export matches it field for field
+- 2026-10-25 08:23 Q521 added
