@@ -3233,7 +3233,7 @@ needs: Q408
 do: The phone test `Skrift_Native/SkriftMobile/SkriftMobileTests/NoteBodyTests.swift` `testClearingBodyCommitsNilTranscript` asserts the old behaviour C261 forbids (clearing the body commits a nil transcript). Q408's worker proposes `XCTAssertEqual(coordinator.memo.transcript, "hello world")` instead. That changes an assertion on live behaviour, which D163 does not cover, so it needs his yes; then the conductor applies it with `plan/hand-merge.sh`. Until then `plan/mtest.sh NoteBodyTests` is red (exit 65). Same sitting, same kind: `AudioShareDrainTests.testTextFileBecomesNoteBody` (phone) still expects a shared `.md` to become a `.text` capture, but D171/Q286 made it a typed note; it has been red since Q286 (found by Q414). Flip it to the typed-note shape on the same yes.
 check: Tuur said yes and `plan/mtest.sh NoteBodyTests` and `plan/mtest.sh AudioShareDrainTests` exit 0.
 
-### Q443 [tuur] (tuur) deploy the CloudKit prod schema for VocabularyRecord.wordLedger (Q410) before Q370
+### Q443 [tuur] (done) deploy the CloudKit prod schema for VocabularyRecord.wordLedger (Q410) before Q370
 spec: D201
 needs: Q410
 do: Q410 added the synced field `VocabularyRecord.wordLedger`. Before the production update, run a Dev build once so the field exists in CloudKit Development, then in the CloudKit Console deploy the Development schema to Production (same step as Q298; see plan/release/RELEASE.md). Without it the prod apps cannot save the carrier.
@@ -5440,3 +5440,4 @@ check: `plan/mtest.sh MemoLinkTests`
 - 2026-10-24 14:55 Q437 -> done — hand-merged (Tuur yes 2026-10-24: delete v1 export; protected test assertion changes approved; re-merged d1dd11a9)
 - 2026-10-24 14:57 Q520 added
 - 2026-10-24 15:07 Q520 -> done — hand-merged (C19: stored body ends trimmed; test aligned to the spec, editor unchanged)
+- 2026-10-25 08:15 Q443 -> done — 2026-10-25: Tuur imported + deployed the merged schema (12 record types) to iCloud.com.skrift.mobile; Production export matches it field for field
