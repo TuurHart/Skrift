@@ -3783,7 +3783,7 @@ gate+: yes
 do: Undo Q495's block: adding an ePub to a book whose whole-book transcription is still running is accepted; the ePub is stored and the text-to-audio matching runs once the transcript finishes (the signed audiobook A0 mock). Rewrite `EpubUploadGuardTests` to assert acceptance and that matching is queued behind the job. Bug fix under the D220 freeze: the built behaviour broke a signed mock.
 check: `plan/mtest.sh EpubUploadGuardTests`
 
-### Q523 [auto] (doing) phone: a person added from an open note turns their name purple at once, without leaving the note
+### Q523 [auto] (done) phone: a person added from an open note turns their name purple at once, without leaving the note
 spec: BUGS.md "A newly added person's name only turns purple after leaving the note"
 needs: -
 gate+: yes
@@ -5510,3 +5510,4 @@ check: a phone test asserts the ⋯ menu has no Add recording on a compact-width
 - 2026-10-26 20:15 Q526 -> tuur — comparison done (RUN.md), no code change; suspect = embedder ANE contention; device log with Tuur next
 - 2026-10-26 20:31 Q525 -> done — gate 133s @606fbfb0
 - 2026-10-26 20:32 Q527 -> done — gate 76s @0a0e60dd
+- 2026-10-26 20:34 Q523 -> done — gate 93s @0fb9067e
