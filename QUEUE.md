@@ -3779,18 +3779,21 @@ ask: On the phone, swipe Skrift closed, open it again and tap the top note. Repe
 ### Q522 [auto] (todo) C: an ePub added while the book transcribes is accepted and matches up afterwards (D221, replaces C291)
 spec: D221 (amends C291)
 needs: Q495
+gate+: yes
 do: Undo Q495's block: adding an ePub to a book whose whole-book transcription is still running is accepted; the ePub is stored and the text-to-audio matching runs once the transcript finishes (the signed audiobook A0 mock). Rewrite `EpubUploadGuardTests` to assert acceptance and that matching is queued behind the job. Bug fix under the D220 freeze: the built behaviour broke a signed mock.
 check: `plan/mtest.sh EpubUploadGuardTests`
 
 ### Q523 [auto] (todo) phone: a person added from an open note turns their name purple at once, without leaving the note
 spec: BUGS.md "A newly added person's name only turns purple after leaving the note"
 needs: -
+gate+: yes
 do: Tuur 2026-10-26 on Dev 195: from an open note he added "testing" as a person; the word stayed plain until he opened the feedback sheet and came back. The open note's name highlighting must refresh when the names list changes (the phone links names at display time). Phone test: adding a person while a note is open re-renders the body with that name linked.
 check: a phone unit test named for the refresh passes under `plan/mtest.sh`
 
 ### Q524 [auto] (todo) Mac: names show linked (purple) in unrated notes too, like the phone
 spec: BUGS.md (Tuur 2026-10-26: "I don't think that should be the case")
 needs: -
+gate+: yes
 do: On the Mac a name is linked only in PipelineFile.sanitised (PipelineFile.swift:471 relinkNames), and only a rated note gets a Mac row, so an unrated note shows his raw words with no purple names while the phone shows them linked. Confirm from the code first, then link names for display on every note the Mac shows, rated or not, from the same shared linker the phone uses (no copy). Display only: it must not create a Mac row or start processing for an unrated note.
 check: a Mac unit test: an unrated synced note with a known person renders that name linked, and no PipelineFile is created
 
@@ -3803,12 +3806,13 @@ check: snapshot PNGs of Mac Settings, light and dark, read clearly
 ### Q526 [auto] (todo) measure transcription start-up vs Glot (both Parakeet) and close the gap
 spec: BUGS.md "Transcription takes much longer to start than in Glot"
 needs: -
-do: Tuur 2026-10-26 on Dev 195: a fresh recording took much longer to start transcribing than in Glot (/Users/tiurihartog/Hackerman/glot-study); both run Parakeet via FluidAudio. Read how each app loads and warms the model (when, which model variant, compute units, cached compiled model or not) and write the difference to plan/RUN.md before changing anything. Fix only what the comparison shows; measure record-stop to first words on the iPhone 17 Pro Dev build before and after (devlog timestamps).
-check: devlog timings before and after, in RUN.md
+do: Tuur 2026-10-26 on Dev 195: a fresh recording took much longer to start transcribing than in Glot (/Users/tiurihartog/Hackerman/glot-study); both run Parakeet via FluidAudio. Read how each app loads and warms the model (when, which model and version, compute units, compiled-model cache, pre-warm at launch or at record-stop) and report the differences with file:line on both sides. Fix only a difference the reading proves (e.g. Skrift loads at record-stop where Glot pre-warms at launch); no device runs, the record-stop-to-first-words timing on the iPhone 17 Pro is measured afterwards with Tuur.
+check: the comparison with file:line on both apps is in the report; any fix builds and its targeted test passes
 
 ### Q527 [auto] (todo) phone: Add recording appears once per note — the + button; the ⋯ entry only where the + isn't shown
 spec: BUGS.md "Two ways to add a recording to an open note"
 needs: -
+gate+: yes
 do: Tuur 2026-10-26: two ways to add a recording is "not good"; keep the + button ("I like being able to just talk more into it"). On the phone remove "Add recording" from the note's ⋯ menu (MemoDetailView.swift:191 and :601) wherever the + button shows (MemoDetailView.swift:509 condition: compact width, not a pending draft, not a share capture). Keep the ⋯ entry where no + shows (iPad regular width), so every note still has exactly one way in. Update BUGS.md (tick the item).
 check: a phone test asserts the ⋯ menu has no Add recording on a compact-width saved note and still has it at regular width; `plan/mtest.sh` passes it
 
