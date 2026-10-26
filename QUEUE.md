@@ -3790,7 +3790,7 @@ gate+: yes
 do: Tuur 2026-10-26 on Dev 195: from an open note he added "testing" as a person; the word stayed plain until he opened the feedback sheet and came back. The open note's name highlighting must refresh when the names list changes (the phone links names at display time). Phone test: adding a person while a note is open re-renders the body with that name linked.
 check: a phone unit test named for the refresh passes under `plan/mtest.sh`
 
-### Q524 [auto] (doing) Mac: names show linked (purple) in unrated notes too, like the phone
+### Q524 [auto] (done) Mac: names show linked (purple) in unrated notes too, like the phone
 spec: BUGS.md (Tuur 2026-10-26: "I don't think that should be the case")
 needs: -
 gate+: yes
@@ -5512,3 +5512,4 @@ check: a phone test asserts the ⋯ menu has no Add recording on a compact-width
 - 2026-10-26 20:32 Q527 -> done — gate 76s @0a0e60dd
 - 2026-10-26 20:34 Q523 -> done — gate 93s @0fb9067e
 - 2026-10-26 20:39 Q522 -> done — hand-merged (Tuur D221 (2026-10-26) drops C291: EpubUploadGuardTests rewritten to acceptance, its one-sentence test removed with the sentence)
+- 2026-10-26 21:22 Q524 -> done — gate 2396s @4119a13a
