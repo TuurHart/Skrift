@@ -3797,7 +3797,7 @@ gate+: yes
 do: On the Mac a name is linked only in PipelineFile.sanitised (PipelineFile.swift:471 relinkNames), and only a rated note gets a Mac row, so an unrated note shows his raw words with no purple names while the phone shows them linked. Confirm from the code first, then link names for display on every note the Mac shows, rated or not, from the same shared linker the phone uses (no copy). Display only: it must not create a Mac row or start processing for an unrated note.
 check: a Mac unit test: an unrated synced note with a known person renders that name linked, and no PipelineFile is created
 
-### Q525 [auto] (doing) Mac Settings text readable: no light-grey body text
+### Q525 [auto] (done) Mac Settings text readable: no light-grey body text
 spec: BUGS.md "Mac Settings text is light grey and hard to read"
 needs: -
 do: Tuur 2026-10-26: the Mac Settings text is light grey and hard to read; the phone's Settings read fine. Bring the Mac Settings body text to the primary text colour (footers may stay secondary but must meet WCAG AA contrast on the Settings background). Headless -snapshot of Settings in light and dark, LOOK.
@@ -5508,3 +5508,4 @@ check: a phone test asserts the ⋯ menu has no Add recording on a compact-width
 - 2026-10-26 20:11 Q526 -> doing — worker out
 - 2026-10-26 20:11 Q527 -> doing — worker out
 - 2026-10-26 20:15 Q526 -> tuur — comparison done (RUN.md), no code change; suspect = embedder ANE contention; device log with Tuur next
+- 2026-10-26 20:31 Q525 -> done — gate 133s @606fbfb0
