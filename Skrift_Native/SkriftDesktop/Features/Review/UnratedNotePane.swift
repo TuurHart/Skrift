@@ -49,6 +49,14 @@ struct UnratedNotePane: View {
                     // models are Observable, so each fires only on an actual change.
                     .onChange(of: projection.enhancedTitle) { commit() }
                     .onChange(of: projection.transcript) { commit() }
+                    // Q524: names show linked, so a body edit lands in `sanitised`; the memo
+                    // keeps the RAW words, so carry it over de-linked (then `commit` runs).
+                    .onChange(of: projection.sanitised) {
+                        guard let raw = MemoNoteProjection.rawTranscript(
+                            ofLinked: projection, people: NamesStore.shared.livePeople()),
+                              raw != projection.transcript else { return }
+                        projection.transcript = raw
+                    }
                     .onChange(of: projection.tags) { commit() }
                     .onChange(of: projection.significance) { _, new in
                         commit()
@@ -102,6 +110,8 @@ struct UnratedNotePane: View {
         }
         memo = found
         let pf = MemoNoteProjection.file(for: found)
+        // Q524: names linked for display, like the phone. Display only, nothing is queued.
+        MemoNoteProjection.linkNames(pf, memo: found, people: NamesStore.shared.livePeople())
         // Audio, photos and word timings out of the synced blobs — an unrated note
         // plays, shows its pictures and reads along like any other note. Everything
         // it needs already synced; only the files were missing.

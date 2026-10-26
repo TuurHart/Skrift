@@ -81,6 +81,38 @@ enum MemoNoteProjection {
         return pf
     }
 
+    /// Q524: show the projection's names linked (purple), as the phone does for the same note.
+    /// DISPLAY ONLY: the shared linker (`CompilerInput.linkBody`, the one the phone's export and the
+    /// Mac's pipeline use) fills the projection's `sanitised`; the memo is never written, no
+    /// `PipelineFile` is inserted, nothing is queued. The memo's own name decisions ride along.
+    /// A note the linker leaves unchanged keeps `sanitised` nil, so its edits still land on
+    /// `transcript` as before. Returns true when the body now shows links.
+    @discardableResult
+    static func linkNames(_ pf: PipelineFile, memo: Memo, people: [Person]) -> Bool {
+        let resolutions = memo.nameResolutions
+        pf.nameResolutions = resolutions
+        let raw = pf.transcript ?? ""
+        let linked = CompilerInput.linkBody(raw, source: pf.noteSource, people: people, resolutions: resolutions)
+        guard linked != raw else { return false }
+        pf.sanitised = linked
+        return true
+    }
+
+    /// The other direction, for an edit made in the linked body: the memo's RAW transcript is the
+    /// linked body un-linked back to each person's spoken word (the phone never carries `sanitised`).
+    /// nil when there is nothing to carry over: the projection shows no links, OR `sanitised` is
+    /// exactly what the linker makes of the current transcript (the load, a roster re-link). Only
+    /// a body the linker would NOT have produced is a real edit, so merely opening a note can
+    /// never rewrite the synced memo, even where un-linking is not byte-identical (an alias
+    /// linked as the full name, his own `[[word]]`, spacing, case).
+    static func rawTranscript(ofLinked pf: PipelineFile, people: [Person]) -> String? {
+        guard let shown = pf.sanitised else { return nil }
+        let derived = CompilerInput.linkBody(pf.transcript ?? "", source: pf.noteSource,
+                                             people: people, resolutions: pf.nameResolutions)
+        guard shown != derived else { return nil }
+        return Sanitiser.unlinkToSpoken(shown, people: people)
+    }
+
     /// Give the projection its MEDIA, so an unrated note plays, shows its photos and
     /// karaokes like any other note.
     ///
