@@ -942,7 +942,7 @@ Audiobooks, locks, reminders, export:
   plan/sources.md #40
 - C290 [auto] A long ePub/book import shows real progress and states whether listening
   can continue during the import. || check: `BookImportProgressTests`. — plan/sources.md #41
-- C291 [auto] ePub upload is blocked, with a clear message, while the same book's
+- C291 [auto] ~~ePub upload is blocked~~ DROPPED by D221 (accepted, matched later); was: ePub upload is blocked, with a clear message, while the same book's
   transcription is still running. || check: a guard test asserts the upload path checks
   the transcription job state. — plan/sources.md #42
 - C292 [auto] The model-download completeness check verifies the actual download by byte
@@ -2031,3 +2031,4 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 218. **D218 Account switch: Mac copies, phone says sign back in; Export all as a zip.** 2026-10-24, Tuur on lane B's finding that iOS wipes the app's CloudKit-mirrored store on an iCloud sign-out or account switch (Apple: by design): the Mac offers "Copy these notes to this account" (it keeps its own rows); the phone says the notes are in the iCloud account used before and to sign back in. No launch-time account check ("seems like a faff"). Instead, for his own control: "Export all notes…" on phone and Mac builds one zip of every note not in the trash (markdown in the vault layout, with its audio, photos and attachments) and opens the share sheet.
 219. **D219 Export all mock signed off; locked notes included.** 2026-10-24, Tuur on the Q515 mock ("mockup looks good. yes include locked notes"): build as drawn (Skrift_Native/SkriftDesktop/mocks/Q515-export-all.html): the row sits under iCloud sync on both apps; the zip includes locked notes (a lock hides, it does not encrypt, C213; the vault still excludes them, C161).
 220. **D220 Feature freeze until the real apps are updated.** 2026-10-26, Tuur ("deal. freeze features"): no new features until the prod update (Q370) is done and he uses Skrift for real. Order: he checks what is built on Dev and answers the feedback-sheet questions; then the TestFlight phone + Mac update and a Production iCloud sync check; then he moves his Apple Notes into Skrift and exports everything to Obsidian. Until then work is bug fixes, those checks and the release steps only; new ideas (e.g. podcast ad skipping) wait in BUGS.md / the feedback inbox.
+221. **D221 An ePub can be added while the book transcribes.** 2026-10-26, Tuur on Q503 ("take it straight away and match the text up later … for sure"): the signed audiobook A0 promise stands; the ePub is accepted at any time and matches up once the transcript is done. C291 (block the upload) is dropped (Q522).

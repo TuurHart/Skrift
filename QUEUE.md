@@ -2267,7 +2267,7 @@ spec: -
 needs: -
 do: With Dev 190 on the iPhone 17 Pro and the Mac (Q407): on the phone add a custom word, add a person, change one polish instruction, then delete a note; check the Mac a minute after each.
 check: On Skrift Dev Mac: add a custom word, a person and edit a polish prompt on the phone. Do all three arrive on the Mac, and does a note you delete on the phone disappear from the Mac?
-ask: On the phone, add a custom word, add a person, and change one polish instruction. Do all three show up on the Mac a minute later? Then delete a note on the phone. Does it disappear from the Mac too?
+ask: On the phone, add a custom word (Settings > Capture > Custom words). Does it show up on the Mac a minute later? Then delete a note on the phone. Does it disappear from the Mac too? (People already passed on 26 Oct.)
 
 ### Q303 [auto] (done) Mac -snapshot modes never read the live Dev store
 spec: -
@@ -2325,7 +2325,7 @@ gate+: yes
 do: It fails intermittently on the iPhone 17 sim (Vision OCR returns text: nil within the 10 s poll on a freshly erased or loaded simulator) — RUN.md Q13 finding; it blocked Q219's accept on 2026-10-04 though Q219 touched no OCR code. Make the test deterministic: inject a fake OCR recogniser for the save->searchable contract (the real Vision call belongs in a separate, tolerant test), or wait on the index notification instead of a fixed 10 s poll. This edits a protected test: report 'needs hand-merge' with the exact diff; do not weaken what the test proves (a saved photo's text is searchable without relaunch). Never run SkriftDesktopUITests.
 check: `perl -e 'alarm 1500; exec @ARGV' plan/mtest.sh MemoSaverTests && ./gate.sh`
 
-### Q311 [tuur] (tuur) On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
+### Q311 [tuur] (done) On the phone (Dev 177+): open a voice note, add a recording to it, then play across the join. Does the audio continue cleanly with no silent tail, and do the karaoke words stay in time after the join?
 spec: -
 needs: Q453
 do: On the iPhone 17 Pro (Dev 190, Q407): open a voice note, ⋯ > Add recording, say a sentence, stop; play from a few seconds before the join.
@@ -3645,7 +3645,7 @@ gate+: yes
 do: Found by Q493: ZIPFoundation's closure-based extract RETURNS the CRC and never compares it, so a corrupt .skriftbook or ePub entry unpacks silently. Every unzip in the app (BookBundle.unpack, the ePub reader, the Mac -aligncheck harness, any other ZIPFoundation `Archive` use: grep for `Archive(`) checks `crc == entry.checksum` and treats a mismatch as a failed import with an honest message (C75 style), never a partial unpack. One shared helper. Test `ZipCRCTests` (phone target) with a generated archive whose entry bytes were flipped.
 check: `plan/mtest.sh ZipCRCTests`
 
-### Q503 [tuur] (tuur) decide: ePub add while the book transcribes — blocked (C291, built) or waits (signed A0 mock)?
+### Q503 [tuur] (done) decide: ePub add while the book transcribes — blocked (C291, built) or waits (signed A0 mock)?
 spec: C291 D-A0
 needs: Q495
 do: -
@@ -3769,12 +3769,18 @@ needs: -
 do: MemoLinkTests.testInsertMemoLinkReplacesTheTypedTrigger (SkriftMobileTests/NoteBodyTests.swift:294) fails on cde84537: after typing `[[` and picking a note, the transcript is `Hello [[memo:<id>|Harbor]]` without the trailing space the picker inserts, so the next word he types runs into the link. Found by lane C during Q437; fails without Q437. Find where the space is lost (NoteBodyView.Coordinator.insertMemoLink or the commit path trimming the body) and fix the editor, not the test.
 check: `plan/mtest.sh MemoLinkTests`
 
-### Q521 [tuur] (todo) phone: does a note ever open empty (no words, player at 0:00/0:00)?
+### Q521 [tuur] (done) phone: does a note ever open empty (no words, player at 0:00/0:00)?
 spec: BUGS.md "A note opened with no text" (FeedbackKit d2ae60e2, d1c33c07)
 needs: -
 do: On Dev 195 on the iPhone 17 Pro: force-quit Skrift, reopen, tap the top note of the list; repeat a few times, also right after a new recording syncs. On an empty open, pull `Documents/devlog.txt` with devicectl and diagnose; no note text read.
 check: Tuur opened the top note several times from a fresh start and it always showed its words, or the devlog of an empty open is pulled.
 ask: On the phone, swipe Skrift closed, open it again and tap the top note. Repeat a few times. Does a note ever open with no words and the player at 0:00? If it does, say which note and when.
+
+### Q522 [auto] (todo) C: an ePub added while the book transcribes is accepted and matches up afterwards (D221, replaces C291)
+spec: D221 (amends C291)
+needs: Q495
+do: Undo Q495's block: adding an ePub to a book whose whole-book transcription is still running is accepted; the ePub is stored and the text-to-audio matching runs once the transcript finishes (the signed audiobook A0 mock). Rewrite `EpubUploadGuardTests` to assert acceptance and that matching is queued behind the job. Bug fix under the D220 freeze: the built behaviour broke a signed mock.
+check: `plan/mtest.sh EpubUploadGuardTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5450,3 +5456,7 @@ ask: On the phone, swipe Skrift closed, open it again and tap the top note. Repe
 - 2026-10-24 15:07 Q520 -> done — hand-merged (C19: stored body ends trimmed; test aligned to the spec, editor unchanged)
 - 2026-10-25 08:15 Q443 -> done — 2026-10-25: Tuur imported + deployed the merged schema (12 record types) to iCloud.com.skrift.mobile; Production export matches it field for field
 - 2026-10-25 08:23 Q521 added
+- 2026-10-26 19:41 Q522 added
+- 2026-10-26 19:43 Q521 -> done — Tuur 2026-10-26 on Dev 195: four fresh opens + one after a new recording, all showed text
+- 2026-10-26 19:43 Q311 -> done — Tuur 2026-10-26 on Dev 195: plays across the join with no gap, highlighting stays in time
+- 2026-10-26 19:43 Q503 -> done — Tuur picked (b), D221; built as Q522

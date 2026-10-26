@@ -291,7 +291,7 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 
 ## 3. Reported on device, not yet diagnosed
 
-- [ ] **A note opened with no text** (Tuur 2026-10-15, FeedbackKit `d2ae60e2` + `d1c33c07`, phone
+- [x] **A note opened with no text** — NOT reproduced on Dev 195 (Tuur 2026-10-26: four fresh opens of the top note and one right after a new recording all showed text; Q521). Reopen if it recurs. (Tuur 2026-10-15, FeedbackKit `d2ae60e2` + `d1c33c07`, phone
       0.2.0): tapping the top note of the list opened an empty body with the player at 0:00/0:00, no
       words. Diagnose on Dev 194 first (the open path was rewritten since); no data read.
 - [ ] **Picture size small/large does the wrong thing** (Tuur 2026-10-23, FeedbackKit `cc368874`):
@@ -337,6 +337,21 @@ These need a device round or a log pull before they can be fixed.
 - [ ] **Skrift Dev crashed a few times at random spots** (build 53, mixed usage). Never diagnosed.
       Pull crash logs with `idevicecrashreport` per the pull-phone-feedback skill. Builds 45–53 span
       the recording, books and P8 work, so the lane is unknown.
+
+- [ ] **Two bars while editing a note** (Tuur 2026-10-26, FeedbackKit `9343f168`, Dev 195): the
+      top bar (undo, redo, ⋯, Done) plus a second bar above the keyboard. Decide whether one goes.
+- [ ] **Two ways to add a recording to an open note** (Tuur 2026-10-26, Dev 195): the + button
+      (MemoDetailView.swift:509, Q451) and ⋯ > Add recording do the same thing. Decide whether one goes.
+- [ ] **A newly added person's name only turns purple after leaving the note** (Tuur 2026-10-26,
+      Dev 195): added "testing" as a person from an open note; the word stayed plain until he opened
+      the feedback sheet and came back.
+- [ ] **Mac Settings text is light grey and hard to read** (Tuur 2026-10-26); the phone's Settings
+      read fine.
+- [ ] **Transcription takes much longer to start than in Glot** (Tuur 2026-10-26, Dev 195, a fresh
+      recording); both run Parakeet. Measure cold-start to first words on both apps first.
+- [ ] **Saving Beauty (Byung-Chul Han): the book transcript misses large parts** (Tuur 2026-10-26,
+      on the real Skrift, the August build). Recheck after the prod update; he reports it via
+      the feedback button if it persists.
 
 - [ ] **The app feels slow next to other apps** (Tuur, 2026-08-18) at under 200 notes, so not data
       volume. Step 0 is a Time Profiler run on the **prod** build — busy main thread or blocked? The
