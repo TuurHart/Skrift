@@ -50,6 +50,9 @@ struct NoteBodyView: UIViewRepresentable {
     let memo: Memo
     @ObservedObject var player: AudioPlayerModel   // rare state (isPlaying/duration); ticks stay in the coordinator
     var nameSpans: [NameSpan] = []
+    /// Bumped by the page when the names list or a link choice changed (Q523): restyle the
+    /// spans now, even over a live selection or while the keyboard is up.
+    var spansRestyleToken = 0
     var onTapName: (NameSpan) -> Void = { _ in }
     /// The text menu's "New person…" (D184): the trimmed selection to prefill the person editor.
     var onNewPersonFromSelection: (String) -> Void = { _ in }
@@ -193,11 +196,8 @@ struct NoteBodyView: UIViewRepresentable {
         // interactive keyboard dismiss, and a full-document restyle per re-eval
         // reflows the text under the visible selection handles (device round 1:
         // "markers follow the viewport"). Styling lands at the next end-editing.
-        if !tv.isFirstResponder && tv.selectedRange.length == 0 && mode == .editing {
-            c.updateSpans(nameSpans)
-        } else {
-            c.nameSpans = nameSpans
-        }
+        c.receiveSpans(nameSpans, restyleToken: spansRestyleToken,
+                       quiet: !tv.isFirstResponder && tv.selectedRange.length == 0 && mode == .editing)
     }
 
     static func dismantleUIView(_ uiView: NoteBodyTextView, coordinator: Coordinator) {
@@ -540,6 +540,25 @@ struct NoteBodyView: UIViewRepresentable {
         }
 
         // MARK: name tiers (styling + hit-test)
+
+        private var lastRestyleToken = 0
+
+        /// The page's spans for this render. A names change (`restyleToken` moved — a person
+        /// added from the open note, a roster sync) restyles at once: the user just acted, and
+        /// the old path stored the spans unstyled while he still held a selection or the
+        /// keyboard, so the new name stayed plain until the note was left (Q523). Any other
+        /// span change keeps the quiet rule.
+        func receiveSpans(_ spans: [NameSpan], restyleToken: Int, quiet: Bool) {
+            if restyleToken != lastRestyleToken {
+                lastRestyleToken = restyleToken
+                nameSpans = spans
+                applyTierStyling()
+            } else if quiet {
+                updateSpans(spans)
+            } else {
+                nameSpans = spans
+            }
+        }
 
         func updateSpans(_ spans: [NameSpan]) {
             // Unchanged spans = nothing to restyle. Without this, every SwiftUI

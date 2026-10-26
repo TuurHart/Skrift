@@ -81,6 +81,8 @@ struct MemoPageView: View {
     /// computed property that re-ran the full Sanitiser scan 2–3× per body eval —
     /// per keystroke — note-editing study 2026-07-06.)
     @State var spans: [NameSpan] = []
+    /// Moves when a names change re-derived the spans, so the body restyles at once (Q523).
+    @State var spansRestyleToken = 0
     /// Photo-at-caret (accessory 📷): the page presents the picker, the proxy
     /// hands the image to the live editor coordinator.
     @State var bodyProxy = NoteBodyProxy()
@@ -221,11 +223,11 @@ struct MemoPageView: View {
                         repository.save()
                     }
                     people = NamesStore.shared.livePeople()
-                    recomputeSpans()
+                    recomputeSpans(restyleNow: true)
                 },
                 onDeleted: {
                     people = NamesStore.shared.livePeople()
-                    recomputeSpans()
+                    recomputeSpans(restyleNow: true)
                 }
             )
         }
@@ -264,7 +266,7 @@ struct MemoPageView: View {
         .onReceive(NotificationCenter.default.publisher(for: .namesDidChangeFromSync)
             .receive(on: RunLoop.main)) { _ in
             people = NamesStore.shared.livePeople()
-            recomputeSpans()
+            recomputeSpans(restyleNow: true)
         }
     }
 
@@ -461,6 +463,7 @@ struct MemoPageView: View {
                 memo: memo,
                 player: player,
                 nameSpans: spans,
+                spansRestyleToken: spansRestyleToken,
                 onTapName: { resolveTarget = NameResolveTarget(span: $0) },
                 onNewPersonFromSelection: { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: $0) },
                 polishedBinding: isInlineImageCapture ? captureAnnotationBinding : polishedBinding,
@@ -1014,10 +1017,13 @@ struct MemoPageView: View {
     /// Re-derive the name tiers off-main (pure Sanitiser scan). Ordinary voice
     /// memos only — captures show a quote block, conversations route to
     /// SpeakerTurnsView.
-    func recomputeSpans() {
+    /// `restyleNow`: a names change (person added / deleted / synced), not typing — the body
+    /// restyles at once even with a selection or the keyboard up (Q523).
+    func recomputeSpans(restyleNow: Bool = false) {
         guard !people.isEmpty, !memo.isShareCapture, memo.captureQuote == nil,
               SpeakerTranscript.parse(memo.transcript) == nil else {
             spans = []
+            if restyleNow { spansRestyleToken += 1 }
             return
         }
         let text = activeBodyText
@@ -1027,7 +1033,10 @@ struct MemoPageView: View {
         Task.detached(priority: .userInitiated) {
             let result = Sanitiser.nameSpans(inRaw: text, people: roster,
                                              neverLink: never, namePicks: picks)
-            await MainActor.run { spans = result }
+            await MainActor.run {
+                spans = result
+                if restyleNow { spansRestyleToken += 1 }
+            }
         }
     }
 
@@ -1289,24 +1298,24 @@ struct MemoPageView: View {
 
     func applyLink(_ alias: String, to canonical: String) {
         memo.linkName(alias: alias, to: canonical); repository.save()
-        recomputeSpans()
+        recomputeSpans(restyleNow: true)
     }
     func applyKeepPlain(_ alias: String) {
         memo.keepNamePlain(alias: alias); repository.save()
-        recomputeSpans()
+        recomputeSpans(restyleNow: true)
     }
     /// Unlink a LINKED name → plain, with a reversible Undo toast restoring the exact
     /// prior resolutions (the pick / auto-link), not just the default tier.
     func applyUnlink(_ span: NameSpan) {
         let prior = memo.nameResolutions
         memo.keepNamePlain(alias: span.alias); repository.save()
-        recomputeSpans()
+        recomputeSpans(restyleNow: true)
         let alias = span.alias
         withAnimation(Theme.Motion.spring) {
             undoToast = NameUndoToast(message: "Unlinked — “\(alias)” is plain text here") {
                 memo.nameResolutions = prior
                 memo.markEdited(stampWords: false); repository.save()   // nameResolutions (C98)
-                recomputeSpans()
+                recomputeSpans(restyleNow: true)
                 withAnimation(Theme.Motion.spring) { undoToast = nil }
             }
         }
@@ -1457,7 +1466,7 @@ struct MemoPageView: View {
         if chip.linked { memo.keepNamePlain(alias: chip.alias) }
         else { memo.linkName(alias: chip.alias, to: chip.canonical) }
         repository.save()
-        recomputeSpans()
+        recomputeSpans(restyleNow: true)
     }
 
     struct MetaChip: Identifiable { let id = UUID(); let text: String; let symbol: String? }
