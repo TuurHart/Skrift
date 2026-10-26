@@ -1,9 +1,8 @@
 import XCTest
 @testable import SkriftMobile
 
-/// Q495 (C291): adding an ePub to a book whose whole-book transcription is still running is
-/// refused with a clear message, before anything touches the book; the same book takes it
-/// once transcription is not running.
+/// Q522 (D221, replaces C291/Q495): an ePub added while the book's whole-book transcription is
+/// still running is accepted: stored and recorded, matched after the transcript finishes.
 final class EpubUploadGuardTests: XCTestCase {
 
     private var book: Audiobook!
@@ -25,25 +24,29 @@ final class EpubUploadGuardTests: XCTestCase {
         }
     }
 
-    func testAttachIsRefusedWhileThisBookTranscribes() async throws {
+    /// D221: the add is accepted mid-transcription; the file is stored and recorded, but no
+    /// matching ran (summary has no aligned files, no alignment sidecar) — the job's finish
+    /// call (`alignIfNeeded`) matches it against the full transcript.
+    func testAttachIsAcceptedAndQueuedWhileThisBookTranscribes() async throws {
         let id = book.id
-        do {
-            _ = try await BookAlignmentRunner.attach(bookFileAt: textFile, bookID: id,
-                                                     transcribing: { $0 == id })
-            XCTFail("attach must refuse while the book transcribes")
-        } catch let error as BookAlignmentRunner.AttachError {
-            XCTAssertEqual(error, .stillTranscribing)
-            XCTAssertEqual(error.errorDescription,
-                           "This book is still transcribing. Add its text once transcription finishes.")
-        }
-        // Nothing reached the book: no file copied in, no text recorded.
+        let summary = try await BookAlignmentRunner.attach(bookFileAt: textFile, bookID: id,
+                                                           transcribing: { $0 == id })
+        XCTAssertEqual(summary.totalFiles, 0)
+        XCTAssertEqual(summary.alignedFiles, 0)
         let copied = AudiobookPaths.folder(for: id).appendingPathComponent(textFile.lastPathComponent)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: copied.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: copied.path))
         let stored = await MainActor.run { AudiobookLibraryStore.shared.book(id: id) }
-        XCTAssertEqual(stored?.attachedTextFilenames, [])
+        XCTAssertEqual(stored?.attachedTextFilenames, [textFile.lastPathComponent])
+        XCTAssertNil(BookAlignmentStore().fileAlignment(bookID: id, fileIndex: 0),
+                     "matching must wait for the transcript, not run against a partial one")
+        // The attach outcome tells the user it will match up on its own.
+        XCTAssertEqual(BookTextFlow.outcomeText(summary),
+                       "No transcript yet \u{2014} the text will align on its own when transcription finishes.")
+        // Matching is queued behind the job: while it is still working, alignIfNeeded is a no-op.
+        await BookAlignmentRunner.alignIfNeeded(bookID: id)
     }
 
-    func testAnotherBookTranscribingDoesNotBlockThisOne() async throws {
+    func testAnotherBookTranscribingDoesNotAffectThisOne() async throws {
         let id = book.id
         let other = UUID()
         _ = try await BookAlignmentRunner.attach(bookFileAt: textFile, bookID: id,
@@ -62,10 +65,5 @@ final class EpubUploadGuardTests: XCTestCase {
         _ = try await BookAlignmentRunner.attach(bookFileAt: textFile, bookID: id)
         let stored = await MainActor.run { AudiobookLibraryStore.shared.book(id: id) }
         XCTAssertEqual(stored?.attachedTextFilenames, [textFile.lastPathComponent])
-    }
-
-    func testOneSentenceForEverySurface() {
-        XCTAssertEqual(BookTextDisplay.addBlockedWhileTranscribing,
-                       BookAlignmentRunner.AttachError.stillTranscribing.errorDescription)
     }
 }

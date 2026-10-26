@@ -389,8 +389,8 @@ enum BookAlignmentRunner {
     }
 
     /// True while the whole-book transcribe job is live for `bookID` — the window in
-    /// which adding a text is refused (C291; Tuur 2026-07-22: "what happens if I upload
-    /// an epub while the book is still transcribing?" — "it should not").
+    /// which an added text is stored but not matched yet (D221: the ePub is accepted at any
+    /// time; the job's own finish call runs `alignIfNeeded`, which matches it).
     @MainActor
     static func isTranscribing(_ bookID: UUID) -> Bool {
         BookTranscriptionJob.shared.isWorking(on: bookID)
@@ -398,14 +398,12 @@ enum BookAlignmentRunner {
 
     enum AttachError: LocalizedError, Equatable {
         case bookMissing
-        case stillTranscribing
         case copyFailed
         case unreadable
 
         var errorDescription: String? {
             switch self {
             case .bookMissing: return "That audiobook couldn’t be found."
-            case .stillTranscribing: return BookTextDisplay.addBlockedWhileTranscribing
             case .copyFailed: return "The file couldn’t be copied into Skrift."
             case .unreadable: return "That file doesn’t look like a readable ePub or text file."
             }
@@ -422,17 +420,18 @@ enum BookAlignmentRunner {
     /// entries (its position in `attachedTextFilenames` — and so its collision tie-break rank —
     /// is unchanged). Rejected-everywhere still writes sidecars (verdict recorded) — the UI
     /// decides what to tell the user from `AttachSummary`/the sidecars' verdicts.
-    /// `transcribing` is the job-state check (C291), a parameter only so a test can drive it.
+    /// `transcribing` is the job-state check (D221), a parameter only so a test can drive it:
+    /// while this book transcribes the text is copied in, parsed (to validate it) and recorded,
+    /// but NOT matched against the partial transcript — the job's finish call re-enters
+    /// `alignIfNeeded`, which matches it against the full one.
     static func attach(bookFileAt url: URL, bookID: UUID,
                        progress: (@Sendable (BookTextProgress) -> Void)? = nil,
                        transcribing: @MainActor @Sendable (UUID) -> Bool = { isTranscribing($0) }) async throws -> AttachSummary {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else {
             throw AttachError.bookMissing
         }
-        // C291: no text joins a book while its transcription runs — refused before anything
-        // is copied, so the book is exactly as it was. The Add buttons are disabled in that
-        // window too; this catches a pick that was already in flight when the job started.
-        if await transcribing(bookID) { throw AttachError.stillTranscribing }
+        // D221: a text added mid-transcription is accepted and queued behind the job.
+        let deferMatching = await transcribing(bookID)
         let folder = AudiobookPaths.folder(for: bookID)
         let filename = url.lastPathComponent
         let dest = folder.appendingPathComponent(filename)
@@ -456,6 +455,10 @@ enum BookAlignmentRunner {
             let epubBook = try parseBookFile(at: dest)
             let alignBlocks = mergeBlocksByFile(epubBook.blocks)
 
+            if deferMatching {
+                return TextAlignOutcome(perFile: [:], toc: epubBook.toc, title: epubBook.title,
+                                        drm: epubBook.drm, skipped: epubBook.skipped)
+            }
             let transcriptStore = BookTranscriptStore()
             let indices = Array(book.files.indices)
             let perFile = await alignText(named: filename, blocks: alignBlocks, book: book, bookID: bookID,
@@ -542,8 +545,11 @@ enum BookAlignmentRunner {
             let sig = transcriptStore.signature(forFileAt: audioURL)
             guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
                   !ft.words.isEmpty else { continue }
+            // A text added while the book transcribed (D221) has no source on files whose
+            // transcript was already complete, so "fresh" also means every local text was tried.
             if let fa = alignmentStore.fileAlignment(bookID: bookID, fileIndex: i),
-               alignmentStore.isFresh(fa, bookID: bookID, fileIndex: i, audioURL: audioURL) {
+               alignmentStore.isFresh(fa, bookID: bookID, fileIndex: i, audioURL: audioURL),
+               localNames.allSatisfy({ n in fa.sources.contains { $0.textFilename == n } }) {
                 continue   // up to date
             }
             staleIndices.append(i)
