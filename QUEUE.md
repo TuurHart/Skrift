@@ -3776,7 +3776,7 @@ do: On Dev 195 on the iPhone 17 Pro: force-quit Skrift, reopen, tap the top note
 check: Tuur opened the top note several times from a fresh start and it always showed its words, or the devlog of an empty open is pulled.
 ask: On the phone, swipe Skrift closed, open it again and tap the top note. Repeat a few times. Does a note ever open with no words and the player at 0:00? If it does, say which note and when.
 
-### Q522 [auto] (doing) C: an ePub added while the book transcribes is accepted and matches up afterwards (D221, replaces C291)
+### Q522 [auto] (done) C: an ePub added while the book transcribes is accepted and matches up afterwards (D221, replaces C291)
 spec: D221 (amends C291)
 needs: Q495
 gate+: yes
@@ -5511,3 +5511,4 @@ check: a phone test asserts the ⋯ menu has no Add recording on a compact-width
 - 2026-10-26 20:31 Q525 -> done — gate 133s @606fbfb0
 - 2026-10-26 20:32 Q527 -> done — gate 76s @0a0e60dd
 - 2026-10-26 20:34 Q523 -> done — gate 93s @0fb9067e
+- 2026-10-26 20:39 Q522 -> done — hand-merged (Tuur D221 (2026-10-26) drops C291: EpubUploadGuardTests rewritten to acceptance, its one-sentence test removed with the sentence)
