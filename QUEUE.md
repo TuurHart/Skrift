@@ -2262,7 +2262,7 @@ gate+: yes
 do: Q299 left Features/Feedback/FeedbackCaptureView.swift (the Mail-based feedback screen) in place. Find its entry points; replace them with FeedbackKit.present() (e.g. the Settings row) and delete the old view and its helpers. Phone test that the Settings feedback row calls the kit. Never run SkriftDesktopUITests.
 check: `./gate.sh`
 
-### Q302 [tuur] (tuur) check on Skrift Dev Mac (Q242): add a custom word, a person and edit a polish prompt on the phone — do all three arrive on the Mac, and does a deleted note disappear from the Mac? (cloud adapters were refactored, gate-only)
+### Q302 [tuur] (done) check on Skrift Dev Mac (Q242): add a custom word, a person and edit a polish prompt on the phone — do all three arrive on the Mac, and does a deleted note disappear from the Mac? (cloud adapters were refactored, gate-only)
 spec: -
 needs: -
 do: With Dev 190 on the iPhone 17 Pro and the Mac (Q407): on the phone add a custom word, add a person, change one polish instruction, then delete a note; check the Mac a minute after each.
@@ -3805,6 +3805,12 @@ spec: BUGS.md "Transcription takes much longer to start than in Glot"
 needs: -
 do: Tuur 2026-10-26 on Dev 195: a fresh recording took much longer to start transcribing than in Glot (/Users/tiurihartog/Hackerman/glot-study); both run Parakeet via FluidAudio. Read how each app loads and warms the model (when, which model variant, compute units, cached compiled model or not) and write the difference to plan/RUN.md before changing anything. Fix only what the comparison shows; measure record-stop to first words on the iPhone 17 Pro Dev build before and after (devlog timestamps).
 check: devlog timings before and after, in RUN.md
+
+### Q527 [auto] (todo) phone: Add recording appears once per note — the + button; the ⋯ entry only where the + isn't shown
+spec: BUGS.md "Two ways to add a recording to an open note"
+needs: -
+do: Tuur 2026-10-26: two ways to add a recording is "not good"; keep the + button ("I like being able to just talk more into it"). On the phone remove "Add recording" from the note's ⋯ menu (MemoDetailView.swift:191 and :601) wherever the + button shows (MemoDetailView.swift:509 condition: compact width, not a pending draft, not a share capture). Keep the ⋯ entry where no + shows (iPad regular width), so every note still has exactly one way in. Update BUGS.md (tick the item).
+check: a phone test asserts the ⋯ menu has no Add recording on a compact-width saved note and still has it at regular width; `plan/mtest.sh` passes it
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5488,3 +5494,5 @@ check: devlog timings before and after, in RUN.md
 - 2026-10-26 19:51 Q524 added
 - 2026-10-26 19:51 Q525 added
 - 2026-10-26 19:51 Q526 added
+- 2026-10-26 20:02 Q527 added
+- 2026-10-26 20:02 Q302 -> done — Tuur 2026-10-26 on Dev 195: person, custom word (arrives once he leaves the Custom words screen) and a deleted note all reached the Mac
