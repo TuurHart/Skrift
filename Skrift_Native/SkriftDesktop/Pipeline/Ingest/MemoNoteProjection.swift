@@ -100,9 +100,17 @@ enum MemoNoteProjection {
 
     /// The other direction, for an edit made in the linked body: the memo's RAW transcript is the
     /// linked body un-linked back to each person's spoken word (the phone never carries `sanitised`).
-    /// nil when the projection shows no links, so the transcript already is the body.
+    /// nil when there is nothing to carry over: the projection shows no links, OR `sanitised` is
+    /// exactly what the linker makes of the current transcript (the load, a roster re-link). Only
+    /// a body the linker would NOT have produced is a real edit, so merely opening a note can
+    /// never rewrite the synced memo, even where un-linking is not byte-identical (an alias
+    /// linked as the full name, his own `[[word]]`, spacing, case).
     static func rawTranscript(ofLinked pf: PipelineFile, people: [Person]) -> String? {
-        pf.sanitised.map { Sanitiser.unlinkToSpoken($0, people: people) }
+        guard let shown = pf.sanitised else { return nil }
+        let derived = CompilerInput.linkBody(pf.transcript ?? "", source: pf.noteSource,
+                                             people: people, resolutions: pf.nameResolutions)
+        guard shown != derived else { return nil }
+        return Sanitiser.unlinkToSpoken(shown, people: people)
     }
 
     /// Give the projection its MEDIA, so an unrated note plays, shows its photos and
