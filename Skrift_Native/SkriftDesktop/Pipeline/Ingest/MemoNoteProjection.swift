@@ -81,6 +81,30 @@ enum MemoNoteProjection {
         return pf
     }
 
+    /// Q524: show the projection's names linked (purple), as the phone does for the same note.
+    /// DISPLAY ONLY: the shared linker (`CompilerInput.linkBody`, the one the phone's export and the
+    /// Mac's pipeline use) fills the projection's `sanitised`; the memo is never written, no
+    /// `PipelineFile` is inserted, nothing is queued. The memo's own name decisions ride along.
+    /// A note the linker leaves unchanged keeps `sanitised` nil, so its edits still land on
+    /// `transcript` as before. Returns true when the body now shows links.
+    @discardableResult
+    static func linkNames(_ pf: PipelineFile, memo: Memo, people: [Person]) -> Bool {
+        let resolutions = memo.nameResolutions
+        pf.nameResolutions = resolutions
+        let raw = pf.transcript ?? ""
+        let linked = CompilerInput.linkBody(raw, source: pf.noteSource, people: people, resolutions: resolutions)
+        guard linked != raw else { return false }
+        pf.sanitised = linked
+        return true
+    }
+
+    /// The other direction, for an edit made in the linked body: the memo's RAW transcript is the
+    /// linked body un-linked back to each person's spoken word (the phone never carries `sanitised`).
+    /// nil when the projection shows no links, so the transcript already is the body.
+    static func rawTranscript(ofLinked pf: PipelineFile, people: [Person]) -> String? {
+        pf.sanitised.map { Sanitiser.unlinkToSpoken($0, people: people) }
+    }
+
     /// Give the projection its MEDIA, so an unrated note plays, shows its photos and
     /// karaokes like any other note.
     ///
