@@ -21,12 +21,12 @@ struct MacSyncCard: View {
                 .overlay(alignment: .top) { Rectangle().fill(Theme.hairline.opacity(0.07)).frame(height: 0.5) }
             if state == .off {
                 Text(MacSyncState.offText)
-                    .font(.system(size: 11.5)).foregroundStyle(Theme.textSecondary)
+                    .font(.system(size: 11.5)).foregroundStyle(Theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             gateList
             Text(SharedCopy.syncSameAccount)
-                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -54,7 +54,7 @@ struct MacSyncCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             if state == .failed {
                 Text(failureDetail)
-                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(Theme.textMuted)
+                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             // Every account or storage problem is fixed in iCloud Settings; only "couldn't start" reopens.

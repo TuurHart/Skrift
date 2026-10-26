@@ -27,7 +27,7 @@ struct SetupWizardView: View {
                         Text("Welcome to Skrift").font(.system(size: 22, weight: .bold)).foregroundStyle(Theme.textPrimary)
                     }
                     Text("Offline transcription, enhancement, and name-linking for your voice memos — straight into Obsidian.")
-                        .font(.system(size: 13)).foregroundStyle(Theme.textSecondary).fixedSize(horizontal: false, vertical: true)
+                        .font(.system(size: 13)).foregroundStyle(Theme.textPrimary).fixedSize(horizontal: false, vertical: true)
                 }
 
                 VStack(alignment: .leading, spacing: 14) {
@@ -45,12 +45,12 @@ struct SetupWizardView: View {
                     Text("The transcription + enhancement models (\(ModelSizes.parakeet) + \(ModelSizes.gemma)) download automatically the first time you Process a memo.")
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                .font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
 
                 HStack {
                     Button("Skip for now", action: finish)
                         .buttonStyle(.plain)
-                        .font(.system(size: 12.5)).foregroundStyle(Theme.textSecondary)
+                        .font(.system(size: 12.5)).foregroundStyle(Theme.textPrimary)
                     Spacer()
                     Button(action: finish) {
                         Text("Get started")
@@ -87,14 +87,14 @@ struct SetupWizardView: View {
 
     @ViewBuilder private func fieldRow(_ label: String, placeholder: String, _ binding: () -> Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
             if interactive {
                 RingedField(placeholder: placeholder, text: binding())
             } else {
                 let v = binding().wrappedValue
                 Text(v.isEmpty ? placeholder : v)
                     .font(.system(size: 12))
-                    .foregroundStyle(v.isEmpty ? Theme.textMuted : Theme.textPrimary)
+                    .foregroundStyle(v.isEmpty ? Theme.textSecondary : Theme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 9).padding(.vertical, 7)
                     .background(Theme.hairline.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
@@ -105,11 +105,11 @@ struct SetupWizardView: View {
 
     private func folderRow(_ label: String, value: String, set: @escaping (String) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
             HStack(spacing: 8) {
                 Text(value.isEmpty ? "Not set" : value)
                     .font(.system(size: 12))
-                    .foregroundStyle(value.isEmpty ? Theme.textMuted : Theme.textPrimary)
+                    .foregroundStyle(value.isEmpty ? Theme.textSecondary : Theme.textPrimary)
                     .lineLimit(1).truncationMode(.middle)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 9).padding(.vertical, 7)

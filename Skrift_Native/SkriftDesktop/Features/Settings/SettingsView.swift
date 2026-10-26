@@ -182,11 +182,11 @@ struct SettingsView: View {
                             : (settings.noteFolder as NSString).lastPathComponent,
                         canProcess: true))
                     .font(.system(size: 11))
-                    .foregroundStyle(Theme.textMuted)
+                    .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Point at a folder and it uses its own Skrift folder inside — or point straight at that folder.")
                     .font(.system(size: 11))
-                    .foregroundStyle(Theme.textMuted)
+                    .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             section("Destinations") {
@@ -218,18 +218,18 @@ struct SettingsView: View {
                         let root = (settings.portfolioRoot as NSString).lastPathComponent
                         HStack {
                             Text(NoteDestination.portfolio.label).font(.system(size: 11))
-                                .foregroundStyle(Theme.textSecondary)
+                                .foregroundStyle(Theme.textPrimary)
                             Spacer()
                             Text(SettingsCopy.portfolioInboxLine(root: root))
                                 .font(.system(size: 11, design: .monospaced))
-                                .foregroundStyle(Theme.textMuted)
+                                .foregroundStyle(Theme.textSecondary)
                         }
                     }
                 }
                 Text(SettingsCopy.destinationsHelp(on: destinationsOn,
                                                    hasFolder: !settings.portfolioRoot.isEmpty))
                     .font(.system(size: 11))
-                    .foregroundStyle(Theme.textMuted)
+                    .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     // A value synced in from another device lands in UserDefaults; follow it.
                     .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
@@ -247,7 +247,7 @@ struct SettingsView: View {
             section("Transcription") {
                 languageRow
                 sliderRow("High-pass filter", value: highpassBinding, range: 0...200, unit: " Hz")
-                Text(highpassHelp).font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                Text(highpassHelp).font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 customWordsEditor
             }
@@ -259,14 +259,14 @@ struct SettingsView: View {
             #endif
             section("Names ·\(displayPeople.count)") {
                 Text("Tap a person to edit their full name, aliases, short name, and voice. Aliases are the spoken nicknames that link to them; the full name becomes the [[link]].")
-                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if interactive && !displayPeople.isEmpty {
                     RingedField(placeholder: NamesCopy.searchPlaceholder, text: $nameQuery)
                 }
                 if displayPeople.isEmpty {
                     Text("\(NamesCopy.emptyTitle) — \(NamesCopy.emptyBody)")
-                        .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
+                        .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
                 } else {
                     ForEach(visiblePeople, id: \.canonical) { person in
                         if interactive {
@@ -338,13 +338,13 @@ struct SettingsView: View {
                 .disabled(!interactive)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("OpenWeatherMap key").font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+                    Text("OpenWeatherMap key").font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
                     if interactive {
                         RingedField(placeholder: "Paste your key", text: weatherKeyBinding)
                     } else {
                         fieldBox {
                             Text(has ? key : "Paste your key")
-                                .foregroundStyle(has ? Theme.textPrimary : Theme.textMuted)
+                                .foregroundStyle(has ? Theme.textPrimary : Theme.textSecondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
@@ -354,7 +354,7 @@ struct SettingsView: View {
                               on: has)
             }
             Text(SettingsCopy.weatherKeyHelp)
-                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -395,28 +395,28 @@ struct SettingsView: View {
                 }
             }
             Text(RetrievalGate.Copy.gateBody(device: "Mac"))
-                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             if let f = svc.downloadFraction {
                 Text(f >= 0.999 ? RetrievalGate.Copy.preparingTitle : RetrievalGate.Copy.downloadingTitle)
                     .font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
                 if f < 0.999 {
                     Text(RetrievalGate.Copy.downloadingSub(fraction: f))
-                        .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                        .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                 }
             } else if on, let p = svc.sweepProgress {
                 Text(RetrievalGate.Copy.indexingTitle).font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
                 Text(RetrievalGate.Copy.indexingSub(done: p.done, total: p.total))
-                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
             } else if let err = svc.lastError {
                 // Failures are red on the phone too; a failed download also flips the switch off.
                 Text(err).font(.system(size: 10.5)).foregroundStyle(Theme.destructive)
             } else if on && svc.isModelDownloaded {
                 Text(RetrievalGate.Copy.readyLine)
-                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
             } else if !on && svc.isModelDownloaded {
                 Text(RetrievalGate.Copy.pausedLine)
-                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
             }
         }
     }
@@ -424,7 +424,7 @@ struct SettingsView: View {
     // ── Section card ────────────────────────────────────────
     private func section<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title.uppercased()).font(.system(size: 10)).tracking(0.7).foregroundStyle(Theme.textMuted)
+            Text(title.uppercased()).font(.system(size: 10)).tracking(0.7).foregroundStyle(Theme.textSecondary)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -458,21 +458,21 @@ struct SettingsView: View {
                         .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
                 }
             }
-            Text(help).font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+            Text(help).font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private func textRow(_ label: String, _ key: WritableKeyPath<AppSettings, String>, placeholder: String = "") -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
             if interactive {
                 RingedField(placeholder: placeholder, text: bind(key))
             } else {
                 fieldBox {
                     let v = settings[keyPath: key]
                     Text(v.isEmpty ? placeholder : v)
-                        .foregroundStyle(v.isEmpty ? Theme.textMuted : Theme.textPrimary)
+                        .foregroundStyle(v.isEmpty ? Theme.textSecondary : Theme.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -481,12 +481,12 @@ struct SettingsView: View {
 
     private func folderRow(_ label: String, _ key: WritableKeyPath<AppSettings, String>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
             HStack(spacing: 8) {
                 fieldBox {
                     let v = settings[keyPath: key]
                     Text(v.isEmpty ? "Not set" : v)
-                        .foregroundStyle(v.isEmpty ? Theme.textMuted : Theme.textPrimary)
+                        .foregroundStyle(v.isEmpty ? Theme.textSecondary : Theme.textPrimary)
                         .lineLimit(1).truncationMode(.middle)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -513,7 +513,7 @@ struct SettingsView: View {
                            default defaultText: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+                Text(label).font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
                 Spacer()
                 // Same wording as the iPad's Settings. Shown while the text differs from
                 // the shared default (a blank counts as the default, so no button then).
@@ -547,7 +547,7 @@ struct SettingsView: View {
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.hairline.opacity(0.08), lineWidth: 1))
             if interactive && settings[keyPath: key].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text("Blank — the default prompt is used.")
-                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
             }
         }
     }
@@ -555,7 +555,7 @@ struct SettingsView: View {
     private func sliderRow(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+                Text(label).font(.system(size: 11)).foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Text("\(Int(value.wrappedValue))\(unit)")
                     .font(.system(size: 11.5, weight: .semibold).monospacedDigit()).foregroundStyle(Theme.accent)
@@ -667,7 +667,7 @@ struct SettingsView: View {
     /// devices; `TranscriptionService` rebuilds its manager when the flag changes.
     @ViewBuilder private var languageRow: some View {
         HStack {
-            Text("Language").font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
+            Text("Language").font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
             Spacer()
             Picker("", selection: languageBinding) {
                 ForEach(ASRLanguageMode.allCases) { mode in
@@ -680,7 +680,7 @@ struct SettingsView: View {
             .accessibilityIdentifier("setting-transcription-language")
         }
         Text(ASRLanguageMode.footer)
-            .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+            .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -711,7 +711,7 @@ struct SettingsView: View {
     @ViewBuilder private var customWordsEditor: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(SettingsCopy.customWordsHelp)
-                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             if interactive {
                 HStack(spacing: 6) {
@@ -735,7 +735,7 @@ struct SettingsView: View {
                             commitVocabEdit(.remove(word))
                         } label: {
                             Image(systemName: "xmark").font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(Theme.textMuted)
+                                .foregroundStyle(Theme.textSecondary)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Remove \(word)")

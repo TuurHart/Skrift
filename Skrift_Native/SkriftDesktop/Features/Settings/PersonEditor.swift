@@ -144,14 +144,14 @@ struct PersonEditor: View {
                                     @ViewBuilder extra: () -> Extra = { EmptyView() }) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textPrimary)
-            Text(help).font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+            Text(help).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             if interactive {
                 RingedField(placeholder: placeholder, text: text, font: font)
             } else {
                 let v = text.wrappedValue
                 Text(v.isEmpty ? placeholder : v)
-                    .font(font).foregroundStyle(v.isEmpty ? Theme.textMuted : Theme.textPrimary)
+                    .font(font).foregroundStyle(v.isEmpty ? Theme.textSecondary : Theme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 9).padding(.vertical, 7)
                     .background(Theme.hairline.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
@@ -175,10 +175,10 @@ struct PersonEditor: View {
                 Text(enrolled ? NamesCopy.voiceEnrolled : NamesCopy.voiceMissing)
                     .font(.system(size: 12.5, weight: .semibold))
             }
-            .foregroundStyle(enrolled ? Theme.green : Theme.textMuted)
+            .foregroundStyle(enrolled ? Theme.green : Theme.textSecondary)
             Text(enrolled ? NamesCopy.voiceEnrolledHelp(name: original?.displayName ?? fullName)
                  : NamesCopy.voiceMissingHint)
-                .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                .font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
