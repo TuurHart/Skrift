@@ -3776,40 +3776,40 @@ do: On Dev 195 on the iPhone 17 Pro: force-quit Skrift, reopen, tap the top note
 check: Tuur opened the top note several times from a fresh start and it always showed its words, or the devlog of an empty open is pulled.
 ask: On the phone, swipe Skrift closed, open it again and tap the top note. Repeat a few times. Does a note ever open with no words and the player at 0:00? If it does, say which note and when.
 
-### Q522 [auto] (todo) C: an ePub added while the book transcribes is accepted and matches up afterwards (D221, replaces C291)
+### Q522 [auto] (doing) C: an ePub added while the book transcribes is accepted and matches up afterwards (D221, replaces C291)
 spec: D221 (amends C291)
 needs: Q495
 gate+: yes
 do: Undo Q495's block: adding an ePub to a book whose whole-book transcription is still running is accepted; the ePub is stored and the text-to-audio matching runs once the transcript finishes (the signed audiobook A0 mock). Rewrite `EpubUploadGuardTests` to assert acceptance and that matching is queued behind the job. Bug fix under the D220 freeze: the built behaviour broke a signed mock.
 check: `plan/mtest.sh EpubUploadGuardTests`
 
-### Q523 [auto] (todo) phone: a person added from an open note turns their name purple at once, without leaving the note
+### Q523 [auto] (doing) phone: a person added from an open note turns their name purple at once, without leaving the note
 spec: BUGS.md "A newly added person's name only turns purple after leaving the note"
 needs: -
 gate+: yes
 do: Tuur 2026-10-26 on Dev 195: from an open note he added "testing" as a person; the word stayed plain until he opened the feedback sheet and came back. The open note's name highlighting must refresh when the names list changes (the phone links names at display time). Phone test: adding a person while a note is open re-renders the body with that name linked.
 check: a phone unit test named for the refresh passes under `plan/mtest.sh`
 
-### Q524 [auto] (todo) Mac: names show linked (purple) in unrated notes too, like the phone
+### Q524 [auto] (doing) Mac: names show linked (purple) in unrated notes too, like the phone
 spec: BUGS.md (Tuur 2026-10-26: "I don't think that should be the case")
 needs: -
 gate+: yes
 do: On the Mac a name is linked only in PipelineFile.sanitised (PipelineFile.swift:471 relinkNames), and only a rated note gets a Mac row, so an unrated note shows his raw words with no purple names while the phone shows them linked. Confirm from the code first, then link names for display on every note the Mac shows, rated or not, from the same shared linker the phone uses (no copy). Display only: it must not create a Mac row or start processing for an unrated note.
 check: a Mac unit test: an unrated synced note with a known person renders that name linked, and no PipelineFile is created
 
-### Q525 [auto] (todo) Mac Settings text readable: no light-grey body text
+### Q525 [auto] (doing) Mac Settings text readable: no light-grey body text
 spec: BUGS.md "Mac Settings text is light grey and hard to read"
 needs: -
 do: Tuur 2026-10-26: the Mac Settings text is light grey and hard to read; the phone's Settings read fine. Bring the Mac Settings body text to the primary text colour (footers may stay secondary but must meet WCAG AA contrast on the Settings background). Headless -snapshot of Settings in light and dark, LOOK.
 check: snapshot PNGs of Mac Settings, light and dark, read clearly
 
-### Q526 [auto] (todo) measure transcription start-up vs Glot (both Parakeet) and close the gap
+### Q526 [auto] (doing) measure transcription start-up vs Glot (both Parakeet) and close the gap
 spec: BUGS.md "Transcription takes much longer to start than in Glot"
 needs: -
 do: Tuur 2026-10-26 on Dev 195: a fresh recording took much longer to start transcribing than in Glot (/Users/tiurihartog/Hackerman/glot-study); both run Parakeet via FluidAudio. Read how each app loads and warms the model (when, which model and version, compute units, compiled-model cache, pre-warm at launch or at record-stop) and report the differences with file:line on both sides. Fix only a difference the reading proves (e.g. Skrift loads at record-stop where Glot pre-warms at launch); no device runs, the record-stop-to-first-words timing on the iPhone 17 Pro is measured afterwards with Tuur.
 check: the comparison with file:line on both apps is in the report; any fix builds and its targeted test passes
 
-### Q527 [auto] (todo) phone: Add recording appears once per note — the + button; the ⋯ entry only where the + isn't shown
+### Q527 [auto] (doing) phone: Add recording appears once per note — the + button; the ⋯ entry only where the + isn't shown
 spec: BUGS.md "Two ways to add a recording to an open note"
 needs: -
 gate+: yes
@@ -5500,3 +5500,9 @@ check: a phone test asserts the ⋯ menu has no Add recording on a compact-width
 - 2026-10-26 19:51 Q526 added
 - 2026-10-26 20:02 Q527 added
 - 2026-10-26 20:02 Q302 -> done — Tuur 2026-10-26 on Dev 195: person, custom word (arrives once he leaves the Custom words screen) and a deleted note all reached the Mac
+- 2026-10-26 20:11 Q522 -> doing — worker out
+- 2026-10-26 20:11 Q523 -> doing — worker out
+- 2026-10-26 20:11 Q524 -> doing — worker out
+- 2026-10-26 20:11 Q525 -> doing — worker out
+- 2026-10-26 20:11 Q526 -> doing — worker out
+- 2026-10-26 20:11 Q527 -> doing — worker out
