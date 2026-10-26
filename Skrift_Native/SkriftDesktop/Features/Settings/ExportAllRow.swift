@@ -34,7 +34,7 @@ struct ExportAllRow: View {
                 }
             }
             Text(helpText)
-                .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                .font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.top, 11)

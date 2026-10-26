@@ -16,7 +16,7 @@ struct TestLibraryMacSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(TestLibraryRunner.Copy.help)
-                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
                 pill(TestLibraryRunner.Copy.fillTitle, systemImage: "tray.and.arrow.down", tint: Theme.accent,
