@@ -187,7 +187,10 @@ struct MemoDetailView: View {
         // still per-app: no Finder or Markdown-copy here, no Share on the Mac.
         // Add-recording moved in here from its own ＋ chip (Tuur 2026-08-18:
         // the chrome band should read like the Mac's — primary · ⋯ · Connections).
-        if memo.isShareCapture != true {
+        // Q527: this ⋯ is the regular-width (iPad) menu, where no + shows, so it keeps the row.
+        if memo.isShareCapture != true,
+           AddRecordingDoors.showsMenuEntry(isCompactWidth: false, isPendingDraft: isPendingDraft,
+                                            isShareCapture: memo.isShareCapture == true) {
             Button { showAppendRecorder = true } label: { menuLabel(.addRecording) }
         }
         if !(memo.transcript ?? "").isEmpty, memo.audioURL != nil, !memo.isShareCapture {
@@ -505,7 +508,8 @@ struct MemoDetailView: View {
                         .accessibilityLabel("Redo")
                     }
                     .foregroundStyle(Color.skTextDim)
-                } else if hSize != .regular, !isPendingDraft, currentMemo?.isShareCapture != true {
+                } else if AddRecordingDoors.showsPlusButton(isCompactWidth: hSize != .regular, isPendingDraft: isPendingDraft,
+                                                            isShareCapture: currentMemo?.isShareCapture == true) {
                     // Q451: a new note gets + and ⋯ once its first text makes it a note.
                     Button { showAppendRecorder = true } label: {
                         Image(systemName: "plus")
@@ -598,7 +602,11 @@ struct MemoDetailView: View {
             if let memo = currentMemo, !memo.isShareCapture, SpeakerTranscript.parse(memo.transcript) == nil {
                 Button("Find in Note", action: { editorChrome.find() })
             }
-            Button(NoteMenuItem.addRecording.label, action: { showAppendRecorder = true })
+            // Q527: the + in the nav bar is this note's door; share captures have none.
+            if AddRecordingDoors.showsMenuEntry(isCompactWidth: true, isPendingDraft: isPendingDraft,
+                                                isShareCapture: currentMemo?.isShareCapture == true) {
+                Button(NoteMenuItem.addRecording.label, action: { showAppendRecorder = true })
+            }
             // Q87: the icon in the bar has no label, so the sheet says it in words, in its
             // shared slot (`NoteMenuItem` order: Add recording, Split, Flatten). A split note
             // offers the way back; the bar icon still re-splits.

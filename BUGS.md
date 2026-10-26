@@ -340,8 +340,9 @@ These need a device round or a log pull before they can be fixed.
 
 - [ ] **Two bars while editing a note** (Tuur 2026-10-26, FeedbackKit `9343f168`, Dev 195): the
       top bar (undo, redo, ⋯, Done) plus a second bar above the keyboard. Decide whether one goes.
-- [ ] **Two ways to add a recording to an open note** (Tuur 2026-10-26, Dev 195): the + button
-      (MemoDetailView.swift:509, Q451) and ⋯ > Add recording do the same thing. Decide whether one goes.
+- [x] **Two ways to add a recording to an open note** (Tuur 2026-10-26, Dev 195): the + button
+      (MemoDetailView.swift:509, Q451) and ⋯ > Add recording do the same thing. Decided: keep the +;
+      the ⋯ row stays only where no + shows (iPad). One rule, `AddRecordingDoors` (Q527).
 - [ ] **A newly added person's name only turns purple after leaving the note** (Tuur 2026-10-26,
       Dev 195): added "testing" as a person from an open note; the word stayed plain until he opened
       the feedback sheet and came back.
