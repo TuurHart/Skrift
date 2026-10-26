@@ -602,8 +602,7 @@ struct MemoDetailView: View {
             if let memo = currentMemo, !memo.isShareCapture, SpeakerTranscript.parse(memo.transcript) == nil {
                 Button("Find in Note", action: { editorChrome.find() })
             }
-            // Q527: the + in the nav bar is this note's door; the row stays only where no + shows
-            // (a share capture on the phone, which has no +).
+            // Q527: the + in the nav bar is this note's door; share captures have none.
             if AddRecordingDoors.showsMenuEntry(isCompactWidth: true, isPendingDraft: isPendingDraft,
                                                 isShareCapture: currentMemo?.isShareCapture == true) {
                 Button(NoteMenuItem.addRecording.label, action: { showAppendRecorder = true })

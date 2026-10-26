@@ -20,7 +20,11 @@ final class AddRecordingDoorsTests: XCTestCase {
         for compact in [true, false] { for draft in [true, false] { for share in [true, false] {
             let plus = AddRecordingDoors.showsPlusButton(isCompactWidth: compact, isPendingDraft: draft, isShareCapture: share)
             let menu = AddRecordingDoors.showsMenuEntry(isCompactWidth: compact, isPendingDraft: draft, isShareCapture: share)
-            XCTAssertNotEqual(plus, menu, "compact=\(compact) draft=\(draft) share=\(share)")
+            if share {
+                XCTAssertFalse(plus || menu, "a share capture has no door: compact=\(compact) draft=\(draft)")
+            } else {
+                XCTAssertNotEqual(plus, menu, "compact=\(compact) draft=\(draft)")
+            }
         } } }
     }
 

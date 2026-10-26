@@ -10,9 +10,10 @@ enum AddRecordingDoors {
         isCompactWidth && !isPendingDraft && !isShareCapture
     }
 
-    /// The ⋯ menu's "Add recording" row: only where the + is not showing.
+    /// The ⋯ menu's "Add recording" row: only where the + is not showing, and never on a share
+    /// capture (it has no way in at all, on either width).
     static func showsMenuEntry(isCompactWidth: Bool, isPendingDraft: Bool, isShareCapture: Bool) -> Bool {
-        !showsPlusButton(isCompactWidth: isCompactWidth, isPendingDraft: isPendingDraft,
-                         isShareCapture: isShareCapture)
+        !isShareCapture && !showsPlusButton(isCompactWidth: isCompactWidth, isPendingDraft: isPendingDraft,
+                                            isShareCapture: isShareCapture)
     }
 }
