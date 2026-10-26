@@ -3810,7 +3810,7 @@ do: Tuur 2026-10-26 on Dev 195: a fresh recording took much longer to start tran
 check: the comparison with file:line on both apps is in the report; any fix builds and its targeted test passes
 ask: When transcription starts slowly on the phone again, tell me right away so I can pull the Dev log. Then switch off Settings > Journal index, record again and tell me if it was faster. The code reading suggests the related-notes indexer competes with transcription for the phone's AI chip.
 
-### Q527 [auto] (doing) phone: Add recording appears once per note — the + button; the ⋯ entry only where the + isn't shown
+### Q527 [auto] (done) phone: Add recording appears once per note — the + button; the ⋯ entry only where the + isn't shown
 spec: BUGS.md "Two ways to add a recording to an open note"
 needs: -
 gate+: yes
@@ -5509,3 +5509,4 @@ check: a phone test asserts the ⋯ menu has no Add recording on a compact-width
 - 2026-10-26 20:11 Q527 -> doing — worker out
 - 2026-10-26 20:15 Q526 -> tuur — comparison done (RUN.md), no code change; suspect = embedder ANE contention; device log with Tuur next
 - 2026-10-26 20:31 Q525 -> done — gate 133s @606fbfb0
+- 2026-10-26 20:32 Q527 -> done — gate 76s @0a0e60dd
