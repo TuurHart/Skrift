@@ -151,8 +151,12 @@ enum Sanitiser {
     /// chosen person for this note (bypassing the FP-prone + ambiguity guards AND a prune — the
     /// user confirmed). An EMPTY canonical SILENCES the alias (renders plain — neither linked nor
     /// suggested): the "leave as plain text" choice on a suggestion.
+    ///
+    /// `trail` (Q530) is told every replacement as it happens, so a caller can map the linked body
+    /// back to the raw text (`LinkedBodyEdit`). Nil for every ordinary caller.
     static func process(text inputText: String, people: [Person],
-                        neverLink: Set<String> = [], namePicks: [String: String] = [:]) -> Result {
+                        neverLink: Set<String> = [], namePicks: [String: String] = [:],
+                        trail: LinkTrail? = nil) -> Result {
         var text = inputText
         let ov = Overrides(people: people, neverLink: neverLink, namePicks: namePicks)
 
@@ -175,16 +179,21 @@ enum Sanitiser {
             if !existingLinks.isEmpty {
                 isLinked = true
                 if !short.isEmpty {
-                    for link in existingLinks.dropFirst().reversed() { text = nsReplace(text, link.range, with: short) }
+                    for link in existingLinks.dropFirst().reversed() {
+                        trail?.replace(link.range, newLength: nsLen(short))
+                        text = nsReplace(text, link.range, with: short)
+                    }
                 }
             } else if let first = firstSafeMatch(of: linkAliases, in: text, roster: ov.rosterWords) {
-                text = nsReplace(text, first.range, with: linkText + possText(first, in: text))
+                let linked = linkText + possText(first, in: text)
+                trail?.replace(first.range, newLength: nsLen(linked))
+                text = nsReplace(text, first.range, with: linked)
                 isLinked = true
             }
             if isLinked { linkedKeys.insert(canonKey.lowercased()) }
 
             guard isLinked, !short.isEmpty else { continue }
-            text = demoteMentions(of: unambiguous, to: short, in: text, roster: ov.rosterWords)
+            text = demoteMentions(of: unambiguous, to: short, in: text, roster: ov.rosterWords, trail: trail)
         }
 
         let suggested = suggestedOccurrences(in: text, overrides: ov, linkedKeys: linkedKeys)
@@ -214,13 +223,15 @@ enum Sanitiser {
     /// outside it). The caller picks the string: `process` the short name, `linkInline` the short
     /// or, with none defined, the canonical.
     static func demoteMentions(of aliases: [String], to replacement: String, in text: String,
-                               roster: Set<String>) -> String {
+                               roster: Set<String>, trail: LinkTrail? = nil) -> String {
         var text = text
         let prot = nonProseRanges(in: text)
         for alias in aliases {
             for m in matches(of: alias, in: text, roster: roster).reversed() {
                 if !eligible(text, m.range.location, prot) { continue }
-                text = nsReplace(text, m.range, with: replacement + possText(m, in: text))
+                let repl = replacement + possText(m, in: text)
+                trail?.replace(m.range, newLength: nsLen(repl))
+                text = nsReplace(text, m.range, with: repl)
             }
         }
         return text

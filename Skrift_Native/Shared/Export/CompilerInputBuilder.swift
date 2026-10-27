@@ -25,18 +25,22 @@ extension CompilerInput {
     /// `BatchRunner` uses (a recording with ≥2 speaker headers → the conversation linker, D178),
     /// deleted people excluded, the note's unlink / pick decisions applied. `source` is the
     /// note's source type; a typed note or capture never takes the conversation linker.
+    /// `trail` (Q530) records which raw range each replaced run stood for (`LinkedBodyEdit`); the
+    /// conversation linker does not report its runs, so it marks the trail inexact.
     static func linkBody(_ text: String, source: NoteSourceType, people: [Person],
-                         resolutions: NameResolutions = NameResolutions()) -> String {
+                         resolutions: NameResolutions = NameResolutions(),
+                         trail: LinkTrail? = nil) -> String {
         guard !text.isEmpty else { return text }
         let live = people.filter { !$0.isDeleted }
         guard !live.isEmpty else { return text }
         let never = Set(resolutions.unlinkedNames)
         if SpeakerTranscript.isConversation(text, source: source) {
+            trail?.invalidate()
             return Sanitiser.processConversation(text: text, people: live, neverLink: never,
                                                  namePicks: resolutions.namePicks).sanitised
         }
         return Sanitiser.process(text: text, people: live, neverLink: never,
-                                 namePicks: resolutions.namePicks).sanitised
+                                 namePicks: resolutions.namePicks, trail: trail).sanitised
     }
 
     /// Build the Compiler's input. `raw` is the transcript (or a capture's annotation),
