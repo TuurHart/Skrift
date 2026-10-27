@@ -214,9 +214,10 @@ enum MemoNoteProjection {
     @discardableResult
     static func writeBack(_ pf: PipelineFile, to memo: Memo) -> Bool {
         var contentChanged = false
+        var wordsChanged = false   // title / body / tags only: a name decision stamps no words (C98)
         let title = pf.enhancedTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         let newTitle = (title?.isEmpty ?? true) ? nil : title
-        if memo.title != newTitle { memo.title = newTitle; contentChanged = true }
+        if memo.title != newTitle { memo.title = newTitle; contentChanged = true; wordsChanged = true }
         // The body binding writes to `transcript` on a projection (there is no
         // `sanitised`/`enhancedCopyedit` to take precedence), so this is the raw
         // transcript — the phone's own field. A hand-edit is exactly what
@@ -226,8 +227,17 @@ enum MemoNoteProjection {
             memo.transcript = body
             memo.transcriptUserEdited = true
             contentChanged = true
+            wordsChanged = true
         }
-        if memo.tags != pf.tags { memo.tags = pf.tags; contentChanged = true }
+        if memo.tags != pf.tags { memo.tags = pf.tags; contentChanged = true; wordsChanged = true }
+        // Q528: the note's name DECISIONS (a "Which Bruno?" pick, "Keep as plain text", an unlink,
+        // and the undo of any of them) live on the projection's `nameResolutions`, not in the body:
+        // the transcript stays the raw words, and `rawTranscript(ofLinked:)` rightly hands back nil
+        // for a body that is exactly what the linker makes of them. Without this the pick showed on
+        // screen, was lost on reopen and never reached the phone. Same write as the phone's
+        // `linkName` / `keepNamePlain`: the shared blob, then a touch that stamps no words.
+        let resolutions = pf.nameResolutions
+        if memo.nameResolutions != resolutions { memo.nameResolutions = resolutions; contentChanged = true }
         // Rating an unrated note through the ordinary circles is what pipelines it —
         // the flag stays the rating, stated by the user on the note itself. CLEARING
         // it (re-tap the lit circle → nil) has to travel too: a control that only
@@ -244,7 +254,7 @@ enum MemoNoteProjection {
         // here (a note you are actively writing must not be quietly dying). A
         // rating-only change deliberately does NOT touch (markEdited's own contract:
         // "NOT from sync-status / significance changes").
-        if contentChanged { memo.markEdited() }
+        if contentChanged { memo.markEdited(stampWords: wordsChanged) }
         return contentChanged || ratingChanged
     }
 }
