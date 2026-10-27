@@ -32,6 +32,15 @@ enum MacAppendRecording {
             && file.transcribeStatus != .processing
     }
 
+    /// Q531: which UNRATED notes offer "Add recording". The unrated note is a `MemoNoteProjection`
+    /// (a transient row that is never inserted), so the same rule as a rated one applies to it
+    /// (an audio note whose audio is on disk, unlocked), plus: the phone is not still
+    /// transcribing it (D7: a running pass and an append write the same transcript, and the
+    /// loser's words are lost).
+    static func isOfferedOnUnrated(_ projection: PipelineFile, locked: Bool, memoStatus: TranscriptStatus?) -> Bool {
+        isOffered(projection, locked: locked) && memoStatus != .transcribing
+    }
+
     /// The phone's join: the existing body, a blank line, the new words. An empty side drops out.
     static func joined(_ existing: String?, _ addition: String) -> String {
         let a = (existing ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -131,6 +140,55 @@ enum MacAppendRecording {
             try ReconcileV2.Writers.upsertEnhancement(for: pf, into: cloud, deviceID: deviceID, now: now,
                                                       body: Sanitiser.unlinkToSpoken(pf.bestBodyText, people: people))
         }
+    }
+
+    /// Step 2 for an UNRATED note (Q531, D173): the same landing as `land`, onto the synced `Memo`
+    /// alone. An unrated note has no `PipelineFile` and this must not make one: the rating is what
+    /// pipelines a note, so the note stays unrated, nothing is queued, nothing is processed.
+    ///
+    /// The words go through the RAW transcript only (`memo.transcript`, never the linked display
+    /// text the open note shows): the body joins the clip's words after a blank line, marked
+    /// user-edited (every device trusts it). The audio asset becomes the spliced file at
+    /// `audioURL` (step 1 spliced it in place), the clip's word timings move past the base
+    /// and join the synced timings asset, and the note is touched (`markEdited`).
+    ///
+    /// - `text`: the clip's words; empty = an honest no-text append (audio + duration only).
+    static func landOnMemo(text: String, timings: [WordTiming],
+                           splice: (merged: TimeInterval, base: TimeInterval),
+                           audioURL: URL, memo: Memo, cloud: ModelContext, now: Date = Date()) throws {
+        let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        memo.duration = splice.merged
+        if !words.isEmpty {
+            memo.transcript = BodyV2.committed(BodyV2.Input(
+                text: joined(memo.transcript, words), manifest: memo.metadata?.imageManifest ?? [],
+                source: .speech, userEdited: true))
+            memo.transcriptUserEdited = true
+            memo.transcriptStatus = .done
+        }
+        let memoID = memo.id
+        let assets = try cloud.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memoID }))
+        if let blob = try? Data(contentsOf: audioURL) {
+            if let audio = assets.first(where: { $0.kind == MemoAsset.Kind.audio }) {
+                audio.blob = blob
+                audio.byteCount = blob.count
+            } else {
+                let name = memo.audioFilename.isEmpty ? audioURL.lastPathComponent : memo.audioFilename
+                cloud.insert(MemoAsset(memoID: memoID, kind: MemoAsset.Kind.audio, filename: name, blob: blob))
+            }
+        }
+        if !words.isEmpty, !timings.isEmpty {
+            let earlier = assets.first(where: { $0.kind == MemoAsset.Kind.wordTimings })
+                .flatMap { try? JSONDecoder().decode([WordTiming].self, from: $0.blob) } ?? []
+            if let blob = TimingAssets.wordTimingsBlob(earlier + shifted(timings, by: splice.base)) {
+                TimingAssets.upsert(kind: MemoAsset.Kind.wordTimings,
+                                    filename: TimingAssets.wordTimingsFilename(for: memoID),
+                                    blob: blob, memoID: memoID, in: cloud)
+            }
+        }
+        memo.markEdited(now)
+        try cloud.save()
+        // The open note's cached timings are the old ones: drop them so the next open rebuilds.
+        MemoNoteProjection.discardTimingsCache(for: memoID)
     }
 
     // MARK: - Privates

@@ -250,10 +250,19 @@ struct RootView: View {
         // "Add recording" from a note's ⋯ (D173, Q290): the take's transport and stop live in
         // the sidebar, so it is shown first.
         .onReceive(NotificationCenter.default.publisher(for: .macAddRecordingRequested)) { note in
-            guard let id = note.object as? String, let file = files.first(where: { $0.id == id }) else { return }
+            guard let id = note.object as? String else { return }
+            // Q531: an unrated note has no queue row, only its synced memo (same id).
+            let file = files.first(where: { $0.id == id })
+            let memo = file != nil ? nil : UUID(uuidString: id).flatMap { uuid in
+                MemoCloudStore.container.flatMap { MemoCloudStore.memo(id: uuid, context: $0.mainContext) }
+            }
+            guard file != nil || memo != nil else { return }
             sidebarVisible = true
             Task {
-                await liveSession.start(appendingTo: file)
+                if let file { await liveSession.start(appendingTo: file) }
+                else if let memo {
+                    await liveSession.start(appendingToMemo: id, title: WayOutRules.displayTitle(memo))
+                }
                 if case .failed(let why) = liveSession.phase { appendMicProblem = why }
             }
         }

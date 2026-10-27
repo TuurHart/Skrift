@@ -99,12 +99,20 @@ struct NoteActions: View {
     @ViewBuilder private var unratedOverflowItems: some View {
         let entries = MacUnratedMenu.entries(rated: NoteConsent.isRated(file),
                                              locked: LockGate.shared.isLocked(file),
-                                             canUndoTidyUp: file.canUndoBodyNormalise(cloud: cloudContext))
+                                             canUndoTidyUp: file.canUndoBodyNormalise(cloud: cloudContext),
+                                             canAddRecording: MacAppendRecording.isOfferedOnUnrated(
+                                                file, locked: LockGate.shared.isLocked(file),
+                                                memoStatus: unratedMemo?.transcriptStatus))
         ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
             if entry == .item(.delete) { Divider() }
             switch entry {
             case .process:
                 Button(MacUnratedMenu.label(entry)) { processUnrated() }
+            case .item(.addRecording):
+                // Q531: the shell's one live session takes the take and lands it on the memo.
+                Button(MacUnratedMenu.label(entry)) {
+                    NotificationCenter.default.post(name: .macAddRecordingRequested, object: file.id)
+                }
             case .item(.undoTidyUp):
                 Button(MacUnratedMenu.label(entry)) { file.undoBodyNormalise(cloud: cloudContext) }
             case .item(.lock), .item(.unlock):
@@ -388,6 +396,9 @@ extension Notification.Name {
     /// "Add recording" from an open note's ⋯ (Q290). `object` is the `PipelineFile` id;
     /// `RootView` starts the live session in append mode for it.
     static let macAddRecordingRequested = Notification.Name("skrift.mac.addRecordingRequested")
+    /// Q531: a take landed on an UNRATED note's synced memo. `object` is the memo id string; the
+    /// open `UnratedNotePane` rebuilds its projection so a later edit can't write the old body back.
+    static let macUnratedAppendLanded = Notification.Name("skrift.mac.unratedAppendLanded")
     /// Q360 (D196): "Split speakers" from the top ⋯. `object` is the `PipelineFile` id; the
     /// header's `SplitSpeakersRow` opens its confirm (the switch left the header).
     static let macSplitSpeakersRequested = Notification.Name("skrift.mac.splitSpeakersRequested")

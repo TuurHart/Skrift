@@ -42,6 +42,11 @@ enum MemoNoteProjection {
         try? FileManager.default.removeItem(at: mediaFolder(for: id))
     }
 
+    /// Drop only the cached word timings (Add recording changed them; the audio stays).
+    static func discardTimingsCache(for id: UUID) {
+        try? FileManager.default.removeItem(at: mediaFolder(for: id).appendingPathComponent("word_timings.json"))
+    }
+
     /// Build the transient `PipelineFile` for `memo`. Never inserted into a
     /// `ModelContext` — it is a view-model that happens to already have a type.
     /// `id` is the memo UUID (the contract spine), which is also what lets the
@@ -186,6 +191,22 @@ enum MemoNoteProjection {
                 pf.wordTimingsJSON = (blob?.isEmpty == false) ? blob : nil
             }
         }
+    }
+
+    /// The projection with its media on disk: what an open unrated note shows, and what Add
+    /// recording splices onto (`pf.path`). Fetches the synced asset rows lazily (see above).
+    static func materialisedFile(for memo: Memo, cloud ctx: ModelContext) -> PipelineFile {
+        let pf = file(for: memo)
+        materialiseMedia(for: memo, into: pf) {
+            let mid = memo.id
+            let photoKind = MemoAsset.Kind.photo
+            let audioKind = MemoAsset.Kind.audio
+            let timingKind = MemoAsset.Kind.wordTimings
+            return (try? ctx.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate {
+                $0.memoID == mid && ($0.kind == photoKind || $0.kind == audioKind || $0.kind == timingKind)
+            }))) ?? []
+        }
+        return pf
     }
 
     /// `SourceKind` → the coarse `PipelineFile.sourceType` the note view branches on.
