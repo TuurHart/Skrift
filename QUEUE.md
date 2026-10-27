@@ -3839,6 +3839,13 @@ gate+: yes
 do: Q524 mirrors a Mac edit of an unrated note back to Memo.transcript as Sanitiser.unlinkToSpoken(whole linked body) (MemoNoteProjection.rawTranscript(ofLinked:), UnratedNotePane .onChange(of: projection.sanitised)). unlinkToSpoken (Shared/Naming/NameUnlinking.swift:115) turns every `[[Canonical]]` into the person's SHORT name, so a name he said as an alias ("Nik" for Nick Jansen) is rewritten to "Nick" anywhere in the note on the first unrelated edit. Before Q524 an unrated edit wrote the transcript directly, losslessly. Fix: carry only the user's change into the raw transcript (diff the previous and new linked bodies, map the changed region back to raw offsets, splice it into the raw transcript), so every untouched spoken word stays byte-identical. If an edit lands inside a link run, fall back to un-linking just that run. Shared helper in Shared/ if the phone (Q529) will need the same mapping.
 check: a Mac unit test: a note saying "Nik" (alias of Nick Jansen) and "Bruno"; an edit elsewhere in the note leaves "Nik" and "Bruno" byte-identical in memo.transcript; plus the existing UnratedNamesLinkedTests and UnratedNamePickPersistsTests stay green
 
+### Q531 [auto] (doing) Mac: Add recording on an unrated voice note too, like the phone
+spec: D173; Tuur 2026-10-27 ("need to be able to add recordings on an unrated note")
+needs: -
+gate+: yes
+do: On the Mac the ⋯ of an unrated note uses the copy-only menu (NoteActions.swift:89 unratedOverflowItems; NoteDisplayView.swift:642 copyOnly when there is no pipeline row), so "Add recording" (fullOverflowItems :188, MacAppendRecording.isOffered needs file.path) is missing; the phone offers + on every note. Offer Add recording on an unrated voice note (UnratedNotePane, a MemoNoteProjection) and append the take to the synced Memo the way the phone does: the new audio joined onto the note's audio as its MemoAsset, the new words after a blank line (MacAppendRecording.joined), word timings shifted, markEdited. It must NOT create a PipelineFile or start processing (the note stays unrated). Same entry label (NoteMenuItem.addRecording), locked notes excluded. Update BUGS.md (tick "The Mac only offers Add recording on rated voice notes") and FEATURES.md.
+check: Mac unit tests: an unrated voice-note projection offers Add recording; appending a clip writes the joined audio asset and joined transcript to the Memo, no PipelineFile is created; a locked unrated note does not offer it
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5545,3 +5552,5 @@ check: a Mac unit test: a note saying "Nik" (alias of Nick Jansen) and "Bruno"; 
 - 2026-10-27 08:42 Q530 -> doing — worker out
 - 2026-10-27 08:52 Q530 -> done — gate 81s @93679fad
 - 2026-10-27 08:58 Q529 -> todo — parked until after Q370 (Tuur 2026-10-27)
+- 2026-10-27 09:17 Q531 added
+- 2026-10-27 09:17 Q531 -> doing — worker out
