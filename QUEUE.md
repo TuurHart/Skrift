@@ -3824,7 +3824,7 @@ gate+: yes
 do: On an unrated Mac note (UnratedNotePane, a MemoNoteProjection) the "Which Bruno?" pick changes the projection's nameResolutions/sanitised, but MemoNoteProjection.writeBack (MemoNoteProjection.swift:215) never copies nameResolutions to the Memo, and rawTranscript(ofLinked:) (:108) returns nil because the shown body equals linkBody under the new resolutions, so commit() never runs: the pick is lost on reopen and never reaches the phone. Make writeBack carry pf.nameResolutions to memo.nameResolutions (as the phone does, MemoPageView.swift:1310-1317, markEdited(stampWords: false)), and run commit when the projection's resolutions change. The transcript must stay byte-identical (the raw words). Undo of the pick restores the old resolutions and saves that too.
 check: a Mac unit test: pick a person for an ambiguous name on an unrated projection → memo.nameResolutions carries the pick, memo.transcript unchanged, no PipelineFile created; reopening the projection shows the name linked
 
-### Q529 [auto] (todo) phone: a linked name shows as [[Full Name]] like the Mac and Obsidian (D222)
+### Q529 [auto] (doing) phone: a linked name shows as [[Full Name]] like the Mac and Obsidian (D222)
 spec: D222
 needs: -
 gate+: yes
@@ -5531,3 +5531,4 @@ check: phone tests: a note with a known person displays `[[Full Name]]`; open + 
 - 2026-10-27 08:36 Q528 -> doing — worker out
 - 2026-10-27 08:40 Q529 added
 - 2026-10-27 08:42 Q528 -> done — gate 68s @0ccdb566
+- 2026-10-27 08:42 Q529 -> doing — worker out
