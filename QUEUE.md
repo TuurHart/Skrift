@@ -5561,3 +5561,4 @@ check: Mac unit tests: an unrated voice-note projection offers Add recording; ap
 - 2026-10-27 09:31 Q526 -> stuck — touched protected: Skrift_Native/SkriftMobile/SkriftMobileTests/ASRPrewarmTests.swift 
 - 2026-10-27 09:32 Q526 -> doing — re-accept with gate+ (new ASRPrewarmTests only)
 - 2026-10-27 09:33 Q526 -> done — gate 78s @3d1adba2
+- 2026-10-27 10:24 Q526 -> done — device: 27.7 s only on the first launch after an install, 0.7 s after; pre-warm at launch (RUN.md)
