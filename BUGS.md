@@ -354,6 +354,11 @@ These need a device round or a log pull before they can be fixed.
       on the real Skrift, the August build). Recheck after the prod update; he reports it via
       the feedback button if it persists.
 
+- [ ] **The Mac only offers Add recording on rated voice notes** (Tuur 2026-10-27: "don't know how
+      to add recording on mac, not clear"). The ⋯ of an unrated note uses the copy-only menu
+      (NoteActions.swift:89, NoteDisplayView.swift:642), so the entry is missing there; the phone
+      offers + on every note. Decide whether unrated notes get it on the Mac.
+
 - [ ] **The app feels slow next to other apps** (Tuur, 2026-08-18) at under 200 notes, so not data
       volume. Step 0 is a Time Profiler run on the **prod** build — busy main thread or blocked? The
       cheap suspects are already located: `archive/state-2026-09/AUDIT_PLAN.md` P1–P7. Two of the audit's findings are

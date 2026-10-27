@@ -2281,7 +2281,7 @@ spec: -
 needs: -
 do: On the Mac (Dev 190, Q407): open a rated voice note, ⋯ > Add recording, say a sentence, stop, play across the join; then open the same note on the iPhone 17 Pro after sync.
 check: On Skrift Dev Mac: open a rated voice note, ⋯ > Add recording, say a sentence, stop. Is the new audio appended (plays through), the words added after a blank line, and does the phone show the same after sync?
-ask: On the Mac, open a voice note, choose ... > Add recording, say one sentence and stop. Does the note play straight on into your new sentence, are the new words a new paragraph, and does the phone show the same?
+ask: On the Mac, open a RATED voice note (at least one circle filled). Click the ⋯ at the far right of the note's top bar and choose Add recording, say one sentence and stop. Does the note play straight on into your new sentence, are the new words a new paragraph, and does the phone show the same?
 
 ### Q305 [auto] (done) feedback sheet follows Skrift's theme natively (FeedbackKit interfaceStyle + onAccent)
 spec: -
