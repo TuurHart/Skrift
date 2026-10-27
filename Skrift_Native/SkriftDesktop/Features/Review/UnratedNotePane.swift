@@ -57,6 +57,10 @@ struct UnratedNotePane: View {
                               raw != projection.transcript else { return }
                         projection.transcript = raw
                     }
+                    // Q528: a name pick / "Keep as plain text" / unlink / their undo changes the
+                    // note's resolutions but not its words (the body and the transcript are the
+                    // same either way), so none of the observers above fires: save them to the memo.
+                    .onChange(of: projection.nameResolutionsData) { commit() }
                     .onChange(of: projection.tags) { commit() }
                     .onChange(of: projection.significance) { _, new in
                         commit()
