@@ -37,6 +37,9 @@ actor TranscriptionService: Transcribing {
 
     // MARK: - Model lifecycle
 
+    /// True when a manager is loaded for the CURRENT language setting (`ASRPrewarm` probes this).
+    var isWarm: Bool { asr != nil && loadedMultilingual == ASRLanguageStore.isMultilingual() }
+
     /// `mode`: an explicit per-note mode (C151 "Transcribe again in …"); nil = the setting.
     func ensureLoaded(mode: ASRLanguageMode? = nil) async throws {
         installMemoryObserverIfNeeded()
@@ -57,6 +60,13 @@ actor TranscriptionService: Transcribing {
         }
         if asr != nil { asr = nil; models = nil }   // mode changed → rebuild below
         let task = Task<Void, Error> {
+            // Any cold load (pre-warm, record screen, live stream) holds the ANE: the Connections
+            // embedder's own cold load waits behind it. Re-entrant counter, so it stacks with
+            // `ASRPrewarm` and the transcribe calls.
+            TranscriptionActivity.begin()
+            defer { TranscriptionActivity.end() }
+            let coldStart = Date()
+            DevLog.log("asr: cold load START")
             await MainActor.run { ModelLoadStatus.shared.set(.preparing(nil)) }
             let mlConfig = MLModelConfiguration()
             mlConfig.computeUnits = .cpuAndNeuralEngine
@@ -94,6 +104,7 @@ actor TranscriptionService: Transcribing {
             // model lands — the old code's per-poll `guard let asr` gave this for free.
             if self.streaming { await self.live.setTranscriber(self.makeCaptionTranscriber()) }
             await MainActor.run { ModelLoadStatus.shared.set(.ready) }
+            DevLog.log(String(format: "asr: cold load DONE in %.1fs", Date().timeIntervalSince(coldStart)))
         }
         loadTask = task
         do {

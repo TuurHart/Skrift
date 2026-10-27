@@ -256,6 +256,14 @@ struct SkriftApp: App {
                         await MemoSaver().recoverStuckDiarizations()
                     }
                 }
+                // Q526b: warm Parakeet at launch, AFTER the launch work above has been started
+                // (those tasks run first in view order), at utility priority off the main thread.
+                // A recording started seconds after opening no longer cold-loads the model.
+                .task {
+                    if LaunchFlags.seedTranscript == nil {
+                        ASRPrewarm.shared.request(reason: "launch")
+                    }
+                }
                 // Pre-warm the custom-vocabulary booster when the user has custom
                 // words, so the FIRST recording this session is boosted. The
                 // booster is non-blocking (it skips the first, model-loading
@@ -288,6 +296,11 @@ struct SkriftApp: App {
                         // corpus moved, all off the main thread. The gate was marked at
                         // launch, so the first foreground no longer repeats the launch pass.
                         Task { await CaptureInboxDrainer.drain(into: repository) }
+                        // Q526b: Parakeet first. The warm-up raises TranscriptionActivity
+                        // synchronously, so the embedder sweep below waits behind it.
+                        if LaunchFlags.seedTranscript == nil {
+                            ASRPrewarm.shared.request(reason: "foreground")
+                        }
                         // P8 retrieval index — inert until the Journal UI's consent
                         // flow enables it AND the model is on disk (no surprise 295 MB).
                         JournalIndexService.shared.sweepSoon(repository)
