@@ -522,3 +522,8 @@ name decisions 0/0, unlinked names 0/0. RESULT: OK (no count dropped); temp copy
 Archived Release 199 (e1df31db) and uploaded to internal TestFlight via CLI `-exportArchive` with
 ExportOptions-TestFlight.plist + Admin key 7N4W99MR68: "Upload succeeded" 15:25. Tuur installed it
 from TestFlight; notes look fine. Mac half (ICLOUD_MERGE steps 0–10) still open.
+
+## ICLOUD_MERGE step 1 — F1 confirmed (2026-10-27)
+Tuur ran `codesign -d --entitlements :- /Applications/Skrift.app`: aps-environment `development`,
+container iCloud.com.skrift.mobile, get-task-allow true, NO icloud-container-environment. The installed
+Aug Mac syncs CloudKit Development, as D203 said. F2 was answered in Q401. Step 1 passes.
