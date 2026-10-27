@@ -21,9 +21,12 @@ enum MacUnratedMenu {
     /// - Parameters:
     ///   - rated: a RATED projection (just rated, its real row not swept in yet) has already
     ///     been judged, so Process is not offered again.
-    static func entries(rated: Bool, locked: Bool, canUndoTidyUp: Bool) -> [Entry] {
+    ///   - canAddRecording: Q531 (D173): an unrated voice note takes a recording like the phone's +
+    ///     (`MacAppendRecording.isOfferedOnUnrated`); it lands on the synced memo and the note stays unrated.
+    static func entries(rated: Bool, locked: Bool, canUndoTidyUp: Bool, canAddRecording: Bool = false) -> [Entry] {
         var out: [Entry] = []
         if !rated { out.append(.process) }
+        if canAddRecording { out.append(.item(.addRecording)) }
         if canUndoTidyUp { out.append(.item(.undoTidyUp)) }
         out.append(.item(NoteMenuItem.lockItem(isLocked: locked)))
         out.append(.item(.copyTranscript))

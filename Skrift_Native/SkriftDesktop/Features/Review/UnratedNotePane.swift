@@ -84,6 +84,11 @@ struct UnratedNotePane: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.bg)
         .task(id: memoID) { load() }
+        // Q531: a recording was added to this note's memo: show the combined note, and keep the
+        // old body from being written back by the next edit.
+        .onReceive(NotificationCenter.default.publisher(for: .macUnratedAppendLanded)) { note in
+            if (note.object as? String) == memoID { load() }
+        }
         .accessibilityIdentifier("unrated-note-pane")
     }
 
@@ -113,21 +118,12 @@ struct UnratedNotePane: View {
             return
         }
         memo = found
-        let pf = MemoNoteProjection.file(for: found)
-        // Q524: names linked for display, like the phone. Display only, nothing is queued.
-        MemoNoteProjection.linkNames(pf, memo: found, people: NamesStore.shared.livePeople())
         // Audio, photos and word timings out of the synced blobs — an unrated note
         // plays, shows its pictures and reads along like any other note. Everything
         // it needs already synced; only the files were missing.
-        MemoNoteProjection.materialiseMedia(for: found, into: pf) {
-            let mid = found.id
-            let photoKind = MemoAsset.Kind.photo
-            let audioKind = MemoAsset.Kind.audio
-            let timingKind = MemoAsset.Kind.wordTimings
-            return (try? ctx.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate {
-                $0.memoID == mid && ($0.kind == photoKind || $0.kind == audioKind || $0.kind == timingKind)
-            }))) ?? []
-        }
+        let pf = MemoNoteProjection.materialisedFile(for: found, cloud: ctx)
+        // Q524: names linked for display, like the phone. Display only, nothing is queued.
+        MemoNoteProjection.linkNames(pf, memo: found, people: NamesStore.shared.livePeople())
         projection = pf
     }
 

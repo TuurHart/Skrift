@@ -108,6 +108,16 @@ final class LiveRecordingSession {
     /// as a mid-take device loss leaves it at `.live` — either way the very next `stop()`/
     /// `cancel()` picks up `recorder.state`'s `.failed` honestly, same as today.)
     func start(appendingTo file: PipelineFile? = nil) async {
+        await start(target: file.map { AppendTarget(id: $0.id, title: $0.displayTitle) })
+    }
+
+    /// Q531: "Add recording" on an UNRATED note, which has no `PipelineFile` (only the synced
+    /// `Memo`, same id). The take lands on that memo (`finishAppend`).
+    func start(appendingToMemo id: String, title: String) async {
+        await start(target: AppendTarget(id: id, title: title))
+    }
+
+    private func start(target: AppendTarget?) async {
         // One mic, one take: a second start while a take is in flight is ignored.
         switch phase {
         case .starting, .live, .settling: return
@@ -116,7 +126,7 @@ final class LiveRecordingSession {
         phase = .starting
         draft = LiveRecordingDraft()
         noteID = nil
-        appendTarget = file.map { AppendTarget(id: $0.id, title: $0.displayTitle) }
+        appendTarget = target
         // R46: the recorder ends the take itself when the disk refuses a write — stop + SAVE
         // what landed, the note titled with the reason.
         recorder.onTakeEnded = { [weak self] reason in
@@ -269,8 +279,16 @@ final class LiveRecordingSession {
     /// along either way (`KaraokeTrack` aligns them to the shown words).
     private func finishAppend(clip url: URL, to target: AppendTarget, cloudContext: ModelContext?) async -> Bool {
         let targetID = target.id
-        guard let pf = try? context.fetch(FetchDescriptor<PipelineFile>(
-            predicate: #Predicate { $0.id == targetID })).first, pf.deletedAt == nil else {
+        let row = try? context.fetch(FetchDescriptor<PipelineFile>(
+            predicate: #Predicate { $0.id == targetID })).first
+        // Q531: no row = an UNRATED note (only its synced memo, same id). It is appended to
+        // through the memo and never gets a row: the note stays unrated.
+        var unrated: Memo?
+        if row == nil, let uuid = UUID(uuidString: targetID), let cloud = cloudContext,
+           let memo = MemoCloudStore.memo(id: uuid, context: cloud), memo.deletedAt == nil {
+            unrated = memo
+        }
+        guard (row != nil && row?.deletedAt == nil) || unrated != nil else {
             Self.log.error("append: note \(targetID, privacy: .public) is gone; saving the take as a new note")
             return false
         }
@@ -291,7 +309,11 @@ final class LiveRecordingSession {
         }
 
         // Audio first, off the main actor. A throw leaves the note's audio as it was.
-        let path = pf.path
+        let path: String
+        if let row { path = row.path }
+        else if let unrated, let cloudContext {
+            path = MemoNoteProjection.materialisedFile(for: unrated, cloud: cloudContext).path
+        } else { return false }
         let splice: (merged: TimeInterval, base: TimeInterval)
         do {
             splice = try await Task.detached(priority: .userInitiated) {
@@ -306,21 +328,33 @@ final class LiveRecordingSession {
         // Q453: the open note's player re-opens the spliced file now, not at the next open.
         NotificationCenter.default.post(name: AudioController.audioFileDidChange, object: path)
 
-        let settings = SettingsStore.shared.load()
-        let memo = cloudContext.flatMap { ReconcileV2.Writers.resolve(pf, in: $0) }
-        do {
-            try MacAppendRecording.land(text: text, timings: timings, splice: splice,
-                                        on: pf, memo: memo, cloud: cloudContext,
-                                        people: NamesStore.shared.livePeople(),
-                                        author: settings.authorName)
-        } catch {
-            // The audio is already in the note; only the cloud save failed. Never re-save the
-            // take as a second note — the row holds everything and the next edit re-syncs.
-            Self.log.error("append: cloud write failed — \(String(describing: error), privacy: .public)")
+        if let row {
+            let settings = SettingsStore.shared.load()
+            let memo = cloudContext.flatMap { ReconcileV2.Writers.resolve(row, in: $0) }
+            do {
+                try MacAppendRecording.land(text: text, timings: timings, splice: splice,
+                                            on: row, memo: memo, cloud: cloudContext,
+                                            people: NamesStore.shared.livePeople(),
+                                            author: settings.authorName)
+            } catch {
+                // The audio is already in the note; only the cloud save failed. Never re-save the
+                // take as a second note — the row holds everything and the next edit re-syncs.
+                Self.log.error("append: cloud write failed — \(String(describing: error), privacy: .public)")
+            }
+            noteID = row.id
+        } else if let unrated, let cloudContext {
+            do {
+                try MacAppendRecording.landOnMemo(text: text, timings: timings, splice: splice,
+                                                  audioURL: URL(fileURLWithPath: path),
+                                                  memo: unrated, cloud: cloudContext)
+            } catch {
+                Self.log.error("append: unrated cloud write failed — \(String(describing: error), privacy: .public)")
+            }
+            NotificationCenter.default.post(name: .macUnratedAppendLanded, object: targetID)
+            noteID = targetID
         }
         try? context.save()
         recorder.discardFinishedTake()
-        noteID = pf.id
         coordinator.flash(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                           ? "Recording added — no words heard" : "Recording added")
         return true
