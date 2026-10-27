@@ -367,7 +367,7 @@ These need a device round or a log pull before they can be fixed.
       "embedder: cold load DONE in 742.1s", "876.2s", "445.8s"; other loads 6.7-7.3 s). It reloads
       after every trip to the background ("unloaded on background" → "cold load START"). Battery and
       heat; also the suspect for the ANE contention in Q526.
-- [ ] **Custom words may replace ordinary words** (devlog Dev 197: "ten,→Atex(true)", "Da,→Voxl(true)",
+- [x] **Custom words may replace ordinary words** — NOT in his notes: Tuur 2026-10-27, the 09:19 note says "ten", not "Atex"; the "(true)" in the devlog line is a candidate flag, not an applied change (log wording only). (devlog Dev 197: "ten,→Atex(true)", "Da,→Voxl(true)",
       "One,→Tiuri(true)", "Next to it.→Voxl(true)"). Check whether "(true)" means applied: the
       2026-10-26 note still read "Next to it." in Tuur's screenshot. Short custom words are
       FP-prone (memory: vocab booster).
