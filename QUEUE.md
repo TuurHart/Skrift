@@ -3832,7 +3832,7 @@ do: Tuur 2026-10-27 (D222): a linked name shows as Obsidian writes it, `[[Full N
 check: phone tests: a note with a known person displays `[[Full Name]]`; open + no edit leaves memo.transcript byte-identical (spoken word, alias, his own `[[Some Idea]]`); an edit elsewhere in the paragraph keeps the raw spoken word in the transcript
 ask: Showing [[Full Name]] on the phone means the editor shows different text from what is stored. Doing that safely is about 250 lines in the 2,500-line note editor, with a risk of link brackets leaking into your saved notes. Park it until after the real apps are updated (the phone keeps the purple spoken word for now)? And when we do it: brackets always visible, or only while editing the link (Obsidian Live Preview)?
 
-### Q530 [auto] (doing) Mac: editing an unrated note changes only what was typed — no nickname rewritten to the short name
+### Q530 [auto] (done) Mac: editing an unrated note changes only what was typed — no nickname rewritten to the short name
 spec: Q524 follow-up (found by the Q529 read, 2026-10-27)
 needs: -
 gate+: yes
@@ -5543,3 +5543,4 @@ check: a Mac unit test: a note saying "Nik" (alias of Nick Jansen) and "Bruno"; 
 - 2026-10-27 08:42 Q530 added
 - 2026-10-27 08:42 Q529 -> tuur — blocked: editor text IS the stored transcript (NoteBodyView.swift:380, reconstruct :2130); options 1 tagged runs ~250 lines / 2 show only when not editing / 3 store unlinked (lossy); park until after the update?
 - 2026-10-27 08:42 Q530 -> doing — worker out
+- 2026-10-27 08:52 Q530 -> done — gate 81s @93679fad
