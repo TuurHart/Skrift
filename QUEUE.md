@@ -142,7 +142,7 @@ needs: Q16
 node: AuditFix2
 do: Dev 190 is on the iPhone 17 Pro (Q407). Take 1: record, take a phone call mid-take, hang up. Take 2: record, force-quit mid-take. Relaunch after each; pull `Documents/devlog.txt` with `devicectl` from device `00008150-001658662223C01C`.
 check: On the phone, start a recording, take a call (or force-quit Skrift) mid-take, then reopen. Are both notes there with all the audio up to the interruption?
-ask: Start a recording and let someone call you while it is still recording; answer, then hang up. Open Skrift: is the note there with everything you said before the call? Then do the same again, but swipe Skrift closed while it records.
+ask: Start a recording and let someone call you while it is still recording; answer, then hang up. Open Skrift: is the note there with everything you said before the call? (The swipe-closed half already passed on 27 Oct.)
 
 ### Q18 [auto] (done) a corrupt local file is never loaded as empty
 spec: C50 C265 C218
