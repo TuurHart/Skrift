@@ -517,3 +517,8 @@ finding: Q17 force-quit half passed (Tuur 2026-10-27, Dev 198): record start 11:
 Tuur ran `plan/release/mac-store-copytest.sh` (after e02a02a7 fixed the tool's target). 7 store files copied.
 Before = after on every count: local notes 65, synced notes 121, assets 263, enhancements 35, people 12,
 name decisions 0/0, unlinked names 0/0. RESULT: OK (no count dropped); temp copy deleted.
+
+## Q370 phone half — Release 199 on the real iPhone (2026-10-27)
+Archived Release 199 (e1df31db) and uploaded to internal TestFlight via CLI `-exportArchive` with
+ExportOptions-TestFlight.plist + Admin key 7N4W99MR68: "Upload succeeded" 15:25. Tuur installed it
+from TestFlight; notes look fine. Mac half (ICLOUD_MERGE steps 0–10) still open.

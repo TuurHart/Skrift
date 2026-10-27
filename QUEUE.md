@@ -2734,7 +2734,7 @@ do: -
 check: Phone and Mac flows re-recorded with `plan/perf2/tools/`; no D186 budget missed, or Tuur waved the miss.
 ask: Speed check before the update: on the phone, use Skrift normally for about 7 minutes (record, open notes, search, scroll) while I record it with Instruments on the Mac, then do a short session on the Mac. I set it up, you just use the app.
 
-### Q370 [tuur] (todo) update the real Skrift on the phone (and Mac) once Dev checks pass — no public release (D201)
+### Q370 [tuur] (tuur) update the real Skrift on the phone (and Mac) once Dev checks pass — no public release (D201)
 spec: -
 needs: Q443 Q298 Q368 Q369 Q17 Q63 Q64 Q302 Q304 Q309 Q311 Q375 Q388 Q389 Q393 Q397 Q398 Q399 Q400 Q401 Q408 Q409 Q410 Q411 Q412 Q413 Q414 Q415 Q416 Q417 Q418 Q419 Q420 Q421 Q422
 do: -
@@ -5564,3 +5564,4 @@ check: Mac unit tests: an unrated voice-note projection offers Add recording; ap
 - 2026-10-27 10:24 Q526 -> done — device: 27.7 s only on the first launch after an install, 0.7 s after; pre-warm at launch (RUN.md)
 - 2026-10-27 11:38 Q369 -> done — Tuur waived 2026-10-27: "the speed is great already, we did tests before" (D186 check allows his waiver)
 - 2026-10-27 15:07 Q368 -> done — Tuur ran it 2026-10-27: every count equal before/after (121 notes, 263 assets, 35 enhancements, 12 people)
+- 2026-10-27 15:29 Q370 -> tuur — phone half DONE 2026-10-27: TestFlight 199 installed, notes intact; Mac half = ICLOUD_MERGE
