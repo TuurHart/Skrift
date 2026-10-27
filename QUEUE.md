@@ -2720,7 +2720,7 @@ gate+: no
 do: `plan/release/mac-store-copytest.sh` for Tuur to run (agents never read real Skrift data): copies the prod Mac SwiftData store files (both the local and the CloudKit store, with -wal/-shm) to a fresh temp dir, opens the copy with the new build's model container and migrations (a small CLI target or a guarded launch argument that takes an explicit store path and refuses the real path), and prints only counts before and after: notes, enhancements, people, name decisions (Q252: the `@Attribute(originalName:)` rename keeps them), unlinked names; then exits non-zero on any drop. Never prints titles or text. Self-test against a synthetic store built from test-fixtures/corpus.
 check: `plan/release/mac-store-copytest.sh --self-test`
 
-### Q368 [tuur] (tuur) run the Mac upgrade test on a copy of your real Mac data
+### Q368 [tuur] (done) run the Mac upgrade test on a copy of your real Mac data
 spec: -
 needs: Q367
 do: -
@@ -5563,3 +5563,4 @@ check: Mac unit tests: an unrated voice-note projection offers Add recording; ap
 - 2026-10-27 09:33 Q526 -> done — gate 78s @3d1adba2
 - 2026-10-27 10:24 Q526 -> done — device: 27.7 s only on the first launch after an install, 0.7 s after; pre-warm at launch (RUN.md)
 - 2026-10-27 11:38 Q369 -> done — Tuur waived 2026-10-27: "the speed is great already, we did tests before" (D186 check allows his waiver)
+- 2026-10-27 15:07 Q368 -> done — Tuur ran it 2026-10-27: every count equal before/after (121 notes, 263 assets, 35 enhancements, 12 people)
