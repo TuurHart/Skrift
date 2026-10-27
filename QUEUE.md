@@ -2727,7 +2727,7 @@ do: -
 check: Tuur ran `plan/release/mac-store-copytest.sh` and the counts matched before and after.
 ask: Quit Skrift, run `plan/release/mac-store-copytest.sh` in Terminal, and paste me the counts it prints (no note text is shown).
 
-### Q369 [tuur] (tuur) perf re-run on phone and Mac before promotion (D186)
+### Q369 [tuur] (done) perf re-run on phone and Mac before promotion (D186)
 spec: D186 C282
 needs: Q366
 do: -
@@ -5562,3 +5562,4 @@ check: Mac unit tests: an unrated voice-note projection offers Add recording; ap
 - 2026-10-27 09:32 Q526 -> doing — re-accept with gate+ (new ASRPrewarmTests only)
 - 2026-10-27 09:33 Q526 -> done — gate 78s @3d1adba2
 - 2026-10-27 10:24 Q526 -> done — device: 27.7 s only on the first launch after an install, 0.7 s after; pre-warm at launch (RUN.md)
+- 2026-10-27 11:38 Q369 -> done — Tuur waived 2026-10-27: "the speed is great already, we did tests before" (D186 check allows his waiver)
