@@ -3824,12 +3824,20 @@ gate+: yes
 do: On an unrated Mac note (UnratedNotePane, a MemoNoteProjection) the "Which Bruno?" pick changes the projection's nameResolutions/sanitised, but MemoNoteProjection.writeBack (MemoNoteProjection.swift:215) never copies nameResolutions to the Memo, and rawTranscript(ofLinked:) (:108) returns nil because the shown body equals linkBody under the new resolutions, so commit() never runs: the pick is lost on reopen and never reaches the phone. Make writeBack carry pf.nameResolutions to memo.nameResolutions (as the phone does, MemoPageView.swift:1310-1317, markEdited(stampWords: false)), and run commit when the projection's resolutions change. The transcript must stay byte-identical (the raw words). Undo of the pick restores the old resolutions and saves that too.
 check: a Mac unit test: pick a person for an ambiguous name on an unrated projection → memo.nameResolutions carries the pick, memo.transcript unchanged, no PipelineFile created; reopening the projection shows the name linked
 
-### Q529 [auto] (doing) phone: a linked name shows as [[Full Name]] like the Mac and Obsidian (D222)
+### Q529 [auto] (tuur) phone: a linked name shows as [[Full Name]] like the Mac and Obsidian (D222)
 spec: D222
 needs: -
 gate+: yes
 do: Tuur 2026-10-27 (D222): a linked name shows as Obsidian writes it, `[[Full Name]]` with brackets in the link colour, as the Mac body already does (BodyTextView). Today the phone (NoteBodyView / MemoPageView display-time linking) shows his spoken word in purple without brackets. Change the phone and iPad display to the export form produced by the same shared linker (CompilerInput.linkBody, no copy). The stored Memo.transcript keeps his raw spoken words: editing near or inside a displayed link must write back the raw words (mirror the Mac's Sanitiser.unlinkToSpoken path, Q524), and opening a note must never rewrite it (byte-identical test like UnratedNamesLinkedTests). Tapping a linked name keeps opening the person. Screenshot on the iPhone 17 sim, LOOK.
 check: phone tests: a note with a known person displays `[[Full Name]]`; open + no edit leaves memo.transcript byte-identical (spoken word, alias, his own `[[Some Idea]]`); an edit elsewhere in the paragraph keeps the raw spoken word in the transcript
+ask: Showing [[Full Name]] on the phone means the editor shows different text from what is stored. Doing that safely is about 250 lines in the 2,500-line note editor, with a risk of link brackets leaking into your saved notes. Park it until after the real apps are updated (the phone keeps the purple spoken word for now)? And when we do it: brackets always visible, or only while editing the link (Obsidian Live Preview)?
+
+### Q530 [auto] (doing) Mac: editing an unrated note changes only what was typed — no nickname rewritten to the short name
+spec: Q524 follow-up (found by the Q529 read, 2026-10-27)
+needs: -
+gate+: yes
+do: Q524 mirrors a Mac edit of an unrated note back to Memo.transcript as Sanitiser.unlinkToSpoken(whole linked body) (MemoNoteProjection.rawTranscript(ofLinked:), UnratedNotePane .onChange(of: projection.sanitised)). unlinkToSpoken (Shared/Naming/NameUnlinking.swift:115) turns every `[[Canonical]]` into the person's SHORT name, so a name he said as an alias ("Nik" for Nick Jansen) is rewritten to "Nick" anywhere in the note on the first unrelated edit. Before Q524 an unrated edit wrote the transcript directly, losslessly. Fix: carry only the user's change into the raw transcript (diff the previous and new linked bodies, map the changed region back to raw offsets, splice it into the raw transcript), so every untouched spoken word stays byte-identical. If an edit lands inside a link run, fall back to un-linking just that run. Shared helper in Shared/ if the phone (Q529) will need the same mapping.
+check: a Mac unit test: a note saying "Nik" (alias of Nick Jansen) and "Bruno"; an edit elsewhere in the note leaves "Nik" and "Bruno" byte-identical in memo.transcript; plus the existing UnratedNamesLinkedTests and UnratedNamePickPersistsTests stay green
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5532,3 +5540,6 @@ check: phone tests: a note with a known person displays `[[Full Name]]`; open + 
 - 2026-10-27 08:40 Q529 added
 - 2026-10-27 08:42 Q528 -> done — gate 68s @0ccdb566
 - 2026-10-27 08:42 Q529 -> doing — worker out
+- 2026-10-27 08:42 Q530 added
+- 2026-10-27 08:42 Q529 -> tuur — blocked: editor text IS the stored transcript (NoteBodyView.swift:380, reconstruct :2130); options 1 tagged runs ~250 lines / 2 show only when not editing / 3 store unlinked (lossy); park until after the update?
+- 2026-10-27 08:42 Q530 -> doing — worker out
