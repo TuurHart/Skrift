@@ -3824,13 +3824,13 @@ gate+: yes
 do: On an unrated Mac note (UnratedNotePane, a MemoNoteProjection) the "Which Bruno?" pick changes the projection's nameResolutions/sanitised, but MemoNoteProjection.writeBack (MemoNoteProjection.swift:215) never copies nameResolutions to the Memo, and rawTranscript(ofLinked:) (:108) returns nil because the shown body equals linkBody under the new resolutions, so commit() never runs: the pick is lost on reopen and never reaches the phone. Make writeBack carry pf.nameResolutions to memo.nameResolutions (as the phone does, MemoPageView.swift:1310-1317, markEdited(stampWords: false)), and run commit when the projection's resolutions change. The transcript must stay byte-identical (the raw words). Undo of the pick restores the old resolutions and saves that too.
 check: a Mac unit test: pick a person for an ambiguous name on an unrated projection → memo.nameResolutions carries the pick, memo.transcript unchanged, no PipelineFile created; reopening the projection shows the name linked
 
-### Q529 [auto] (tuur) phone: a linked name shows as [[Full Name]] like the Mac and Obsidian (D222)
+### Q529 [auto] (todo) phone: a linked name shows as [[Full Name]] like the Mac and Obsidian (D222)
 spec: D222
-needs: -
+needs: Q370
 gate+: yes
 do: Tuur 2026-10-27 (D222): a linked name shows as Obsidian writes it, `[[Full Name]]` with brackets in the link colour, as the Mac body already does (BodyTextView). Today the phone (NoteBodyView / MemoPageView display-time linking) shows his spoken word in purple without brackets. Change the phone and iPad display to the export form produced by the same shared linker (CompilerInput.linkBody, no copy). The stored Memo.transcript keeps his raw spoken words: editing near or inside a displayed link must write back the raw words (mirror the Mac's Sanitiser.unlinkToSpoken path, Q524), and opening a note must never rewrite it (byte-identical test like UnratedNamesLinkedTests). Tapping a linked name keeps opening the person. Screenshot on the iPhone 17 sim, LOOK.
 check: phone tests: a note with a known person displays `[[Full Name]]`; open + no edit leaves memo.transcript byte-identical (spoken word, alias, his own `[[Some Idea]]`); an edit elsewhere in the paragraph keeps the raw spoken word in the transcript
-ask: Showing [[Full Name]] on the phone means the editor shows different text from what is stored. Doing that safely is about 250 lines in the 2,500-line note editor, with a risk of link brackets leaking into your saved notes. Park it until after the real apps are updated (the phone keeps the purple spoken word for now)? And when we do it: brackets always visible, or only while editing the link (Obsidian Live Preview)?
+parked: Tuur 2026-10-27 "park the change": waits for the prod update (Q370). Design start: display-only substitution like CodeMirror/Obsidian Live Preview decorations (the editor text stays the stored text; ranges render differently); the lossless raw<->linked mapping exists in Shared/Naming/LinkedBodyEdit.swift (Q530). Bracket style (always vs only while editing) still to ask.
 
 ### Q530 [auto] (done) Mac: editing an unrated note changes only what was typed — no nickname rewritten to the short name
 spec: Q524 follow-up (found by the Q529 read, 2026-10-27)
@@ -5544,3 +5544,4 @@ check: a Mac unit test: a note saying "Nik" (alias of Nick Jansen) and "Bruno"; 
 - 2026-10-27 08:42 Q529 -> tuur — blocked: editor text IS the stored transcript (NoteBodyView.swift:380, reconstruct :2130); options 1 tagged runs ~250 lines / 2 show only when not editing / 3 store unlinked (lossy); park until after the update?
 - 2026-10-27 08:42 Q530 -> doing — worker out
 - 2026-10-27 08:52 Q530 -> done — gate 81s @93679fad
+- 2026-10-27 08:58 Q529 -> todo — parked until after Q370 (Tuur 2026-10-27)
