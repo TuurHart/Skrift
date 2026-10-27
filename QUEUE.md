@@ -3817,7 +3817,7 @@ gate+: yes
 do: Tuur 2026-10-26: two ways to add a recording is "not good"; keep the + button ("I like being able to just talk more into it"). On the phone remove "Add recording" from the note's ⋯ menu (MemoDetailView.swift:191 and :601) wherever the + button shows (MemoDetailView.swift:509 condition: compact width, not a pending draft, not a share capture). Keep the ⋯ entry where no + shows (iPad regular width), so every note still has exactly one way in. Update BUGS.md (tick the item).
 check: a phone test asserts the ⋯ menu has no Add recording on a compact-width saved note and still has it at regular width; `plan/mtest.sh` passes it
 
-### Q528 [auto] (doing) Mac: picking which person a name means on an unrated note is saved to the note and syncs
+### Q528 [auto] (done) Mac: picking which person a name means on an unrated note is saved to the note and syncs
 spec: BUGS.md; Q524 follow-up (Tuur 2026-10-27, Dev 196 screenshot: picked "Bruno" → Bruno Aragorn on an unrated note)
 needs: -
 gate+: yes
@@ -5530,3 +5530,4 @@ check: phone tests: a note with a known person displays `[[Full Name]]`; open + 
 - 2026-10-27 08:36 Q528 added
 - 2026-10-27 08:36 Q528 -> doing — worker out
 - 2026-10-27 08:40 Q529 added
+- 2026-10-27 08:42 Q528 -> done — gate 68s @0ccdb566
