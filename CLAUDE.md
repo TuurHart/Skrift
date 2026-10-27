@@ -87,7 +87,7 @@ xcodebuild build -scheme SkriftDesktop -configuration Release -destination 'plat
 
 Two build configs, fully isolated, so iterating never risks real data:
 - **Debug = "Skrift Dev"** — `com.skrift.{mobile,desktop}.dev`, **inverted app icon**, its OWN OS data
-  container; macOS dev defaults to the TEST vault (`~/Hackerman/Obsidian_LLM_Test_Vault`).
+  container; macOS dev defaults to the TEST vault (`~/Hackerman/archive/Obsidian_LLM_Test_Vault`).
 - **Release = "Skrift"** (prod) — the real data + real Obsidian vault. Prod desktop lives at
   `/Applications/Skrift.app`.
 
