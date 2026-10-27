@@ -359,6 +359,15 @@ These need a device round or a log pull before they can be fixed.
       (NoteActions.swift:89, NoteDisplayView.swift:642), so the entry is missing there; the phone
       offers + on every note. Tuur 2026-10-27: unrated notes need it too (Q531).
 
+- [ ] **Connections' model takes up to 15 minutes to load on the phone** (devlog Dev 197, 2026-10-26/27:
+      "embedder: cold load DONE in 742.1s", "876.2s", "445.8s"; other loads 6.7-7.3 s). It reloads
+      after every trip to the background ("unloaded on background" → "cold load START"). Battery and
+      heat; also the suspect for the ANE contention in Q526.
+- [ ] **Custom words may replace ordinary words** (devlog Dev 197: "ten,→Atex(true)", "Da,→Voxl(true)",
+      "One,→Tiuri(true)", "Next to it.→Voxl(true)"). Check whether "(true)" means applied: the
+      2026-10-26 note still read "Next to it." in Tuur's screenshot. Short custom words are
+      FP-prone (memory: vocab booster).
+
 - [ ] **The app feels slow next to other apps** (Tuur, 2026-08-18) at under 200 notes, so not data
       volume. Step 0 is a Time Profiler run on the **prod** build — busy main thread or blocked? The
       cheap suspects are already located: `archive/state-2026-09/AUDIT_PLAN.md` P1–P7. Two of the audit's findings are

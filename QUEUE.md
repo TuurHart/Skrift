@@ -3803,12 +3803,13 @@ needs: -
 do: Tuur 2026-10-26: the Mac Settings text is light grey and hard to read; the phone's Settings read fine. Bring the Mac Settings body text to the primary text colour (footers may stay secondary but must meet WCAG AA contrast on the Settings background). Headless -snapshot of Settings in light and dark, LOOK.
 check: snapshot PNGs of Mac Settings, light and dark, read clearly
 
-### Q526 [auto] (tuur) measure transcription start-up vs Glot (both Parakeet) and close the gap
+### Q526 [auto] (doing) measure transcription start-up vs Glot (both Parakeet) and close the gap
 spec: BUGS.md "Transcription takes much longer to start than in Glot"
 needs: -
 do: Tuur 2026-10-26 on Dev 195: a fresh recording took much longer to start transcribing than in Glot (/Users/tiurihartog/Hackerman/glot-study); both run Parakeet via FluidAudio. Read how each app loads and warms the model (when, which model and version, compute units, compiled-model cache, pre-warm at launch or at record-stop) and report the differences with file:line on both sides. Fix only a difference the reading proves (e.g. Skrift loads at record-stop where Glot pre-warms at launch); no device runs, the record-stop-to-first-words timing on the iPhone 17 Pro is measured afterwards with Tuur.
 check: the comparison with file:line on both apps is in the report; any fix builds and its targeted test passes
-ask: When transcription starts slowly on the phone again, tell me right away so I can pull the Dev log. Then switch off Settings > Journal index, record again and tell me if it was faster. The code reading suggests the related-notes indexer competes with transcription for the phone's AI chip.
+finding-2026-10-27: device log (Dev 197, Connections OFF, embedder unloaded): launch 09:19:29.028, record start 09:19:31.071, mic live 482 ms after the button, take 15.19 s, first live snapshot 09:19:46.095 covering the whole 14.4 s window: the live caption showed nothing for ~15 s because Parakeet was still cold-loading; the audio was captured from the start. Connections is not the cause. The Parakeet load itself is not logged. With the model warm, the first snapshot comes ~1.1 s after record start.
+next: pre-warm Parakeet at app launch/foreground (after launch work settles, never blocking main; unload stays on memory warning), log "asr: cold load START/DONE in Ns" to devlog, and measure launch→first-snapshot on the iPhone 17 Pro again.
 
 ### Q527 [auto] (done) phone: Add recording appears once per note — the + button; the ⋯ entry only where the + isn't shown
 spec: BUGS.md "Two ways to add a recording to an open note"
@@ -5554,3 +5555,4 @@ check: Mac unit tests: an unrated voice-note projection offers Add recording; ap
 - 2026-10-27 08:58 Q529 -> todo — parked until after Q370 (Tuur 2026-10-27)
 - 2026-10-27 09:17 Q531 added
 - 2026-10-27 09:17 Q531 -> doing — worker out
+- 2026-10-27 09:21 Q526 -> doing — worker out: pre-warm Parakeet at launch
