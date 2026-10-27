@@ -3824,6 +3824,13 @@ gate+: yes
 do: On an unrated Mac note (UnratedNotePane, a MemoNoteProjection) the "Which Bruno?" pick changes the projection's nameResolutions/sanitised, but MemoNoteProjection.writeBack (MemoNoteProjection.swift:215) never copies nameResolutions to the Memo, and rawTranscript(ofLinked:) (:108) returns nil because the shown body equals linkBody under the new resolutions, so commit() never runs: the pick is lost on reopen and never reaches the phone. Make writeBack carry pf.nameResolutions to memo.nameResolutions (as the phone does, MemoPageView.swift:1310-1317, markEdited(stampWords: false)), and run commit when the projection's resolutions change. The transcript must stay byte-identical (the raw words). Undo of the pick restores the old resolutions and saves that too.
 check: a Mac unit test: pick a person for an ambiguous name on an unrated projection → memo.nameResolutions carries the pick, memo.transcript unchanged, no PipelineFile created; reopening the projection shows the name linked
 
+### Q529 [auto] (todo) phone: a linked name shows as [[Full Name]] like the Mac and Obsidian (D222)
+spec: D222
+needs: -
+gate+: yes
+do: Tuur 2026-10-27 (D222): a linked name shows as Obsidian writes it, `[[Full Name]]` with brackets in the link colour, as the Mac body already does (BodyTextView). Today the phone (NoteBodyView / MemoPageView display-time linking) shows his spoken word in purple without brackets. Change the phone and iPad display to the export form produced by the same shared linker (CompilerInput.linkBody, no copy). The stored Memo.transcript keeps his raw spoken words: editing near or inside a displayed link must write back the raw words (mirror the Mac's Sanitiser.unlinkToSpoken path, Q524), and opening a note must never rewrite it (byte-identical test like UnratedNamesLinkedTests). Tapping a linked name keeps opening the person. Screenshot on the iPhone 17 sim, LOOK.
+check: phone tests: a note with a known person displays `[[Full Name]]`; open + no edit leaves memo.transcript byte-identical (spoken word, alias, his own `[[Some Idea]]`); an edit elsewhere in the paragraph keeps the raw spoken word in the transcript
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5522,3 +5529,4 @@ check: a Mac unit test: pick a person for an ambiguous name on an unrated projec
 - 2026-10-26 21:22 Q524 -> done — gate 2396s @4119a13a
 - 2026-10-27 08:36 Q528 added
 - 2026-10-27 08:36 Q528 -> doing — worker out
+- 2026-10-27 08:40 Q529 added
