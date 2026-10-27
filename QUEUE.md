@@ -3817,6 +3817,13 @@ gate+: yes
 do: Tuur 2026-10-26: two ways to add a recording is "not good"; keep the + button ("I like being able to just talk more into it"). On the phone remove "Add recording" from the note's ⋯ menu (MemoDetailView.swift:191 and :601) wherever the + button shows (MemoDetailView.swift:509 condition: compact width, not a pending draft, not a share capture). Keep the ⋯ entry where no + shows (iPad regular width), so every note still has exactly one way in. Update BUGS.md (tick the item).
 check: a phone test asserts the ⋯ menu has no Add recording on a compact-width saved note and still has it at regular width; `plan/mtest.sh` passes it
 
+### Q528 [auto] (doing) Mac: picking which person a name means on an unrated note is saved to the note and syncs
+spec: BUGS.md; Q524 follow-up (Tuur 2026-10-27, Dev 196 screenshot: picked "Bruno" → Bruno Aragorn on an unrated note)
+needs: -
+gate+: yes
+do: On an unrated Mac note (UnratedNotePane, a MemoNoteProjection) the "Which Bruno?" pick changes the projection's nameResolutions/sanitised, but MemoNoteProjection.writeBack (MemoNoteProjection.swift:215) never copies nameResolutions to the Memo, and rawTranscript(ofLinked:) (:108) returns nil because the shown body equals linkBody under the new resolutions, so commit() never runs: the pick is lost on reopen and never reaches the phone. Make writeBack carry pf.nameResolutions to memo.nameResolutions (as the phone does, MemoPageView.swift:1310-1317, markEdited(stampWords: false)), and run commit when the projection's resolutions change. The transcript must stay byte-identical (the raw words). Undo of the pick restores the old resolutions and saves that too.
+check: a Mac unit test: pick a person for an ambiguous name on an unrated projection → memo.nameResolutions carries the pick, memo.transcript unchanged, no PipelineFile created; reopening the projection shows the name linked
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5513,3 +5520,5 @@ check: a phone test asserts the ⋯ menu has no Add recording on a compact-width
 - 2026-10-26 20:34 Q523 -> done — gate 93s @0fb9067e
 - 2026-10-26 20:39 Q522 -> done — hand-merged (Tuur D221 (2026-10-26) drops C291: EpubUploadGuardTests rewritten to acceptance, its one-sentence test removed with the sentence)
 - 2026-10-26 21:22 Q524 -> done — gate 2396s @4119a13a
+- 2026-10-27 08:36 Q528 added
+- 2026-10-27 08:36 Q528 -> doing — worker out
