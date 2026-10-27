@@ -3806,6 +3806,7 @@ check: snapshot PNGs of Mac Settings, light and dark, read clearly
 ### Q526 [auto] (doing) measure transcription start-up vs Glot (both Parakeet) and close the gap
 spec: BUGS.md "Transcription takes much longer to start than in Glot"
 needs: -
+gate+: yes
 do: Tuur 2026-10-26 on Dev 195: a fresh recording took much longer to start transcribing than in Glot (/Users/tiurihartog/Hackerman/glot-study); both run Parakeet via FluidAudio. Read how each app loads and warms the model (when, which model and version, compute units, compiled-model cache, pre-warm at launch or at record-stop) and report the differences with file:line on both sides. Fix only a difference the reading proves (e.g. Skrift loads at record-stop where Glot pre-warms at launch); no device runs, the record-stop-to-first-words timing on the iPhone 17 Pro is measured afterwards with Tuur.
 check: the comparison with file:line on both apps is in the report; any fix builds and its targeted test passes
 finding-2026-10-27: device log (Dev 197, Connections OFF, embedder unloaded): launch 09:19:29.028, record start 09:19:31.071, mic live 482 ms after the button, take 15.19 s, first live snapshot 09:19:46.095 covering the whole 14.4 s window: the live caption showed nothing for ~15 s because Parakeet was still cold-loading; the audio was captured from the start. Connections is not the cause. The Parakeet load itself is not logged. With the model warm, the first snapshot comes ~1.1 s after record start.
@@ -5557,3 +5558,5 @@ check: Mac unit tests: an unrated voice-note projection offers Add recording; ap
 - 2026-10-27 09:17 Q531 -> doing — worker out
 - 2026-10-27 09:21 Q526 -> doing — worker out: pre-warm Parakeet at launch
 - 2026-10-27 09:31 Q531 -> done — gate 91s @8020508b
+- 2026-10-27 09:31 Q526 -> stuck — touched protected: Skrift_Native/SkriftMobile/SkriftMobileTests/ASRPrewarmTests.swift 
+- 2026-10-27 09:32 Q526 -> doing — re-accept with gate+ (new ASRPrewarmTests only)
