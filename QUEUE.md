@@ -3803,7 +3803,7 @@ needs: -
 do: Tuur 2026-10-26: the Mac Settings text is light grey and hard to read; the phone's Settings read fine. Bring the Mac Settings body text to the primary text colour (footers may stay secondary but must meet WCAG AA contrast on the Settings background). Headless -snapshot of Settings in light and dark, LOOK.
 check: snapshot PNGs of Mac Settings, light and dark, read clearly
 
-### Q526 [auto] (doing) measure transcription start-up vs Glot (both Parakeet) and close the gap
+### Q526 [auto] (done) measure transcription start-up vs Glot (both Parakeet) and close the gap
 spec: BUGS.md "Transcription takes much longer to start than in Glot"
 needs: -
 gate+: yes
@@ -5560,3 +5560,4 @@ check: Mac unit tests: an unrated voice-note projection offers Add recording; ap
 - 2026-10-27 09:31 Q531 -> done — gate 91s @8020508b
 - 2026-10-27 09:31 Q526 -> stuck — touched protected: Skrift_Native/SkriftMobile/SkriftMobileTests/ASRPrewarmTests.swift 
 - 2026-10-27 09:32 Q526 -> doing — re-accept with gate+ (new ASRPrewarmTests only)
+- 2026-10-27 09:33 Q526 -> done — gate 78s @3d1adba2
