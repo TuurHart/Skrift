@@ -3840,7 +3840,7 @@ gate+: yes
 do: Q524 mirrors a Mac edit of an unrated note back to Memo.transcript as Sanitiser.unlinkToSpoken(whole linked body) (MemoNoteProjection.rawTranscript(ofLinked:), UnratedNotePane .onChange(of: projection.sanitised)). unlinkToSpoken (Shared/Naming/NameUnlinking.swift:115) turns every `[[Canonical]]` into the person's SHORT name, so a name he said as an alias ("Nik" for Nick Jansen) is rewritten to "Nick" anywhere in the note on the first unrelated edit. Before Q524 an unrated edit wrote the transcript directly, losslessly. Fix: carry only the user's change into the raw transcript (diff the previous and new linked bodies, map the changed region back to raw offsets, splice it into the raw transcript), so every untouched spoken word stays byte-identical. If an edit lands inside a link run, fall back to un-linking just that run. Shared helper in Shared/ if the phone (Q529) will need the same mapping.
 check: a Mac unit test: a note saying "Nik" (alias of Nick Jansen) and "Bruno"; an edit elsewhere in the note leaves "Nik" and "Bruno" byte-identical in memo.transcript; plus the existing UnratedNamesLinkedTests and UnratedNamePickPersistsTests stay green
 
-### Q531 [auto] (doing) Mac: Add recording on an unrated voice note too, like the phone
+### Q531 [auto] (done) Mac: Add recording on an unrated voice note too, like the phone
 spec: D173; Tuur 2026-10-27 ("need to be able to add recordings on an unrated note")
 needs: -
 gate+: yes
@@ -5556,3 +5556,4 @@ check: Mac unit tests: an unrated voice-note projection offers Add recording; ap
 - 2026-10-27 09:17 Q531 added
 - 2026-10-27 09:17 Q531 -> doing — worker out
 - 2026-10-27 09:21 Q526 -> doing — worker out: pre-warm Parakeet at launch
+- 2026-10-27 09:31 Q531 -> done — gate 91s @8020508b
