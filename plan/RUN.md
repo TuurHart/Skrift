@@ -527,3 +527,9 @@ from TestFlight; notes look fine. Mac half (ICLOUD_MERGE steps 0–10) still ope
 Tuur ran `codesign -d --entitlements :- /Applications/Skrift.app`: aps-environment `development`,
 container iCloud.com.skrift.mobile, get-task-allow true, NO icloud-container-environment. The installed
 Aug Mac syncs CloudKit Development, as D203 said. F2 was answered in Q401. Step 1 passes.
+
+## ICLOUD_MERGE step 0 — Release Mac 199 built, not installed (2026-10-27)
+UnitTests: 2144 tests, 2143 passed, 0 failed, 1 skipped. Release build (ARCHS=arm64, Admin key) exit 0 at
+`Skrift_Native/SkriftDesktop/build-release/Build/Products/Release/Skrift.app`: CFBundleVersion 199,
+icloud-container-environment = Production, aps-environment = development; "merge-from-dev" literal 1 hit.
+copytest --self-test (incl. merge self-test) PASS earlier today (e02a02a7).
