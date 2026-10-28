@@ -547,3 +547,10 @@ between. Landed text (MacAppendRecording.joined) unchanged. MacAppendPriorBodyTe
 SkriftDesktop build succeeded. Conductor looked at the -snapshot-livedraft PNG: ADD RECORDING pane shows two
 body paragraphs above "One more thing about the frames:" + wet tail; fresh takes show none. Live take on the
 real mic unverified (Dev install owed). Commits 142d71d1, 2a9dbb2c.
+## Q533 — Mac sidebar keeps one width across Notes and Review (2026-10-28)
+Cause: Review rail was a fixed 252pt (JournalView.swift:70) while Notes' HSplitView sidebar sits at ideal 292.
+Now one persisted `PrefKey.macSidebarWidth` (MacSidebarWidth: default 292, clamp 240–360) feeds Notes'
+idealWidth (written on drag via GeometryReader) and the Review rail; RailMiniMap takes the rail width minus
+28 so the map fills it (was a hard 224). MacSidebarWidthTests 5/5; full SkriftDesktop build OK. Conductor
+looked at -snapshot-journal at 292 (map flush with calendar, x 14–278) after rejecting the first render's
+gap. Live drag and live ⌘1/⌘2 unverified (Dev install owed). Commits 677b52b6, f40b5465, d824b361.
