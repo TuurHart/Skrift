@@ -166,7 +166,7 @@ struct JournalView: View {
                     // Ambient mini-map (mock review-minimap.html #m1): geography is
                     // always on screen; the river never moves. Click → full map,
                     // fitted to every pin, no place pre-selected.
-                    RailMiniMap(clusters: clusters) {
+                    RailMiniMap(clusters: clusters, width: MacSidebarWidth.clamped(sidebarWidth) - 28) {
                         selectedPlace = nil
                         showing = .map
                         if let region = PlaceCluster.fitRegion(for: clusters) {

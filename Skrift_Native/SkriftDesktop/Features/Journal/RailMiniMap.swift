@@ -9,6 +9,9 @@ import MapKit
 /// nothing is located.
 struct RailMiniMap: View {
     let clusters: [PlaceCluster]
+    /// The rail's content width (rail width minus its 14pt padding each side), so the map's
+    /// edges line up with the calendar's (Q533; it was a fixed 224 for the old 252 rail).
+    var width: CGFloat = 224
     var onOpen: () -> Void
 
     @Environment(\.colorScheme) private var scheme
@@ -16,7 +19,8 @@ struct RailMiniMap: View {
     @State private var pins: [MiniPin] = []
 
     /// Shot at the exact displayed size so `snapshot.point(for:)` maps 1:1.
-    private static let size = CGSize(width: 224, height: 150)
+    private static let height: CGFloat = 150
+    private var size: CGSize { CGSize(width: width, height: Self.height) }
 
     struct MiniPin: Identifiable {
         let id: String
@@ -49,7 +53,7 @@ struct RailMiniMap: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(7)
             }
-            .frame(width: Self.size.width, height: Self.size.height)
+            .frame(width: size.width, height: size.height)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline.opacity(0.08), lineWidth: 1))
             .contentShape(RoundedRectangle(cornerRadius: 10))
@@ -75,7 +79,7 @@ struct RailMiniMap: View {
 
     /// Re-shoot when the clusters or the appearance change — not on every body eval.
     private var shotKey: String {
-        "\(scheme)|" + clusters.map { "\($0.id):\($0.memos.count)" }.joined(separator: "·")
+        "\(scheme)|\(Int(width))|" + clusters.map { "\($0.id):\($0.memos.count)" }.joined(separator: "·")
     }
 
     private func reshoot() async {
@@ -84,7 +88,7 @@ struct RailMiniMap: View {
         }
         let options = MKMapSnapshotter.Options()
         options.region = region
-        options.size = Self.size
+        options.size = size
         options.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
         // Ambient map: no POI labels/icons competing with the pins.
         options.pointOfInterestFilter = .excludingAll
