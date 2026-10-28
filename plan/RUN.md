@@ -571,3 +571,12 @@ phone before S skipped 2 (both 2026-09, under the 20 limit). Plan: insert 1 note
 new + 1 OLD-newer; 0 field copies, 0 conflicts, 0 diverged. After: 112 rows, 85 live, 31 enhancements,
 0 duplicate groups. Verdict GO. Expected alert: "Bring in 1 note and 15 polishes", 14 new / 1 updated, 0/0/0.
 The 2 skipped Sept phone notes stay only in the old store / backup.
+
+## ICLOUD_MERGE step 9 — merged 2026-10-28T14:33:57Z
+Tuur pressed Yes; folder renamed merged-2026-10-28. Report: inserted 1 note (0 assets), enhancements 14 inserted
++ 1 old-newer, 0 field copies, 0 conflicts, 0 diverged, 0 duplicate groups — the dry run's plan exactly.
+Report's "before" differs from the dry run by exactly 14 notes: prod 97 (dry 111), in both 88 (dry 102),
+old-only trashed 30 (dry 16). Those 14 were trashed on both sides (the dry run made 0 trash field copies) and left
+Production between the dry-run copy (~14:31) and the merge (the 14:33 launch imported them as deletions; the
+lifecycle sweep at 14:33:41 still saw 111). Reading: the normal trash purge removed 14 old trashed notes; no
+live note involved. Not proven per id (ids not read). Step 10 phone checks owed.
