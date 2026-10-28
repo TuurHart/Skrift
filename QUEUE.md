@@ -3855,7 +3855,7 @@ gate+: yes
 do: On the Mac, ⋯ > Add recording swaps the whole pane to RecordingDraftView (RootView.swift:93, any live phase), so while appending the note's existing body disappears and only the new live text shows under "Adding a recording to this note" (RecordingDraftView.swift:167 appendingLine). When `session.appendTarget` is set, show the target note's current body as read-only text above the live settled/wet text, with a blank line between, so the user sees the note continue (the phone's append behaviour). The title row already shows the target note's title; keep it. Fresh takes (no appendTarget) are unchanged. Read-only: the user edits only the new text during the take. The landed result (MacAppendRecording.joined) is unchanged.
 check: Mac unit test or hosted -snapshot render: an append session over a note with body "A" shows "A" above the live text; a fresh take shows no prior body. Vision-check the snapshot PNG.
 
-### Q533 [auto] (todo) Mac: the sidebar keeps one width when switching Notes and Review
+### Q533 [auto] (done) Mac: the sidebar keeps one width when switching Notes and Review
 spec: D220 bug; Tuur 2026-10-28 on Dev 198 ("when I switch tabs the width of the side changes")
 needs: -
 gate+: yes
@@ -3865,3 +3865,4 @@ check: Mac unit test of the shared width value (default 292, a drag-written valu
 - 2026-10-28 08:56 Q309 -> done — Tuur 2026-10-28 Dev 198: ⌘N, ⇧⌘N, ⌘F, ⌘1/⌘2 work; tab switch width jump → Q533
 - 2026-10-28 08:56 Q304 -> tuur — Mac half PASS 2026-10-28 Dev 198 on an unrated note (audio 0:23 joined, new paragraph); text hidden during take → Q532; phone sync owed
 - 2026-10-28 09:07 Q532 -> done — gate 88s @567c8ecc
+- 2026-10-28 09:10 Q533 -> done — gate 93s @25821b01
