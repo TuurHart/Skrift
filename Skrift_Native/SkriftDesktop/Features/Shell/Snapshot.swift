@@ -696,7 +696,9 @@ enum Snapshot {
             pane("ADD RECORDING — the take joins an existing note (Q290)", RecordingDraftBody(
                 phase: .live, settledText: .constant("One more thing about the frames:"),
                 wetText: "the corners need a second coat ",
-                elapsedLabel: "0:09", appendingTo: "Planter frames with Jacques"))
+                elapsedLabel: "0:09", appendingTo: "Planter frames with Jacques",
+                appendingBody: "Call with Jacques about the planter frames — he can weld the corners "
+                    + "next week if the steel arrives Tuesday.\n\nBudget stays under the two hundred we said."))
         }
         .frame(width: 920, height: 1340)
         .background(Theme.hairline.opacity(0.25))

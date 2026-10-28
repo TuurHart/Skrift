@@ -77,6 +77,20 @@ final class LiveRecordingSession {
     struct AppendTarget: Equatable {
         let id: String
         let title: String
+        /// Q532: the note's body as it stood when the take began, shown read-only above the
+        /// live text so the user sees the note continue. Display only; the landed text is
+        /// still `MacAppendRecording.joined(<current body>, <new words>)`.
+        var body: String = ""
+
+        init(id: String, title: String, body: String = "") {
+            self.id = id
+            self.title = title
+            self.body = body
+        }
+
+        init(file: PipelineFile) {
+            self.init(id: file.id, title: file.displayTitle, body: file.transcript ?? "")
+        }
     }
     private(set) var appendTarget: AppendTarget?
 
@@ -108,13 +122,13 @@ final class LiveRecordingSession {
     /// as a mid-take device loss leaves it at `.live` — either way the very next `stop()`/
     /// `cancel()` picks up `recorder.state`'s `.failed` honestly, same as today.)
     func start(appendingTo file: PipelineFile? = nil) async {
-        await start(target: file.map { AppendTarget(id: $0.id, title: $0.displayTitle) })
+        await start(target: file.map { AppendTarget(file: $0) })
     }
 
     /// Q531: "Add recording" on an UNRATED note, which has no `PipelineFile` (only the synced
     /// `Memo`, same id). The take lands on that memo (`finishAppend`).
-    func start(appendingToMemo id: String, title: String) async {
-        await start(target: AppendTarget(id: id, title: title))
+    func start(appendingToMemo id: String, title: String, body: String = "") async {
+        await start(target: AppendTarget(id: id, title: title, body: body))
     }
 
     private func start(target: AppendTarget?) async {

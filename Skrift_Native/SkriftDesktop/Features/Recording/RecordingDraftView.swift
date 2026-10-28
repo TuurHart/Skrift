@@ -20,6 +20,7 @@ struct RecordingDraftView: View {
             notice: session.notice,
             modelState: session.modelState,
             appendingTo: session.appendTarget?.title,
+            appendingBody: session.appendTarget?.body ?? "",
             isPaused: session.isPaused
         )
     }
@@ -65,6 +66,9 @@ struct RecordingDraftBody: View {
     /// "Add recording" (Q290): the title of the note this take will be appended to. nil = a
     /// new note (the signed m1/m2/m4 look, unchanged).
     var appendingTo: String? = nil
+    /// Q532: the note's current body, read-only above the live text while appending (the
+    /// phone's append behaviour: the note continues). Ignored for a fresh take.
+    var appendingBody: String = ""
     /// Q328: the take is paused — the caret goes quiet (still, dimmed), as in the signed mock.
     var isPaused: Bool = false
 
@@ -194,6 +198,20 @@ struct RecordingDraftBody: View {
     // ── Body: editable settled text, then the engine's non-editable wet tail ──
     @ViewBuilder private var draftBody: some View {
         VStack(alignment: .leading, spacing: 2) {
+            if let prior = MacAppendRecording.priorBody(isAppending: appendingTo != nil, body: appendingBody) {
+                // Read-only: only the new text is editable during the take. The blank line
+                // between mirrors the join the note gets when the take lands.
+                Text(prior)
+                    .font(.system(size: 15))
+                    .lineSpacing(9)
+                    .foregroundStyle(Theme.textPrimary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                    .padding(.bottom, 15)
+                    .accessibilityIdentifier("recording-draft.prior-body")
+            }
             // TextEditor-style editable region: every keystroke lands straight on
             // `session.settledText` (via the binding) — that's what flips `everEdited`
             // on the session side. `scrollDisabled` lets it grow with the outer
