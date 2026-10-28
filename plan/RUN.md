@@ -540,3 +540,10 @@ Tuur, screenshots: Add recording on an unrated voice note appends (0:03 → 0:23
 link styling lag is fine (Q63 done); a heading "Testing" became `[[testing]]` after a delay because a person
 named "testing" exists (his phone test person, 2026-10-26), D222 shows the person's own spelling. ⌘N, ⇧⌘N,
 ⌘F, ⌘1/⌘2 work (Q309 done); the sidebar width changes between Notes and Review → Q533.
+## Q532 — Mac Add recording shows the note's text during the take (2026-10-28)
+AppendTarget carries the note body (PipelineFile.transcript, or memo.transcript for unrated via
+start(appendingToMemo:title:body:)); RecordingDraftView shows it read-only above the live text, blank line
+between. Landed text (MacAppendRecording.joined) unchanged. MacAppendPriorBodyTests 5/5 pass; full
+SkriftDesktop build succeeded. Conductor looked at the -snapshot-livedraft PNG: ADD RECORDING pane shows two
+body paragraphs above "One more thing about the frames:" + wet tail; fresh takes show none. Live take on the
+real mic unverified (Dev install owed). Commits 142d71d1, 2a9dbb2c.
