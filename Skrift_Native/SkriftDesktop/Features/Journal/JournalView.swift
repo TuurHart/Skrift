@@ -38,6 +38,8 @@ struct JournalView: View {
     @State private var macLocalTrash: [PipelineFile] = []
     /// Same key the phone uses: the amber dot lights for fade-entries newer than the last shelf visit.
     @AppStorage(PrefKey.fadingLastSeenAt) private var fadingLastSeenTs: Double = PrefKey.fadingLastSeenAtDefault
+    /// The rail keeps the Notes sidebar's width (Q533) so ⌘1 / ⌘2 don't make the column jump.
+    @AppStorage(PrefKey.macSidebarWidth) private var sidebarWidth: Double = MacSidebarWidth.ideal
     @State private var month: Date = Date()
     @State private var selectedDay: Date = JournalCalendarGrid.firstSelectedDay()
     /// The column beside the rail: the Looking-back river, the map, or the ONE trash /
@@ -67,7 +69,7 @@ struct JournalView: View {
     var body: some View {
         HStack(spacing: 0) {
             rail
-                .frame(width: 252)
+                .frame(width: MacSidebarWidth.clamped(sidebarWidth))
                 .background(Theme.surface.opacity(0.55))
                 .overlay(alignment: .trailing) {
                     Rectangle().fill(Theme.hairline.opacity(0.07)).frame(width: 0.5)
@@ -164,7 +166,7 @@ struct JournalView: View {
                     // Ambient mini-map (mock review-minimap.html #m1): geography is
                     // always on screen; the river never moves. Click → full map,
                     // fitted to every pin, no place pre-selected.
-                    RailMiniMap(clusters: clusters) {
+                    RailMiniMap(clusters: clusters, width: MacSidebarWidth.clamped(sidebarWidth) - 28) {
                         selectedPlace = nil
                         showing = .map
                         if let region = PlaceCluster.fitRegion(for: clusters) {

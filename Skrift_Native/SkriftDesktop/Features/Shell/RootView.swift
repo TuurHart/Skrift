@@ -29,6 +29,9 @@ struct RootView: View {
     @AppStorage(PrefKey.appTheme) private var appTheme = PrefKey.appThemeDefault
     /// Written by the note bar's ◧ toggle (NoteDisplayView.sidebarToggle).
     @AppStorage(PrefKey.macSidebarVisible) private var sidebarVisible = PrefKey.macSidebarVisibleDefault
+    /// The left column's width, shared with Review's rail (Q533): written when the Notes
+    /// divider is dragged, read by both surfaces so ⌘1 / ⌘2 keep one width.
+    @AppStorage(PrefKey.macSidebarWidth) private var sidebarWidth: Double = MacSidebarWidth.ideal
     // Live queue = NOT trashed. The predicate keeps soft-deleted files out of the
     // sidebar, selection, and active note; Review's conveyor lists them (its Mac-local tail).
     @Query(filter: #Predicate<PipelineFile> { $0.deletedAt == nil },
@@ -74,7 +77,16 @@ struct RootView: View {
                             // placeholder, which is why it hid for so long). minWidth
                             // rises with it — dragging below the content's floor is what
                             // produced the clip.
-                            .frame(minWidth: 240, idealWidth: 292, maxWidth: 360)   // m2 cards breathe at ~290 (signed mock)
+                            .frame(minWidth: MacSidebarWidth.minimum,
+                                   idealWidth: MacSidebarWidth.clamped(sidebarWidth),
+                                   maxWidth: MacSidebarWidth.maximum)   // m2 cards breathe at ~290 (signed mock)
+                            .background(GeometryReader { geo in
+                                Color.clear.onChange(of: geo.size.width) { _, w in
+                                    if MacSidebarWidth.shouldRecord(measured: Double(w), stored: sidebarWidth) {
+                                        sidebarWidth = Double(w)
+                                    }
+                                }
+                            })
                     }
 
                     // ONE selection, ONE pane. `activeID` is the note's id either way —
