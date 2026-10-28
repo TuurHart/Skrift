@@ -533,3 +533,10 @@ UnitTests: 2144 tests, 2143 passed, 0 failed, 1 skipped. Release build (ARCHS=ar
 `Skrift_Native/SkriftDesktop/build-release/Build/Products/Release/Skrift.app`: CFBundleVersion 199,
 icloud-container-environment = Production, aps-environment = development; "merge-from-dev" literal 1 hit.
 copytest --self-test (incl. merge self-test) PASS earlier today (e02a02a7).
+
+## Mac Dev 198 checks — Q304 / Q63 / Q309 (2026-10-28)
+Tuur, screenshots: Add recording on an unrated voice note appends (0:03 → 0:23, new words as a new paragraph,
+"edited while recording" chip) but the note's earlier text disappears while recording → Q532. Heading and
+link styling lag is fine (Q63 done); a heading "Testing" became `[[testing]]` after a delay because a person
+named "testing" exists (his phone test person, 2026-10-26), D222 shows the person's own spelling. ⌘N, ⇧⌘N,
+⌘F, ⌘1/⌘2 work (Q309 done); the sidebar width changes between Notes and Review → Q533.
