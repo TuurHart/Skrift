@@ -554,3 +554,8 @@ idealWidth (written on drag via GeometryReader) and the Review rail; RailMiniMap
 28 so the map fills it (was a hard 224). MacSidebarWidthTests 5/5; full SkriftDesktop build OK. Conductor
 looked at -snapshot-journal at 292 (map flush with calendar, x 14–278) after rejecting the first render's
 gap. Live drag and live ⌘1/⌘2 unverified (Dev install owed). Commits 677b52b6, f40b5465, d824b361.
+
+## Q532 + Q533 live on Mac Dev 199 (2026-10-28)
+Tuur: "both work" — Add recording keeps the note's text visible during the take; Notes ⇄ Review keeps one
+sidebar width with the map filling it. Release 199 rebuilt 09:13 with both (MacSidebarWidth literal present).
+Tuur said go for the ICLOUD_MERGE swap (steps 3–10).
