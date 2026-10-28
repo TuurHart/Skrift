@@ -3848,7 +3848,7 @@ gate+: yes
 do: On the Mac the ⋯ of an unrated note uses the copy-only menu (NoteActions.swift:89 unratedOverflowItems; NoteDisplayView.swift:642 copyOnly when there is no pipeline row), so "Add recording" (fullOverflowItems :188, MacAppendRecording.isOffered needs file.path) is missing; the phone offers + on every note. Offer Add recording on an unrated voice note (UnratedNotePane, a MemoNoteProjection) and append the take to the synced Memo the way the phone does: the new audio joined onto the note's audio as its MemoAsset, the new words after a blank line (MacAppendRecording.joined), word timings shifted, markEdited. It must NOT create a PipelineFile or start processing (the note stays unrated). Same entry label (NoteMenuItem.addRecording), locked notes excluded. Update BUGS.md (tick "The Mac only offers Add recording on rated voice notes") and FEATURES.md.
 check: Mac unit tests: an unrated voice-note projection offers Add recording; appending a clip writes the joined audio asset and joined transcript to the Memo, no PipelineFile is created; a locked unrated note does not offer it
 
-### Q532 [auto] (todo) Mac: Add recording keeps the note's text visible while recording
+### Q532 [auto] (done) Mac: Add recording keeps the note's text visible while recording
 spec: D220 bug; Tuur 2026-10-28 on Dev 198 ("When ad recording I don't see the previous text")
 needs: -
 gate+: yes
@@ -3864,3 +3864,4 @@ check: Mac unit test of the shared width value (default 292, a drag-written valu
 - 2026-10-28 08:56 Q63 -> done — Tuur 2026-10-28 Dev 198: heading/link styling lag OK; sidebar 'Today' not clipped
 - 2026-10-28 08:56 Q309 -> done — Tuur 2026-10-28 Dev 198: ⌘N, ⇧⌘N, ⌘F, ⌘1/⌘2 work; tab switch width jump → Q533
 - 2026-10-28 08:56 Q304 -> tuur — Mac half PASS 2026-10-28 Dev 198 on an unrated note (audio 0:23 joined, new paragraph); text hidden during take → Q532; phone sync owed
+- 2026-10-28 09:07 Q532 -> done — gate 88s @567c8ecc
