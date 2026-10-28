@@ -559,3 +559,15 @@ gap. Live drag and live ⌘1/⌘2 unverified (Dev install owed). Commits 677b52b
 Tuur: "both work" — Add recording keeps the note's text visible during the take; Notes ⇄ Review keeps one
 sidebar width with the map filling it. Release 199 rebuilt 09:13 with both (MacSidebarWidth literal present).
 Tuur said go for the ICLOUD_MERGE swap (steps 3–10).
+
+## ICLOUD_MERGE steps 3–8 (2026-10-28)
+3: prod Skrift quit. 4: backup ~/SkriftBackup-2026-10-28 (Skrift-AppSupport + Skrift.app): same 69 files,
+749,890,416 bytes both sides; app 65,836 KB both. 5: Q368 (2026-10-27). 6: memo_cloud.store/-wal/-shm +
+.memo_cloud_SUPPORT moved to merge-from-dev/; /Applications/Skrift.app = Release 199, Production pin.
+7: first import done 12:54:21 (new memo_cloud.store 378,269,696 B vs old 381,841,408 B); Tuur: Mac up to date
+with the phone. 8: dry run RESULT OK, all 13 checks PASS. OLD 121 rows (78 live, 43 trashed); PROD 111
+(84 live, 27 trashed); ids in both 102; PROD only 9; OLD only: Mac-made 0, phone after S 1, trashed skipped 16,
+phone before S skipped 2 (both 2026-09, under the 20 limit). Plan: insert 1 note (0 assets), 14 enhancements
+new + 1 OLD-newer; 0 field copies, 0 conflicts, 0 diverged. After: 112 rows, 85 live, 31 enhancements,
+0 duplicate groups. Verdict GO. Expected alert: "Bring in 1 note and 15 polishes", 14 new / 1 updated, 0/0/0.
+The 2 skipped Sept phone notes stay only in the old store / backup.
