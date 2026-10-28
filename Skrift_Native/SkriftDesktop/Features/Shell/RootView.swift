@@ -261,7 +261,8 @@ struct RootView: View {
             Task {
                 if let file { await liveSession.start(appendingTo: file) }
                 else if let memo {
-                    await liveSession.start(appendingToMemo: id, title: WayOutRules.displayTitle(memo))
+                    await liveSession.start(appendingToMemo: id, title: WayOutRules.displayTitle(memo),
+                                            body: memo.transcript ?? "")
                 }
                 if case .failed(let why) = liveSession.phase { appendMicProblem = why }
             }

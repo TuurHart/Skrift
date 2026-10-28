@@ -50,6 +50,15 @@ enum MacAppendRecording {
         return a + "\n\n" + b
     }
 
+    /// Q532: the note's body as the live pane shows it, read-only, above the new words while a
+    /// take is being appended. nil for a fresh take (no append target) or a note with no body.
+    /// Display only: the landed text is still `joined`.
+    static func priorBody(isAppending: Bool, body: String?) -> String? {
+        guard isAppending else { return nil }
+        let trimmed = (body ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
     /// The clip's word timings moved past the note's own audio.
     static func shifted(_ timings: [WordTiming], by offset: TimeInterval) -> [WordTiming] {
         timings.map { WordTiming(word: $0.word, start: $0.start + offset, end: $0.end + offset) }
