@@ -1509,6 +1509,9 @@ struct NoteBodyView: UIViewRepresentable {
                     other.isEnabled = false
                     other.isEnabled = true
                 }
+                // With the loupe gone nothing held the page still: the drag scrolled the note under
+                // the finger, so the drop landed lower than the line. The page stays put until lift.
+                tv.panGestureRecognizer.isEnabled = false
                 snap.frame = rect
                 snap.layer.cornerRadius = 14
                 snap.layer.shadowColor = UIColor.black.cgColor
@@ -1561,6 +1564,7 @@ struct NoteBodyView: UIViewRepresentable {
         private func finishPhotoDrag(_ drag: (literal: String, snapshot: UIView, line: UIView, grab: CGFloat, start: CGPoint)) {
             originalCover?.removeFromSuperview()
             originalCover = nil
+            textView?.panGestureRecognizer.isEnabled = true
             drag.snapshot.removeFromSuperview()
             drag.line.removeFromSuperview()
             photoDrag = nil
