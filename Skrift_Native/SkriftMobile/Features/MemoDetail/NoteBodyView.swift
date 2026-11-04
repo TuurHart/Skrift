@@ -114,6 +114,10 @@ struct NoteBodyView: UIViewRepresentable {
         tv.isScrollEnabled = true
         tv.alwaysBounceVertical = true
         tv.backgroundColor = .clear
+        // Q547: the system's own lift of a held picture followed the finger beside Skrift's lifted
+        // copy (the picture showed three times, and the system drag won the gesture). Skrift's
+        // long press (`handlePhotoPress`) is the only picture drag.
+        tv.textDragInteraction?.isEnabled = false
         tv.textContainer.lineFragmentPadding = 0
         tv.textContainerInset = UIEdgeInsets(top: 10, left: Theme.Space.margin,
                                              bottom: 24, right: Theme.Space.margin)
@@ -1281,9 +1285,9 @@ struct NoteBodyView: UIViewRepresentable {
         /// line, the grab offset and where the finger went down (no travel = the hold menu).
         private var photoDrag: (literal: String, snapshot: UIView, line: UIView, grab: CGFloat, start: CGPoint)?
         private var blockMenuLiteral: String?
-        /// Q547: the held block's glyph is blanked while its lifted copy is dragged (the picture
-        /// showed twice); the real attachment is put back when the finger lifts.
-        private var hiddenOriginal: (range: NSRange, attachment: NSTextAttachment)?
+        /// Q547: the held block's glyph is covered while its lifted copy is dragged (the picture
+        /// showed twice); the cover goes when the finger lifts.
+        private var originalCover: UIView?
         private lazy var blockMenuInteraction = UIEditMenuInteraction(delegate: self)
 
         func installPhotoDrag(on tv: NoteBodyTextView) {
@@ -1499,6 +1503,12 @@ struct NoteBodyView: UIViewRepresentable {
                       let snap = tv.resizableSnapshotView(from: rect, afterScreenUpdates: false, withCapInsets: .zero)
                 else { return }
                 tv.resignFirstResponder()
+                // The text view's own long press (the caret loupe) ran beside this one: it drew a
+                // second caret under the finger and put the keyboard back up after the drop. Cancel it.
+                for other in tv.gestureRecognizers ?? [] where other !== g && other is UILongPressGestureRecognizer {
+                    other.isEnabled = false
+                    other.isEnabled = true
+                }
                 snap.frame = rect
                 snap.layer.cornerRadius = 14
                 snap.layer.shadowColor = UIColor.black.cgColor
@@ -1506,7 +1516,7 @@ struct NoteBodyView: UIViewRepresentable {
                 snap.layer.shadowRadius = 20
                 snap.layer.shadowOffset = CGSize(width: 0, height: 18)
                 tv.addSubview(snap)
-                hideOriginal(at: held.range, in: tv)
+                hideOriginal(over: rect, below: snap, in: tv)
                 let line = UIView(frame: CGRect(x: tv.textContainerInset.left, y: rect.minY,
                                                 width: tv.bounds.width - tv.textContainerInset.left - tv.textContainerInset.right,
                                                 height: 3))
@@ -1539,23 +1549,18 @@ struct NoteBodyView: UIViewRepresentable {
             }
         }
 
-        private func hideOriginal(at range: NSRange, in tv: UITextView) {
-            let storage = tv.textStorage
-            guard NSMaxRange(range) <= storage.length,
-                  let att = storage.attribute(.attachment, at: range.location, effectiveRange: nil) as? NSTextAttachment
-            else { return }
-            let blank = NSTextAttachment()
-            blank.image = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { _ in }
-            blank.bounds = att.bounds
-            storage.addAttribute(.attachment, value: blank, range: range)
-            hiddenOriginal = (range, att)
+        /// A page-coloured cover over the held glyph (blanking the attachment itself did not
+        /// redraw); it sits under the lifted copy.
+        private func hideOriginal(over rect: CGRect, below snap: UIView, in tv: UITextView) {
+            let cover = UIView(frame: rect)
+            cover.backgroundColor = UIColor(Color.skBg)
+            tv.insertSubview(cover, belowSubview: snap)
+            originalCover = cover
         }
 
         private func finishPhotoDrag(_ drag: (literal: String, snapshot: UIView, line: UIView, grab: CGFloat, start: CGPoint)) {
-            if let hidden = hiddenOriginal, let storage = textView?.textStorage, NSMaxRange(hidden.range) <= storage.length {
-                storage.addAttribute(.attachment, value: hidden.attachment, range: hidden.range)
-            }
-            hiddenOriginal = nil
+            originalCover?.removeFromSuperview()
+            originalCover = nil
             drag.snapshot.removeFromSuperview()
             drag.line.removeFromSuperview()
             photoDrag = nil
