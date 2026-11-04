@@ -36,6 +36,14 @@ final class MacNotePhotoUnpunctuatedTests: XCTestCase {
         XCTAssertEqual(r.text, note + "\n\n[[img_002]]")
     }
 
+    /// A caret inside a word never puts a space in it.
+    func testAMidWordCaretLeavesTheWordWhole() {
+        let caret = (note as NSString).range(of: "third").location + 3
+        let r = NotePhoto.inserting(number: 2, into: note, atOffset: caret, manifestCount: 2)
+        XCTAssertTrue(r.text.contains("third thought"), r.text.debugDescription)
+        XCTAssertEqual(r.text, note + "\n\n[[img_002]]")
+    }
+
     func testSecondPictureWithTheCaretMidSentence() {
         let caret = (note as NSString).range(of: "third").location + 3        // "thi|rd thought"
         let r = NotePhoto.inserting(number: 2, into: note, atOffset: caret, manifestCount: 2)
@@ -68,11 +76,12 @@ final class MacNotePhotoUnpunctuatedTests: XCTestCase {
         }
     }
 
-    /// The same commit with the manifest known (the capture drainer, the Mac ingest).
+    /// The same commit with the manifest known, in the phone's Q547 form (`keepOwnParagraphs`).
     func testTheTypedCommitWithAManifestLeavesTheShapeAlone() {
         let two = Array(repeating: ImageManifestEntry(filename: "", offsetSeconds: 0), count: 2)
         let text = note + "\n\n[[img_002]]"
-        let out = BodyV2.committed(BodyV2.Input(text: text, manifest: two, source: .typed, userEdited: true))
+        let out = BodyV2.committed(BodyV2.Input(text: text, manifest: two, source: .typed, userEdited: true,
+                                                keepOwnParagraphs: true))
         print("Q552 typed+manifest ->", out.debugDescription)
         XCTAssertEqual(out, text)
     }
