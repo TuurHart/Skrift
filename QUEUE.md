@@ -3904,7 +3904,7 @@ gate+: yes
 do: On a phone note, "+ tag" opens the tag pane without focus, so typing takes an extra tap, and after Return the field must be selected again. Make the field focused with the keyboard up as soon as the pane opens. Return adds the tag, clears the field and keeps focus for the next tag; tapping outside ends it. An empty Return closes the keyboard. Keep the existing suggestions. Tick the BUGS.md line.
 check: A phone UI test: tap + tag, type without tapping the field, Return, type a second tag, Return; both tags are on the note and the field stayed focused.
 
-### Q540 [auto] (todo) Phone: + tag really focuses on a real note, and the tag pills line up
+### Q540 [auto] (done) Phone: + tag really focuses on a real note, and the tag pills line up
 spec: D220 bug; Tuur 2026-11-04 on Dev 200 (FeedbackKit 2354290c; reopens Q539)
 needs: -
 gate+: yes
@@ -5666,3 +5666,4 @@ ask: Open the mockup and pick: how many bars while typing, and how small and lar
 - 2026-11-04 14:26 Q541 added
 - 2026-11-04 15:13 Q542 added
 - 2026-11-04 15:19 Q541 -> done — gate 83s @57db0525
+- 2026-11-04 15:29 Q540 -> done — gate 69s @44bc4b3f
