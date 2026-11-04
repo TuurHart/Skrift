@@ -669,3 +669,11 @@ BottomBarQ544UITests pass on iPhone 17 (402) and 17e (390), opening the note fro
 QuickNoteFastTyping 6/6, NoteParityQ451 1/1. Fail, attributed by the worker to stale assertions, not re-run at the base: QuickNoteQ64Sim
 test2_3 (asserts accessory-find, gone since Q359) and TagToastQ44 (looks for exact id tag-input). Conductor looked at the typing PNG.
 Unverified: real device, light theme. Commits c08cb1c5..43292640.
+## Q543 — tags and the note body's keyboard (2026-11-04)
+The item's diagnosis was wrong. (1) Return in the tag field: UIResponder.resignFirstResponder hands first responder to the note body, so
+the body keyboard rose after a tag Return; NoteBodyTextView.becomeFirstResponder now refuses while a tag-input field is editing unless a
+touch hit the body in the last 0.6 s. (2) On a corpus note the header measured 92 pt but + tag wrapped to a second line outside the hosting
+view, so the tap hit the body; FlowLayout got 0.5 pt wrap slack (rounding is a theory, not proven). TagRowScreenshotUITests already failed at
+bb006518. Failing at base, passing after, notes opened from the list: TagFocusQ543UITests 2, TagRowScreenshotUITests, TagFocusQ540UITests 3.
+Unverified: which fix the corpus test needed; + tag with the body focused passed at base too, so that case is not a reproduction; a chip
+tap alone; iPhone; Mac after FlowLayout. Commits a5d9ccce, 7735742c.
