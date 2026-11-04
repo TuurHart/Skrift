@@ -74,21 +74,24 @@ struct BookTextSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         header
-                        levelLabel("Level 1 · Transcript")
-                        transcriptCard.padding(.bottom, 18)
-                        levelLabel("Level 2 · Book text")
-                        if perText.isEmpty {
-                            emptyTextCard.padding(.bottom, 10)
-                        } else {
-                            bar.padding(.bottom, 6)
-                            barLabels.padding(.bottom, 18)
-                            legend.padding(.bottom, 18)
-                        }
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(Array(perText.enumerated()), id: \.element.filename) { _, text in
-                                row(text)
+                        // Q541: an episode has no book file, so it gets Level 1 only.
+                        levelLabel(book.offersBookFile ? "Level 1 · Transcript" : "Transcript")
+                        transcriptCard.padding(.bottom, book.offersBookFile ? 18 : 0)
+                        if book.offersBookFile {
+                            levelLabel("Level 2 · Book text")
+                            if perText.isEmpty {
+                                emptyTextCard.padding(.bottom, 10)
+                            } else {
+                                bar.padding(.bottom, 6)
+                                barLabels.padding(.bottom, 18)
+                                legend.padding(.bottom, 18)
                             }
-                            addRow
+                            VStack(alignment: .leading, spacing: 10) {
+                                ForEach(Array(perText.enumerated()), id: \.element.filename) { _, text in
+                                    row(text)
+                                }
+                                addRow
+                            }
                         }
                         footer.padding(.top, 14)
                     }
@@ -209,7 +212,8 @@ struct BookTextSheet: View {
         } ?? 0
         return BookTextDisplay.sheetSubtitle(coveredPercent: covered,
                                              transcribing: transcribingThisBook,
-                                             hasWaitingText: hasWaitingText)
+                                             hasWaitingText: hasWaitingText,
+                                             offersBookFile: book.offersBookFile)
     }
 
     private func levelLabel(_ text: String) -> some View {
@@ -532,7 +536,8 @@ struct BookTextSheet: View {
 
     private var footer: some View {
         Text(BookTextDisplay.sheetFooter(transcribing: transcribingThisBook,
-                                         hasCoverage: (summary?.totalCoveredSeconds ?? 0) > 0))
+                                         hasCoverage: (summary?.totalCoveredSeconds ?? 0) > 0,
+                                         offersBookFile: book.offersBookFile))
             .font(.system(size: 10.5))
             .foregroundStyle(Color.skTextFaint)
             .multilineTextAlignment(.center)
@@ -636,7 +641,9 @@ enum BookTextDisplay {
     /// The sheet subtitle (mock A1/A2/A3): coverage wins whenever real book text
     /// exists; the queued line only while transcribing WITH a waiting text; else the
     /// standing invitation.
-    static func sheetSubtitle(coveredPercent: Int, transcribing: Bool, hasWaitingText: Bool) -> String {
+    static func sheetSubtitle(coveredPercent: Int, transcribing: Bool, hasWaitingText: Bool,
+                              offersBookFile: Bool = true) -> String {
+        if !offersBookFile { return "Transcribe this episode to get its words." }   // Q541
         if coveredPercent > 0 { return "Real book text covers \(coveredPercent)% of this audiobook" }
         if transcribing, hasWaitingText { return "Transcribing · the book text is queued behind it." }
         return "Give this audiobook words — transcribe it, then add the real book for the published text."
@@ -677,7 +684,8 @@ enum BookTextDisplay {
     }
 
     /// The sheet footer (mock A1/A2/A3).
-    static func sheetFooter(transcribing: Bool, hasCoverage: Bool) -> String {
+    static func sheetFooter(transcribing: Bool, hasCoverage: Bool, offersBookFile: Bool = true) -> String {
+        if !offersBookFile { return "It runs in the background \u{2014} you can keep listening." }   // Q541
         if transcribing { return "You can keep listening while both run." }
         if hasCoverage { return "Texts never change your audio or transcript." }
         return "Both run in the background — you can keep listening."
