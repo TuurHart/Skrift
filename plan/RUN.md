@@ -580,3 +580,35 @@ old-only trashed 30 (dry 16). Those 14 were trashed on both sides (the dry run m
 Production between the dry-run copy (~14:31) and the merge (the 14:33 launch imported them as deletions; the
 lifecycle sweep at 14:33:41 still saw 111). Reading: the normal trash purge removed 14 old trashed notes; no
 live note involved. Not proven per id (ids not read). Step 10 phone checks owed.
+## Q539 — phone + tag focuses at once, Return stays ready (2026-11-04)
+Cause: "+ tag" set focus in the same pass that mounted the field, so SwiftUI dropped it; onSubmit also defocused.
+Shared/UI/TagEditorRow.swift: field focuses in its own onAppear via refocusSoon(); Return, comma-split and suggestion
+taps reuse it; tap-outside closes after a 350 ms grace, committing a draft; empty Return closes. Outside-tap close is
+gated off the Mac dropdown path. TagFocusQ539UITests 1/1 pass on the iPhone 17 sim. Conductor looked at the PNG:
+#studio #qalpha #qbeta chips, empty focused field, keyboard up. Unverified: real device, tap-outside, iPad, Mac run
+(Mac not built by the worker). Commits 02b1297f, 4597875f.
+## Q537 — Back to playing sits above the fade (2026-11-04)
+ReadAlongView: the edge-fade mask moved from the GeometryReader to the ScrollView; the pill overlay comes after it at
+the same position. DEBUG-only seam `-readAlongDemo` (App/ReadAlongDemo.swift) for the screenshot. Conductor looked at
+the iPhone 17 sim PNG: pill fully opaque, text fades behind it, top lines fade too. No unit test covers the view.
+Unverified: real device, inside AudiobookPlayerView (the demo hosts ReadAlongView alone), light theme. Commit 1e982f37.
+Note: this worker ran `xcodebuild -downloadComponent MetalToolchain` (27B47, ~840 MB, installed 13:41) without
+approval, after Xcode 27.2 dropped the toolchain; reported to Tuur.
+## Q536 — Undo reverses the checklist button (2026-11-04)
+Cause: toggleChecklistAtCaret, toggleTask, applyLineStyle and insertMemoLink edited tv.textStorage directly, which UIKit's
+undo manager never sees. Coordinator.undoableReplace makes each one undo step with caret restore; redo works.
+NoteBodyUndoTests 4/4, NoteBodyTests 10/10, MemoLinkSpaceTests 3/3. Still bypass undo: photo and attachment insert (they
+also write a manifest entry), Return-key checklist continuation, photo move. Unverified: a live tap on the Undo button in
+the running editor, on sim or device; tests call the coordinator directly. Commits 40855291, 75ef15f4.
+## Q538 — a Spotify show link finds the show's public feed (2026-11-04)
+Cause: for a show link, Spotify's oEmbed title is now the newest EPISODE title, so the show-name search never matched.
+PodcastImporter reads og:title from the show page via htmlMeta, oEmbed only as fallback; a show with no iTunes match gets
+PodcastRefusal.spotifyShowExclusive ("This show is only on Spotify..."). Unused spotifyShowMatch deleted with its test.
+SpotifyFeedResolveTests 20/20, PodcastFeedTests 16/16; fixtures in test-fixtures/podcast-links/spotify-show-syntax/ recorded
+2026-11-04. Not run against the live network or on a device. Commits 92cf6e15, 608c0832.
+## Q538 — a Spotify show link finds the show's public feed (2026-11-04)
+Cause: for a show link, Spotify's oEmbed title is now the newest EPISODE title, so the show-name search never matched.
+PodcastImporter reads og:title from the show page via htmlMeta, oEmbed only as fallback; a show with no iTunes match gets
+PodcastRefusal.spotifyShowExclusive ("This show is only on Spotify..."). Unused spotifyShowMatch deleted with its test.
+SpotifyFeedResolveTests 20/20, PodcastFeedTests 16/16; fixtures in test-fixtures/podcast-links/spotify-show-syntax/ recorded
+2026-11-04. Not run against the live network or on a device. Commits 92cf6e15, 608c0832.

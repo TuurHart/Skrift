@@ -168,4 +168,7 @@ enum LaunchFlags {
     /// the screenshot check against `mocks/Q455-share-sheet.html`; `-shareSheetDemoDark` for dark.
     static var shareSheetDemo: String? { args.stringValue("-shareSheetDemo") }
     static var shareSheetDemoDark: Bool { args.boolFlag("-shareSheetDemoDark") }
+    /// Q537 (DEBUG): show the read-along panel with canned lines and follow switched off, so the
+    /// "Back to playing" pill and the edge fade can be screenshotted in the simulator.
+    static var readAlongDemo: Bool { args.boolFlag("-readAlongDemo") }
 }

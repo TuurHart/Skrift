@@ -58,6 +58,21 @@ final class ReadAlongModel: ObservableObject {
         }
     }
 
+    #if DEBUG
+    /// Q537 (DEBUG): a model preloaded with sentences and marked covered, so the `-readAlongDemo`
+    /// host can render the lyrics panel in the simulator with no sidecar on disk. File 0 is
+    /// "loaded up to" far ahead, so `reloadIfNeeded` returns at its guard and keeps the lines.
+    init(demoSentences: [BufferSentence]) {
+        self.directory = AudiobookLibraryStore.shared.directory
+        self.store = BookTranscriptStore(directory: directory)
+        self.sentences = demoSentences
+        self.covered = true
+        self.currentIndex = 4
+        self.loadedFileIndex = 0
+        self.loadedUpTo = 1_000_000
+    }
+    #endif
+
     deinit {
         if let removalObserver { NotificationCenter.default.removeObserver(removalObserver) }
         loadTask?.cancel()
@@ -187,11 +202,27 @@ struct ReadAlongView: View {
 
     private var session = AudiobookSession.shared
     @ObservedObject private var transcribeJob = BookTranscriptionJob.shared
-    @StateObject private var model = ReadAlongModel()
+    @StateObject private var model: ReadAlongModel
+
+    init(book: Audiobook, fileIndex: Int, fileLocal: TimeInterval, audioURL: URL?,
+         bookmarks: [AudiobookBookmark] = [], onTranscribe: @escaping () -> Void,
+         onUserScroll: @escaping () -> Void = {},
+         onToggleBookmarkInSpan: @escaping (TimeInterval, TimeInterval) -> Void = { _, _ in }) {
+        self.book = book; self.fileIndex = fileIndex; self.fileLocal = fileLocal
+        self.audioURL = audioURL; self.bookmarks = bookmarks; self.onTranscribe = onTranscribe
+        self.onUserScroll = onUserScroll; self.onToggleBookmarkInSpan = onToggleBookmarkInSpan
+        #if DEBUG
+        if LaunchFlags.readAlongDemo {
+            _model = StateObject(wrappedValue: ReadAlongModel(demoSentences: ReadAlongDemo.sentences))
+            return
+        }
+        #endif
+        _model = StateObject(wrappedValue: ReadAlongModel())
+    }
 
     /// Auto-scroll follows the playhead until the user scrolls away; then a
     /// transient "Back to playing" pill restores it. (Spotify-lyrics / Snipd.)
-    @State private var following = true
+    @State private var following = LaunchFlags.readAlongDemo ? false : true
 
     // Reading-mode palette (mock's locked 3-step attention ramp): past dim, now
     // brightest, ahead still legible so you can read ahead like a page. The light/
@@ -292,6 +323,16 @@ struct ReadAlongView: View {
                     // a hair of leading so it isn't flush to the screen edge.
                     .padding(.leading, 2).padding(.trailing, 4)
                 }
+                // The edge fade masks the scrolling text ONLY — the "Back to playing"
+                // pill below is an overlay on the masked view, so it stays fully opaque.
+                .mask(
+                    LinearGradient(stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black, location: 0.12),
+                        .init(color: .black, location: 0.88),
+                        .init(color: .clear, location: 1),
+                    ], startPoint: .top, endPoint: .bottom)
+                )
                 // Follow the playhead — but only while the user hasn't scrolled away.
                 .onChange(of: model.currentIndex) { _, idx in
                     guard following else { return }
@@ -322,14 +363,6 @@ struct ReadAlongView: View {
                 .animation(.easeInOut(duration: 0.25), value: following)
             }
         }
-        .mask(
-            LinearGradient(stops: [
-                .init(color: .clear, location: 0),
-                .init(color: .black, location: 0.12),
-                .init(color: .black, location: 0.88),
-                .init(color: .clear, location: 1),
-            ], startPoint: .top, endPoint: .bottom)
-        )
         .accessibilityIdentifier("player-readalong")
     }
 
