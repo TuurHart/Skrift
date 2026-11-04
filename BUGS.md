@@ -316,7 +316,7 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [x] **Undo stops partway: it can't get past a picture or file** (Tuur 2026-11-04, Dev 203). Q550. Merged, Dev 204; his check owed. A sync arriving mid-edit still clears Undo, on purpose.
 - [x] **Text typed right after a new picture lands beside it** (found by Q550, 2026-11-04); may also re-trigger the paragraph merge. Q551. Merged, Dev 205; his check owed. Worse than typed text: every picture or file insert into an unpunctuated voice note glued its paragraphs and moved older pictures to the end.
 - [x] **The Mac's picture insert glued unpunctuated paragraphs too** (found 2026-11-04). Q552 merged, Dev 205; live Mac editor not exercised.
-- [ ] **The one-time body rewrite may glue paragraphs in a note with mixed picture shapes** (read 2026-11-04, not run). Q553.
+- [x] **The one-time body rewrite glued paragraphs in a note with mixed picture shapes** (test 2026-11-04). Q553 merged, not yet in a build. Notes it already rewrote are not revisited; its local ledger holds the original.
 - [ ] **Mac: three sidebar problems** (Tuur 2026-09-30, prod Mac build): (a) shift-click does not
       select a range of notes; (b) imported voice memos did not transcribe on their own — C49 says a
       Mac import floors to 0.1, so it should be picked up; he had to right-click → Process; (c) that
