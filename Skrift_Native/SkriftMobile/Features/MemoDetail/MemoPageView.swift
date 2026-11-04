@@ -87,7 +87,6 @@ struct MemoPageView: View {
     /// hands the image to the live editor coordinator.
     @State var bodyProxy = NoteBodyProxy()
     @State var showPhotoPicker = false
-    @State var showPhotoSourceDialog = false
     @State var showCameraCapture = false
     @State var showAttachFiles = false
     @Environment(\.colorScheme) var colorScheme
@@ -175,19 +174,10 @@ struct MemoPageView: View {
                 bodyProxy.insertMemoLink(id: id, title: title)
             }
         }
-        // Accessory 📷 → camera or library (round-1 P2: Notes offers both) →
-        // insert at the caret + register the new file for CloudKit (same
-        // manifest/asset conventions as recording). Camera-less environments
-        // (simulator) skip the dialog and go straight to the library.
+        // Accessory 📷 is a menu on the button itself (Q546, `NoteBodyView.installAccessoryBar`):
+        // camera, library or file → insert at the caret + register the new file for CloudKit.
         // D198/D199: Apple's attach items (minus Record Audio and Scan, which live on iPad's menu):
         // a picture goes in as a photo, a video or any other file as its own block.
-        .confirmationDialog(IPadLayout.attachHeader, isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
-            if CameraImagePicker.isAvailable {
-                Button(IPadLayout.AttachItem.takePhoto.title) { showCameraCapture = true }
-            }
-            Button(IPadLayout.AttachItem.choosePhoto.title) { showPhotoPicker = true }
-            Button(IPadLayout.AttachItem.attachFile.title) { showAttachFiles = true }
-        }
         .noteAttachPickers(camera: $showCameraCapture, library: $showPhotoPicker, files: $showAttachFiles,
                            image: { insertPickedPhoto($0) },
                            file: { insertPickedFile($0, name: $1, uti: $2) })
@@ -535,7 +525,14 @@ struct MemoPageView: View {
                     }
                 },
                 linkTitle: { liveLinkTitle($0) },
-                onRequestPhoto: { showPhotoSourceDialog = true },
+                onRequestAttach: { item in
+                    switch item {
+                    case .takePhoto: showCameraCapture = true
+                    case .choosePhoto: showPhotoPicker = true
+                    case .attachFile: showAttachFiles = true
+                    case .scanDocument: break   // iPad's menu only
+                    }
+                },
                 proxy: bodyProxy,
                 // iPad regular width: size inline images to the 640 reading column,
                 // not the full screen (the note column is reading-measure-capped).
