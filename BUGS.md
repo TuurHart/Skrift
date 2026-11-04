@@ -297,8 +297,8 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [ ] **Picture size small/large does the wrong thing** (Tuur 2026-10-23, FeedbackKit `cc368874`):
       he expects small = a small picture and large = a large picture; it gives a large picture or a
       banner you tap to open. Mock the two sizes before building.
-- [ ] **"Transcribe" on a podcast offers to add a book file** (Tuur 2026-10-16, FeedbackKit
-      `7488094a`, Player): the book-text step (ePub) makes no sense for an episode; hide it for podcasts.
+- [x] **"Transcribe" on a podcast offers to add a book file** (Tuur 2026-10-16, FeedbackKit
+      `7488094a`, Player): the book-text step (ePub) makes no sense for an episode; hide it for podcasts. Q541: an episode's Text sheet shows the transcript only.
 - [ ] **Question: remove the ads from podcasts?** (Tuur 2026-10-16, FeedbackKit `03c4dc4f`). An idea,
       not a bug: needs a decision and a design (find ad breaks in the transcript, skip them).
 - [ ] **Bottom tab bar gone on Library after a share import** (Rox 2026-10-27, TestFlight 199, iOS 26.6.1, FeedbackKit `c726250e`). Q535.
