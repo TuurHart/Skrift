@@ -38,7 +38,7 @@ final class MacArrivalMainThreadTests: XCTestCase {
              recordedAt: Date(timeIntervalSince1970: 1_700_000_000 + Double(i)),
              transcript: "Words of note \(i).", transcriptStatus: .done,
              transcriptConfidence: 0.9, significance: 0.5,
-             metadataData: metadata ?? Data(#"{"dayPeriod":"morning","steps":1200}"#.utf8),
+             metadataData: metadata ?? Data(#"{"dayPeriod":"morning","steps":1200,"tags":[]}"#.utf8),
              recordingDeviceID: "iphone-test")
     }
 
@@ -71,8 +71,9 @@ final class MacArrivalMainThreadTests: XCTestCase {
         // The photo arrives: the memo's manifest names it, its asset row follows.
         let photoName = "photo_\(target.id.uuidString)_001.jpg"
         let c2 = ModelContext(s.container)
-        let t2 = try c2.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == target.id })).first!
-        t2.metadataData = Data(#"{"dayPeriod":"morning","steps":1200,"imageManifest":[{"filename":"\#(photoName)","offsetSeconds":0}]}"#.utf8)
+        let targetID = target.id
+        let t2 = try c2.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == targetID })).first!
+        t2.metadataData = Data(#"{"dayPeriod":"morning","steps":1200,"tags":[],"imageManifest":[{"filename":"\#(photoName)","offsetSeconds":0}]}"#.utf8)
         c2.insert(MemoAsset(memoID: target.id, kind: MemoAsset.Kind.photo, filename: photoName, blob: randomData(4_000_000)))
         try c2.save()
 
@@ -81,8 +82,20 @@ final class MacArrivalMainThreadTests: XCTestCase {
         let withPhoto = ms { out = V2.pass(ModelContext(s.container), into: s.local, device: "mac-test", outputDir: upload) }
         let work = ReconcileWork.counts
         print("Q548 MEASURE late-photo: steady pass \(Int(base)) ms; pass that heals the photo \(Int(withPhoto)) ms; blob fetches \(work.assetBlobFetches); updated \(out?.sweep.updatedIDs.count ?? -1)")
+        // What the heal pulled before Q548: every asset row of the memo (the recording too).
+        var oldRows: [MemoAsset] = []
+        let oldWay = ms { oldRows = ReconcileV2.AssetIndex(ModelContext(s.container)).blobs(for: target.id) }
+        let oldBytes = oldRows.reduce(0) { $0 + $1.byteCount }
+        print("Q548 MEASURE late-photo: heal blob bytes now \(work.assetBlobBytes); the old whole-memo asset fetch = \(oldBytes) blob bytes in \(Int(oldWay)) ms")
         let again = ms { _ = V2.pass(ModelContext(s.container), into: s.local, device: "mac-test", outputDir: upload) }
         print("Q548 MEASURE late-photo: pass after the heal \(Int(again)) ms")
+
+        // The heal wrote the photo and read ONLY the photo's blob, never the 5 MB recording.
+        XCTAssertEqual(work.assetBlobFetches, 1)
+        XCTAssertEqual(work.assetBlobBytes, 4_000_000, "the heal faults the photo, not the memo's recording")
+        XCTAssertGreaterThan(oldBytes, 8_999_999, "the old whole-memo fetch pulled recording + photo")
+        let healed = upload.appendingPathComponent("\(target.id.uuidString)_\(target.audioFilename)/images/\(photoName)")
+        XCTAssertEqual((try? Data(contentsOf: healed))?.count, 4_000_000, "the photo reached the working folder")
     }
 
     /// A new 5 MB note with a 4 MB photo: the app's deferred path (sweep, then prepare off main,
@@ -98,7 +111,7 @@ final class MacArrivalMainThreadTests: XCTestCase {
         _ = V2.pass(ModelContext(s.container), into: s.local, device: "mac-test", outputDir: upload)
 
         let photoName = "photo_x_001.jpg"
-        let newMemo = memo(1000, metadata: Data(#"{"imageManifest":[{"filename":"\#(photoName)","offsetSeconds":0}]}"#.utf8))
+        let newMemo = memo(1000, metadata: Data(#"{"tags":[],"imageManifest":[{"filename":"\#(photoName)","offsetSeconds":0}]}"#.utf8))
         let c2 = ModelContext(s.container)
         c2.insert(newMemo)
         c2.insert(MemoAsset(memoID: newMemo.id, kind: MemoAsset.Kind.audio, filename: newMemo.audioFilename, blob: randomData(5_000_000)))
@@ -108,5 +121,37 @@ final class MacArrivalMainThreadTests: XCTestCase {
         var out: ReconcileV2.PassOutcome?
         let sweep = ms { out = V2.pass(ModelContext(s.container), into: s.local, device: "mac-test", outputDir: upload, deferNew: true) }
         print("Q548 MEASURE new-note: main-thread sweep \(Int(sweep)) ms, pending \(out?.sweep.pendingNewIDs.count ?? -1)")
+    }
+
+    /// The same late photo in a library of 2,000 notes (6 KB transcripts, 20 KB audio each, the
+    /// size of the store that makes every pass walk every memo and row).
+    func testMeasureLatePhotoInBigLibrary() throws {
+        let s = try stores()
+        let words = String(repeating: "word ", count: 1_200)
+        for i in 0..<2_000 {
+            let m = memo(i)
+            m.transcript = words
+            s.cloud.insert(m)
+            s.cloud.insert(MemoAsset(memoID: m.id, kind: MemoAsset.Kind.audio, filename: m.audioFilename, blob: randomData(20_000)))
+        }
+        let target = memo(9_999)
+        s.cloud.insert(target)
+        s.cloud.insert(MemoAsset(memoID: target.id, kind: MemoAsset.Kind.audio, filename: target.audioFilename,
+                                 blob: randomData(5_000_000)))
+        try s.cloud.save()
+        let first = ms { _ = V2.pass(ModelContext(s.container), into: s.local, device: "mac-test", outputDir: upload) }
+        let steady1 = ms { _ = V2.pass(ModelContext(s.container), into: s.local, device: "mac-test", outputDir: upload) }
+        let steady2 = ms { _ = V2.pass(ModelContext(s.container), into: s.local, device: "mac-test", outputDir: upload) }
+
+        let photoName = "photo_\(target.id.uuidString)_001.jpg"
+        let targetID = target.id
+        let c2 = ModelContext(s.container)
+        let t2 = try c2.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.id == targetID })).first!
+        t2.metadataData = Data(#"{"dayPeriod":"morning","steps":1200,"tags":[],"imageManifest":[{"filename":"\#(photoName)","offsetSeconds":0}]}"#.utf8)
+        c2.insert(MemoAsset(memoID: target.id, kind: MemoAsset.Kind.photo, filename: photoName, blob: randomData(4_000_000)))
+        try c2.save()
+        ReconcileWork.reset()
+        let heal = ms { _ = V2.pass(ModelContext(s.container), into: s.local, device: "mac-test", outputDir: upload) }
+        print("Q548 MEASURE big-library(2000): first pass (ingest all) \(Int(first)) ms; steady \(Int(steady1)) / \(Int(steady2)) ms; photo-heal pass \(Int(heal)) ms; blob fetches \(ReconcileWork.counts.assetBlobFetches)")
     }
 }

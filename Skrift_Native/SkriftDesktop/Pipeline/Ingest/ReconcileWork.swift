@@ -11,6 +11,8 @@ enum ReconcileWork {
         var memoFetches = 0
         /// Full-row `MemoAsset` fetches (each faults the rows' audio / photo blobs).
         var assetBlobFetches = 0
+        /// Q548: bytes of blob those full-row fetches faulted in (`byteCount` of each row).
+        var assetBlobBytes = 0
         /// Blob-free `MemoAsset` index fetches (`propertiesToFetch: memoID, kind`).
         var assetIndexFetches = 0
         /// Full builds of `ReconcileV2.Ingest.metadataJSON` (JSON parse + sorted re-serialise).
@@ -29,6 +31,10 @@ enum ReconcileWork {
 
     static func reset() {
         lock.lock(); _counts = Counts(); lock.unlock()
+    }
+
+    static func add(_ key: WritableKeyPath<Counts, Int>, _ n: Int) {
+        lock.lock(); _counts[keyPath: key] += n; lock.unlock()
     }
 
     static func bump(_ key: WritableKeyPath<Counts, Int>) {
