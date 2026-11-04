@@ -644,3 +644,13 @@ EpisodeNoBookFileTests 7/7, BookTextSummaryDisplayTests 31/31. The first screens
 shared simulator's library folder held a leftover audiobook (-inMemoryStore does not cover it); after simctl uninstall and a fresh
 install, conductor looked at the episode sheet: "Transcribe this episode", no Level 2, no Add row. Unverified: the real
 player Text… menu and the import flow (render hooks only); device. Commits 4069e1a9, 6857482f, 19ea0656.
+## Q540 — + tag focus on a note opened from the list; tag pills line up (2026-11-04)
+Cause: the note's header and footer UIHostingControllers were plain subviews with no parent view controller, so a @FocusState write
+never reached the tag field on a note pushed from the list (NavigationStack inside the TabView). Q539's test launched straight into the
+note and missed it. Probe: field in window, canBecomeFirstResponder true, isFirstResponder false, manual becomeFirstResponder true.
+NoteBodyView.adoptAccessoryHosts parents both hosts under the page's controller. Failing before, passing after: TagFocusQ540UITests
+3/3 (list-pushed routes failed before the fix), TagFocusQ539UITests pass, NoteBodyTests + MemoLinkSpaceTests 13/13, full Mac build OK.
+FlowLayout(centerItems:) centres line items; armed chip gets 9 pt inner padding. Conductor looked at the armed-chip PNG.
+Open: a tap on a header chip also focuses the note body (keyboard + Done rise; visible in the PNG), and TagRowScreenshotUITests fails
+"the inline tag field did not open" on a body-focused note, also with the parenting off; not run at the base, so not proven old or new.
+Unverified: real iPhone, Mac look after the FlowLayout change, wider UI suite. Commits 6ec81113..86c2fdb9.
