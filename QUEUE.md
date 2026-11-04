@@ -3897,7 +3897,7 @@ gate+: yes
 do: Pasting https://open.spotify.com/show/4kYCRYJ3yK5DQbP5tbfZby is refused with "This episode is only on Spotify and has no public feed". That is false: the show is "Syntax - Tasty Web Development Treats" and iTunes lists its feed. Cause: Services/Podcasts/PodcastImporter.swift:101-103 takes the show name from Spotify's oEmbed title, and for a show link oEmbed now returns the newest EPISODE title ("1053: What's in Our Home Lab", checked with curl 2026-11-04), so `spotifyShowMatch` never matches; the comment at PodcastFeed.swift:485 is out of date. Fix: for `.spotifyShow` read the name from the show page's `og:title` through the existing `htmlMeta`, as `.spotifyEpisode` does for its page, falling back to oEmbed. A show refusal must say "show", not "episode". Update SpotifyFeedResolveTests. Tick the BUGS.md line.
 check: Unit tests with the recorded shapes: a show page og:title of "Syntax - Tasty Web Development Treats" plus an oEmbed episode title resolves to the iTunes feed; a show with no iTunes match gets a refusal that says show.
 
-### Q539 [auto] (todo) Phone: + tag opens the keyboard at once and Return stays ready for the next tag
+### Q539 [auto] (done) Phone: + tag opens the keyboard at once and Return stays ready for the next tag
 spec: D220 bug; Tuur 2026-10-30 on TestFlight 199 (FeedbackKit 8dfb23b4)
 needs: -
 gate+: yes
@@ -5632,3 +5632,4 @@ check: A phone UI test: tap + tag, type without tapping the field, Return, type 
 - 2026-11-04 13:22 Q537 added
 - 2026-11-04 13:22 Q538 added
 - 2026-11-04 13:22 Q539 added
+- 2026-11-04 13:51 Q539 -> done — gate 102s @3d74c23f
