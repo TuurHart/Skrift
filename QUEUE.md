@@ -3982,7 +3982,7 @@ needs: -
 gate+: yes
 do: In `SkriftMobile/Features/MemoDetail/NoteBodyView.swift` `insertPhoto` and `insertAttachment`: after the insert the caret goes on its own empty line below the block, as Apple Notes does, and typing there is a new paragraph. This stays one undo group with the insert (Q550). First write a failing test on the real path: a voice note with unpunctuated paragraphs and an existing picture, insert a second picture, type a word, commit; every paragraph must stay separate and the new picture must stand alone. Also cover a caret in the middle of a sentence and at the end of the note. Do not change what `NotePhoto.inserting` does for a mid-sentence caret beyond the caret's final place. If the test shows the merge still happens with the caret fixed, fix `BodyV2.committed` for that case too. No trailing blank line may be saved if the user types nothing after the picture.
 check: New unit test file for the cases above, text asserted after commit and after Undo. Simulator PNG of picture then typed word, note opened from the list through `memo-row-0`, looked at. `NoteBodyUndoSequenceTests`, `NoteBodyMoveBlockTests`, `NoteBodyUndoTests` still pass. Full builds of both apps.
-### Q552 [auto] (doing) Mac: adding a picture keeps the note's paragraphs when they have no end punctuation
+### Q552 [auto] (done) Mac: adding a picture keeps the note's paragraphs when they have no end punctuation
 spec: Q547 and Q551 found on the phone that `BodyV2.committed`/`lift` reads a picture after an unpunctuated paragraph as mid-sentence and glues the paragraphs around it. The Mac's insert path was not checked.
 needs: -
 gate+: yes
@@ -5758,3 +5758,4 @@ check: New test file in the Mac UnitTests scheme, actual stored text quoted in t
 - 2026-11-04 22:09 Q551 -> done — gate 72s @d57edd5b
 - 2026-11-04 22:10 Q552 added
 - 2026-11-04 22:10 Q552 -> doing — worker dispatched 2026-11-04
+- 2026-11-04 22:22 Q552 -> done — gate 87s @3a526322
