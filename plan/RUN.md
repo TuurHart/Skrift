@@ -580,3 +580,10 @@ old-only trashed 30 (dry 16). Those 14 were trashed on both sides (the dry run m
 Production between the dry-run copy (~14:31) and the merge (the 14:33 launch imported them as deletions; the
 lifecycle sweep at 14:33:41 still saw 111). Reading: the normal trash purge removed 14 old trashed notes; no
 live note involved. Not proven per id (ids not read). Step 10 phone checks owed.
+## Q539 — phone + tag focuses at once, Return stays ready (2026-11-04)
+Cause: "+ tag" set focus in the same pass that mounted the field, so SwiftUI dropped it; onSubmit also defocused.
+Shared/UI/TagEditorRow.swift: field focuses in its own onAppear via refocusSoon(); Return, comma-split and suggestion
+taps reuse it; tap-outside closes after a 350 ms grace, committing a draft; empty Return closes. Outside-tap close is
+gated off the Mac dropdown path. TagFocusQ539UITests 1/1 pass on the iPhone 17 sim. Conductor looked at the PNG:
+#studio #qalpha #qbeta chips, empty focused field, keyboard up. Unverified: real device, tap-outside, iPad, Mac run
+(Mac not built by the worker). Commits 02b1297f, 4597875f.
