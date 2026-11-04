@@ -3932,7 +3932,7 @@ gate+: yes
 do: Tapping a chip in the note header (seen on the armed tag chip) also makes the note body first responder: keyboard, undo/redo and Done rise. Q540 tried a becomeFirstResponder guard on recentTouchPoint, which broke the focus tests, and reverted it. Separately TagRowScreenshotUITests (a corpus note with a tag, body focused) fails "the inline tag field did not open". FIRST run that test at bb006518 to learn whether it is old. Then find why a header tap reaches the body and fix it, and make + tag open and focus when the body already has the keyboard. A typed new note starts that way, so this may be part of what Tuur saw.
 check: UI tests: tapping a tag chip leaves the body unfocused and the keyboard down; + tag with the body focused opens the field and moves focus to it; TagRowScreenshotUITests passes; TagFocusQ540UITests still pass.
 
-### Q544 [auto] (todo) Phone: one bar above the keyboard while typing
+### Q544 [auto] (done) Phone: one bar above the keyboard while typing
 spec: D223; mock Skrift_Native/SkriftDesktop/mocks/Q542-bars-and-pictures.html, "One bar at the bottom"
 needs: -
 gate+: yes
@@ -5693,3 +5693,4 @@ check: Unit test of the size rule (longest side, no crop, wide and tall). Simula
 - 2026-11-04 15:49 Q545 added
 - 2026-11-04 15:49 Q542 -> done — Tuur picked 2026-11-04: one bar at the bottom, small a third, large full width, videos and files same idea (D223, D224)
 - 2026-11-04 16:22 Q545 -> done — gate 89s @ef492fc0
+- 2026-11-04 16:23 Q544 -> done — gate 77s @425fb246
