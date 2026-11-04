@@ -133,7 +133,7 @@ struct NoteRatingRow<Trailing: View>: View {
     /// The phone's row wraps (narrow screen); the Mac's is one line that hands the tag editor
     /// the remaining width so its own chips wrap.
     private var rowLayout: AnyLayout {
-        style.rowWraps ? AnyLayout(FlowLayout(spacing: 10, lineSpacing: 7))
+        style.rowWraps ? AnyLayout(FlowLayout(spacing: 10, lineSpacing: 7, centerItems: true))
                        : AnyLayout(HStackLayout(alignment: .center, spacing: 10))
     }
 

@@ -198,7 +198,7 @@ enum DemoDataSeeder {
         let memo = Memo.make(
             id: polishedMemoID,
             audioFilename: "memo_\(polishedMemoID.uuidString).m4a",
-            duration: 96, recordedAt: now, tags: ["studio"], syncStatus: .synced,
+            duration: 96, recordedAt: now, tags: LaunchFlags.seedBareNote ? [] : ["studio"], syncStatus: .synced,
             transcript: """
             Yeah so, um, met up with Jack this morning at the studio and we kind of ran the whole \
             set twice. Hendri, he wants the, the commonplace angle up front, so I'll carve out an \
@@ -206,9 +206,12 @@ enum DemoDataSeeder {
             cover's nearly there. Hendri said he'd loop in Marcus from the print shop but I still \
             owe him the final spreads.
             """,
-            transcriptStatus: .done, transcriptConfidence: 0.95, significance: 0.5,
+            transcriptStatus: .done, transcriptConfidence: 0.95,
+            significance: LaunchFlags.seedBareNote ? 0 : 0.5,
             metadata: MemoMetadata(capturedAt: ISO8601.string(from: now), dayPeriod: .afternoon))
         repo.insert(memo)
+        // Q540: a bare note is what a fresh phone voice note is: raw, unrated, no Mac polish yet.
+        if LaunchFlags.seedBareNote { repo.save(); return }
         repo.context.insert(MemoEnhancement(
             memoID: polishedMemoID,
             copyedit: """
@@ -411,7 +414,7 @@ enum DemoDataSeeder {
                     + (LaunchFlags.seedLinkedPair ? " " + MemoLinkSyntax.link(id: demoHarborMemoID, title: "dawn note") : ""),
                 transcriptStatus: .done,
                 transcriptConfidence: 0.81,
-                significance: 0.5,
+                significance: LaunchFlags.seedBareNote ? 0 : 0.5,   // Q540: unrated, tag-less, in a list with neighbours
                 createdAt: now.addingTimeInterval(-7_200)
             ),
             Memo(

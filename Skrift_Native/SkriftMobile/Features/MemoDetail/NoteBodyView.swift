@@ -2308,6 +2308,7 @@ final class NoteBodyTextView: UITextView {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
+        adoptAccessoryHosts()
         guard focusOnWindow, window != nil else { return }
         focusOnWindow = false
         DispatchQueue.main.async { [weak self] in _ = self?.becomeFirstResponder() }
@@ -2331,6 +2332,36 @@ final class NoteBodyTextView: UITextView {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if let t = touches.first { noteTouchDown(t.location(in: self)) }
         super.touchesBegan(touches, with: event)
+    }
+
+    /// Q540: the header/footer hosts are plain subviews, so their `UIHostingController`s had NO parent
+    /// view controller. SwiftUI routes a `@FocusState` write through the hosting controller chain, and
+    /// in the real app (the note sits in a NavigationStack inside the root TabView) the write never
+    /// reached the tag field's UITextField: no focus change fired, no keyboard, a second tap needed.
+    /// `becomeFirstResponder()` on that same field worked, so the field was fine and only the route
+    /// was broken. Parenting the hosts under the page's own controller (the view stays where it is)
+    /// puts them in that chain.
+    private func adoptAccessoryHosts() {
+        let hosts = [headerHost, footerHost]
+        guard window != nil else {
+            for host in hosts where host.parent != nil {
+                host.willMove(toParent: nil)
+                host.removeFromParent()
+            }
+            return
+        }
+        var responder: UIResponder? = self.next
+        var owner: UIViewController?
+        while let r = responder {
+            if let vc = r as? UIViewController { owner = vc; break }
+            responder = r.next
+        }
+        guard let owner else { return }
+        for host in hosts where host.parent !== owner {
+            if host.parent != nil { host.willMove(toParent: nil); host.removeFromParent() }
+            owner.addChild(host)
+            host.didMove(toParent: owner)
+        }
     }
 
     func installAccessoryHosts() {

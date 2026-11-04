@@ -153,7 +153,7 @@ struct TagEditorRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            FlowLayout(spacing: 7, lineSpacing: 7) {
+            FlowLayout(spacing: 7, lineSpacing: 7, centerItems: true) {
                 ForEach(tags, id: \.self) { chip($0) }
                 addControl
                 ForEach(presets, id: \.self) { presetChip($0) }
@@ -462,7 +462,9 @@ private struct TagChipView: View {
             }
         }
         .foregroundStyle(isArmed ? style.dangerColor : style.textColor)
-        .padding(.horizontal, style.chipHPad).frame(height: style.chipHeight)
+        // Q540: an armed chip has a red outline and a ✕, so it needs real inner padding even in the
+        // phone header's borderless style (chipHPad 0), where the # touched the outline.
+        .padding(.horizontal, isArmed ? max(style.chipHPad, 9) : style.chipHPad).frame(height: style.chipHeight)
         .background(isArmed ? Color.clear : style.backgroundColor, in: .capsule)
         .overlay(Capsule().strokeBorder(isArmed ? style.dangerColor : .clear, lineWidth: 1.5))
         .contentShape(.capsule)
