@@ -3970,6 +3970,12 @@ needs: -
 gate+: yes
 do: `Shared/UI/TagEditorRow.swift` `TagUndoToastView` (:412): on macOS `Button` keeps its default bordered look inside the capsule background. Give it `.buttonStyle(.plain)` so Undo is one purple pill on both apps. Nothing else changes.
 check: Headless `-snapshot` of the toast on the Mac if the harness can reach it, otherwise a small ImageRenderer PNG, looked at. Phone simulator PNG unchanged. Full builds of both apps.
+### Q550 [auto] (doing) Phone: Undo steps back through everything in a note, in order, like Apple Notes
+spec: D225; Tuur 2026-11-04 on Dev 203: typed text, took a photo, and Undo could not get past the photo; in Apple Notes the same steps all undo. "It seems to undo a little bit, and then you run into a thing it doesn't undo."
+needs: -
+gate+: yes
+do: Every edit in the phone note editor goes on the one undo stack, and Undo walks back through all of them in order, Redo forward. In `SkriftMobile/Features/MemoDetail/NoteBodyView.swift` these edit the text behind the undo manager: `insertPhoto` (direct `textStorage.insert` :1083), `insertAttachment` (:2177), the `textStorage` edits at :1693-1712 (find out what they are), attachment delete (`tv.attributedText =` :1404), and `load` (`tv.attributedText =` :391), which wipes the stack on any rebuild, including one triggered by a commit that normalised the text or by a sync arriving while the note is open. Route edits through `undoableReplace` (:777) as Q536 and Q547 did. Reproduce first with a failing test: type, Return, type, insert a picture, type, then undo to the start and check the text at each step, then redo to the end. Also check the Return key continuing a list, which Q536 left out. Undoing a picture insert must leave no stale picture marker in the saved text, and Redo must bring the same picture back: do not delete its file or manifest entry while it can still be redone. A rebuild that must happen while typing keeps the stack if it can; if a sync rebuild has to clear it, say so in the report. Leave the iPad and Mac editors alone.
+check: New unit test file for the sequence above with text asserted at every step, photo and file both. New XCUITest on a seeded note opened from the list through `memo-row-0`, using the bar's Undo, with PNGs looked at. `NoteBodyUndoTests`, `NoteBodyMoveBlockTests` and `EditorFormattingTests` still pass. Full builds of both apps.
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5732,3 +5738,5 @@ check: Headless `-snapshot` of the toast on the Mac if the harness can reach it,
 - 2026-11-04 21:00 Q548 -> done — gate 136s @45ad53fd
 - 2026-11-04 21:03 Q546 -> done — gate 130s @94a43314
 - 2026-11-04 21:12 Q547 -> done — gate 98s @2bf372a4
+- 2026-11-04 21:28 Q550 added
+- 2026-11-04 21:28 Q550 -> doing — worker dispatched 2026-11-04

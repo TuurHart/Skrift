@@ -313,6 +313,7 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [x] **Dragging a picture collapses the note's paragraphs into one, shows the picture twice, misses the drop line and cannot be undone** (Tuur 2026-11-04, Dev 202, screen recording). Q547. Merged, Dev 203; his check owed. Cause: any phone edit of a note with a picture after unpunctuated paragraphs glued them, stored text included.
 - [ ] **The Mac freezes with a rainbow cursor while a synced picture arrives** (Tuur 2026-11-04). Q548. Not pinned: the photo itself costs about nothing in tests; a timing line now logs each phase, so read it during the next live hang.
 - [x] **Mac tag Undo toast draws a button inside a button** (Tuur 2026-11-04, Dev 202). Q549. Merged, Dev 203.
+- [ ] **Undo stops partway: it can't get past a picture or file** (Tuur 2026-11-04, Dev 203). Q550.
 - [ ] **Mac: three sidebar problems** (Tuur 2026-09-30, prod Mac build): (a) shift-click does not
       select a range of notes; (b) imported voice memos did not transcribe on their own — C49 says a
       Mac import floors to 0.1, so it should be picked up; he had to right-click → Process; (c) that
