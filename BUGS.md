@@ -302,7 +302,7 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [ ] **Question: remove the ads from podcasts?** (Tuur 2026-10-16, FeedbackKit `03c4dc4f`). An idea,
       not a bug: needs a decision and a design (find ad breaks in the transcript, skip them).
 - [ ] **Bottom tab bar gone on Library after a share import** (Rox 2026-10-27, TestFlight 199, iOS 26.6.1, FeedbackKit `c726250e`). Q535.
-- [ ] **Undo can't reverse the checklist button** (Tuur 2026-11-02, TestFlight 199, FeedbackKit `ad562bb3`). Q536.
+- [x] **Undo can't reverse the checklist button** (Tuur 2026-11-02, TestFlight 199, FeedbackKit `ad562bb3`). Q536.
 - [x] **"Back to playing" is faded with the text** (Tuur 2026-10-30, TestFlight 199, FeedbackKit `74d3ebe7`): the pill sat inside the masked view, `ReadAlongView.swift:310` and `:326`. Q537: the edge-fade mask now sits on the ScrollView only and the pill is an overlay after it.
 - [x] **Spotify show link wrongly refused as Spotify-only** (Tuur 2026-11-01, TestFlight 199, FeedbackKit `7239ba06`): the show (Syntax) has a public feed; Spotify's oEmbed now gives the newest episode title for a show link, `PodcastImporter.swift:101-103`. Q538.
 - [x] **+ tag needs an extra tap to type, and another after Return** (Tuur 2026-10-30, TestFlight 199, FeedbackKit `8dfb23b4`). Q539.
