@@ -506,17 +506,6 @@ enum PodcastResolver {
         }
         throw PodcastRefusal.spotifyExclusive
     }
-
-    /// iTunes show search for a Spotify show name.
-    static func spotifyShowMatch(name: String, searchResults data: Data) throws -> PodcastMatch {
-        let wanted = PodcastPick.normalise(name)
-        for r in results(data) {
-            guard let show = r["collectionName"] as? String, PodcastPick.normalise(show) == wanted,
-                  let raw = r["feedUrl"] as? String, let feed = URL(string: raw) else { continue }
-            return PodcastMatch(feedURL: feed, hint: PodcastHint(guid: nil, title: nil), showName: show)
-        }
-        throw PodcastRefusal.spotifyExclusive
-    }
 }
 
 // MARK: - Page meta and name search (Q476: Spotify, Deezer, Overcast, Pocket Casts, Acast, any web page)

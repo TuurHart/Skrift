@@ -205,18 +205,6 @@ final class PodcastFeedTests: XCTestCase {
         XCTAssertEqual(PodcastRefusal.spotifyExclusive.message.filter { $0 == "." }.count, 1)
     }
 
-    func testSpotifyShowMatchesByShowNameAndKeepsNoEpisodeHint() throws {
-        let oembed = #"{"title":"The Emerald","type":"rich"}"#
-        let search = """
-        {"resultCount":1,"results":[{"wrapperType":"track","kind":"podcast","collectionName":"The Emerald",
-         "feedUrl":"https://rss.buzzsprout.com/317042.rss"}]}
-        """
-        let match = try PodcastResolver.spotifyShowMatch(name: try PodcastResolver.spotifyTitle(fromOEmbed: json(oembed)),
-                                                         searchResults: json(search))
-        XCTAssertEqual(match.feedURL.absoluteString, "https://rss.buzzsprout.com/317042.rss")
-        XCTAssertNil(match.hint.guid)
-    }
-
     // MARK: - Raw RSS URL
 
     func testRawFeedURLNeedsNoLookup() {
