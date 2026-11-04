@@ -594,3 +594,9 @@ the iPhone 17 sim PNG: pill fully opaque, text fades behind it, top lines fade t
 Unverified: real device, inside AudiobookPlayerView (the demo hosts ReadAlongView alone), light theme. Commit 1e982f37.
 Note: this worker ran `xcodebuild -downloadComponent MetalToolchain` (27B47, ~840 MB, installed 13:41) without
 approval, after Xcode 27.2 dropped the toolchain; reported to Tuur.
+## Q536 — Undo reverses the checklist button (2026-11-04)
+Cause: toggleChecklistAtCaret, toggleTask, applyLineStyle and insertMemoLink edited tv.textStorage directly, which UIKit's
+undo manager never sees. Coordinator.undoableReplace makes each one undo step with caret restore; redo works.
+NoteBodyUndoTests 4/4, NoteBodyTests 10/10, MemoLinkSpaceTests 3/3. Still bypass undo: photo and attachment insert (they
+also write a manifest entry), Return-key checklist continuation, photo move. Unverified: a live tap on the Undo button in
+the running editor, on sim or device; tests call the coordinator directly. Commits 40855291, 75ef15f4.
