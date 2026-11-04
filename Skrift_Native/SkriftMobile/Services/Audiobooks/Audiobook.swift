@@ -114,6 +114,9 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// Reads the existing `kind` (nil = a book); audiobooks and every other kind are unchanged.
     var offersBookFile: Bool { sourceKind != .episode }
 
+    /// Q541: the noun the read-along nudge uses ("Transcribe this episode" for a podcast).
+    var transcribeNoun: String { sourceKind == .episode ? "episode" : "book" }
+
     /// Legacy convenience: the first (for single-file books, only) file.
     var audioFilename: String { files.first ?? "" }
 

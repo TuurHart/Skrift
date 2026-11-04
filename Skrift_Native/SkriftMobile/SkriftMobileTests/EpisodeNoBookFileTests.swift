@@ -40,6 +40,12 @@ final class EpisodeNoBookFileTests: XCTestCase {
         }
     }
 
+    func testReadAlongNudgeNamesTheEpisode() {
+        XCTAssertEqual(book(kind: .episode).transcribeNoun, "episode")
+        XCTAssertEqual(book(kind: .book).transcribeNoun, "book")
+        XCTAssertEqual(book(kind: nil).transcribeNoun, "book")
+    }
+
     func testAudiobookCopyIsUnchanged() {
         XCTAssertEqual(
             BookTextDisplay.sheetSubtitle(coveredPercent: 0, transcribing: false, hasWaitingText: false),
