@@ -679,3 +679,4 @@ Unverified: which fix the corpus test needed; + tag with the body focused passed
 tap alone; iPhone; Mac after FlowLayout. Commits a5d9ccce, 7735742c.
 
 finding: Dev 202 checks, Tuur 2026-11-04 (phone + Mac, screen recording): one bar OK; + tag and Return OK; tag looks OK; podcast Text sheet OK; Mac tag row OK. Set All to Small/Large already exists in the ⋯ menu (MemoDetailView.swift:612, D202), my 'not built' was wrong. New: Q546 menus, Q547 picture drag, Q548 Mac freeze, Q549 toast. Merge check (ICLOUD_MERGE step 10) still unanswered.
+finding: Q549: Undo toast is one pill via .buttonStyle(.plain) at Shared/UI/TagEditorRow.swift:422; new Mac -snapshot-tag-toast <path>. The sandbox refuses a binary path with a space, so headless snapshots of Skrift Dev run through a space-free symlink.
