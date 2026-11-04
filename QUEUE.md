@@ -3946,6 +3946,30 @@ gate+: yes
 do: Small stops being a banner card. A small photo draws as the picture itself, longest side a third of the text width, never cropped (mock: wide 121 x 80, tall 90 x 121, on its own line, rounded as the mock). Large fills the text width with no height limit, never cropped (today tall stops at 320; mock: 3:4 is 362 x 483). Same idea for videos and files: a small video is a small frame of itself with its play mark and still plays as today; a captured PDF shows its page as a small picture; a file with no preview keeps the existing card, since there is no picture to show. The "Photo, JPEG, 1.2 MB" line goes for pictures. Tap keeps opening the picture full screen, unchanged (Tuur has not picked otherwise). The size switch moves to the hold menu's first page instead of behind the › page; keep "Set All to Small/Large" in ⋯. Shared drawing belongs in Shared/UI (NoteAttachmentArt), so the Mac and iPad get it in the same change; the stored small/large flag and the note's stored text do not change, and the export is unchanged. Update FEATURES.md.
 check: Unit test of the size rule (longest side, no crop, wide and tall). Simulator PNGs of small and large photos, wide and tall, a small video and a small file, looked at. Full SkriftDesktop build; Mac `-snapshot` if it runs headless, otherwise say so.
 
+### Q546 [auto] (todo) Phone: the ⋯ and attach menus are real menus that open from their button
+spec: Tuur 2026-11-04 on Dev 202, FeedbackKit 93899eb0 + screen recording: Apple Notes menus open out of the button that was tapped; ours look wrong.
+needs: -
+gate+: yes
+do: `MemoDetailView.swift:554` (`.confirmationDialog(memoStatsLine, isPresented: $showActions)`, opened from the ⋯ at :507) and `MemoPageView.swift:184` (`.confirmationDialog(IPadLayout.attachHeader, isPresented: $showPhotoSourceDialog)`, opened from the photo button via `onRequestPhoto`, :538) hang off the whole page, so on iOS 26+ they draw as a centred bubble of purple capsules with a tail pointing at nothing. Make both a SwiftUI `Menu` on the button itself, iPhone and iPad regular width alike where they use these two dialogs: same items, same order, same actions, Delete destructive, the stats line ('15 words · 0:06') a menu section title. The comment above :554 says a toolbar Menu 'silently failed to present on device' inside the paged TabView; Q314 removed the pager, so try it, and say plainly if it still fails. The photo button sits in the bar above the keyboard (`NoteAccessoryBar`); the menu must open without dismissing the keyboard or losing the caret. Do not change other dialogs (speakers, title chooser, resolve).
+check: Simulator PNGs of both menus open, reading and typing, looked at: no tail, opens from its button, every item visible. Run each action that opens a sheet or changes state once (Find in Note, Take/Choose, Set All to Small, Lock). Full build of both apps.
+### Q547 [auto] (todo) Phone: dragging a picture keeps the note's paragraphs, shows one picture, lands at the line, and can be undone
+spec: Tuur 2026-11-04 on Dev 202, screen recording /Users/tiurihartog/Downloads/ScreenRecording_11-04-2026 20-27-03_1.MP4 at 47-62 s (frames, not audio): dragging a small picture in a voice note.
+needs: -
+gate+: yes
+do: Four faults, all in `NoteBodyView.swift` `handlePhotoPress` / `moveBlock` (:1460-1545). (1) DATA: the note read 'New recording…\n\nYeah yeah…\n[link chip]' and after the first drop read as ONE paragraph, 'New recording… Yeah yeah… [link chip]', and stayed that way. `BodyFormat.moveBlock` keeps \n\n by itself, so look at what runs after it: `reconstruct` (`displayOnlyKey` runs lose their newlines, :2187), `commitDraft`, `load(force:)`, `attributed(from:)`. Prove with a failing unit test on the real path first; a move must change nothing but the block's place. Check whether the note's stored text changed or only its display, and state which. (2) The original stays drawn under the lifted copy, so the picture shows twice; hide it during the drag. (3) The drop did not land where the line showed: the line sat under the first paragraph and the picture stayed at the bottom. Make the line and the result agree, including above the first paragraph and below the last. (4) A move cannot be undone: route it through `Coordinator.undoableReplace` (Q536). Also look at 37 s in the recording: with the keyboard up, the caret sits against the picture's edge with the Paste/Select menu; D224 says a tap on a picture opens it. If a tap with the keyboard up does not open it, fix it the same way as the reading tap.
+check: Unit tests: a move through the real path keeps every paragraph and the chip's line, up and down, voice and typed notes; undo restores the exact text. Simulator drag via XCUITest on a seeded note with PNGs during and after the drag, looked at.
+### Q548 [auto] (todo) Mac: the app does not freeze while a synced note or picture arrives
+spec: Tuur 2026-11-04: opening Skrift on the Mac gave a rainbow cursor for several seconds, ending the moment the picture he had just taken on the phone appeared. He did not say whether it was Dev or the real app.
+needs: -
+gate+: yes
+do: Find what runs on the main thread while CloudKit changes arrive and a synced note or photo is ingested on the Mac (`MemoCloudIngest`, `MemoCloudReconciler`, `MemoCloudUpdate`, asset materialising and image decoding, sidebar re-projection, `@Query`/fetches in the shell). Read it, then measure it: a test or harness on the Dev-safe store that times main-thread work for an arriving note with a phone-sized photo. Move the slow part off the main thread with no change to what gets saved. Report the measured before and after. If the cause cannot be pinned without seeing a live hang, say so and add a DevLog timing line instead of guessing.
+check: A measured before and after in the finding. UnitTests scheme and full SkriftDesktop build. No macOS UI tests, no launching any Skrift app, no real data.
+### Q549 [auto] (todo) Mac: the tag Undo toast is one pill, no button inside a button
+spec: Tuur 2026-11-04, Dev 202 Mac screenshot: 'Removed #Itworks' with a lighter pill inside a bigger purple pill around Undo.
+needs: -
+gate+: yes
+do: `Shared/UI/TagEditorRow.swift` `TagUndoToastView` (:412): on macOS `Button` keeps its default bordered look inside the capsule background. Give it `.buttonStyle(.plain)` so Undo is one purple pill on both apps. Nothing else changes.
+check: Headless `-snapshot` of the toast on the Mac if the harness can reach it, otherwise a small ImageRenderer PNG, looked at. Phone simulator PNG unchanged. Full builds of both apps.
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5696,3 +5720,7 @@ check: Unit test of the size rule (longest side, no crop, wide and tall). Simula
 - 2026-11-04 16:23 Q544 -> done — gate 77s @425fb246
 - 2026-11-04 16:31 Q543 -> done — gate 68s @a142bb64
 - 2026-11-04 20:20 Q535 -> stuck — Parked 2026-11-04 by Tuur: Rox can't say when the bar went; she reports it if it happens again. Branch kept at a2feafd8.
+- 2026-11-04 20:34 Q546 added
+- 2026-11-04 20:34 Q547 added
+- 2026-11-04 20:34 Q548 added
+- 2026-11-04 20:34 Q549 added

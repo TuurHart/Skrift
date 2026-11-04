@@ -677,3 +677,5 @@ view, so the tap hit the body; FlowLayout got 0.5 pt wrap slack (rounding is a t
 bb006518. Failing at base, passing after, notes opened from the list: TagFocusQ543UITests 2, TagRowScreenshotUITests, TagFocusQ540UITests 3.
 Unverified: which fix the corpus test needed; + tag with the body focused passed at base too, so that case is not a reproduction; a chip
 tap alone; iPhone; Mac after FlowLayout. Commits a5d9ccce, 7735742c.
+
+finding: Dev 202 checks, Tuur 2026-11-04 (phone + Mac, screen recording): one bar OK; + tag and Return OK; tag looks OK; podcast Text sheet OK; Mac tag row OK. Set All to Small/Large already exists in the ⋯ menu (MemoDetailView.swift:612, D202), my 'not built' was wrong. New: Q546 menus, Q547 picture drag, Q548 Mac freeze, Q549 toast. Merge check (ICLOUD_MERGE step 10) still unanswered.
