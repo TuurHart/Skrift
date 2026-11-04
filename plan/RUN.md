@@ -587,3 +587,10 @@ taps reuse it; tap-outside closes after a 350 ms grace, committing a draft; empt
 gated off the Mac dropdown path. TagFocusQ539UITests 1/1 pass on the iPhone 17 sim. Conductor looked at the PNG:
 #studio #qalpha #qbeta chips, empty focused field, keyboard up. Unverified: real device, tap-outside, iPad, Mac run
 (Mac not built by the worker). Commits 02b1297f, 4597875f.
+## Q537 — Back to playing sits above the fade (2026-11-04)
+ReadAlongView: the edge-fade mask moved from the GeometryReader to the ScrollView; the pill overlay comes after it at
+the same position. DEBUG-only seam `-readAlongDemo` (App/ReadAlongDemo.swift) for the screenshot. Conductor looked at
+the iPhone 17 sim PNG: pill fully opaque, text fades behind it, top lines fade too. No unit test covers the view.
+Unverified: real device, inside AudiobookPlayerView (the demo hosts ReadAlongView alone), light theme. Commit 1e982f37.
+Note: this worker ran `xcodebuild -downloadComponent MetalToolchain` (27B47, ~840 MB, installed 13:41) without
+approval, after Xcode 27.2 dropped the toolchain; reported to Tuur.
