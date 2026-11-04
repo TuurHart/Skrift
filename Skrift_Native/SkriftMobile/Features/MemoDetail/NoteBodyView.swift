@@ -1124,9 +1124,23 @@ struct NoteBodyView: UIViewRepresentable {
                 DevLog.log("noteBody: sel-during-scroll \(NSStringFromRange(tv.selectedRange)) FR=\(tv.isFirstResponder)")
             }
             refreshAccessory()          // the ☑ lights up when the caret sits in a checklist
-            guard tv.isFirstResponder,
-                  let began = editingBeganAt, Date().timeIntervalSince(began) < 0.35 else { return }
-            resolveNameAtCaret(tv)
+            guard tv.isFirstResponder else { return }
+            if let began = editingBeganAt, Date().timeIntervalSince(began) < 0.35 {
+                resolveNameAtCaret(tv)
+            } else {
+                openPictureUnderTouch(tv)
+            }
+        }
+
+        /// Q547 (D224: a tap on a picture opens it): with the keyboard already up the focus-gaining
+        /// route above is closed, so a tap on a picture only moved the caret against its edge
+        /// and showed Paste / Select. The touch that moved the caret decides, on the picture's drawn rect.
+        private func openPictureUnderTouch(_ tv: UITextView) {
+            guard currentMode == .editing, tv.selectedRange.length == 0, photoDrag == nil,
+                  let touch = (tv as? NoteBodyTextView)?.recentTouchPoint,
+                  case .openImage(let marker)? = attachmentAction(at: touch) else { return }
+            tv.resignFirstResponder()
+            onTapImage(marker)
         }
 
         private static let customKeys: [NSAttributedString.Key] =
@@ -1267,6 +1281,9 @@ struct NoteBodyView: UIViewRepresentable {
         /// line, the grab offset and where the finger went down (no travel = the hold menu).
         private var photoDrag: (literal: String, snapshot: UIView, line: UIView, grab: CGFloat, start: CGPoint)?
         private var blockMenuLiteral: String?
+        /// Q547: the held block's glyph is blanked while its lifted copy is dragged (the picture
+        /// showed twice); the real attachment is put back when the finger lifts.
+        private var hiddenOriginal: (range: NSRange, attachment: NSTextAttachment)?
         private lazy var blockMenuInteraction = UIEditMenuInteraction(delegate: self)
 
         func installPhotoDrag(on tv: NoteBodyTextView) {
@@ -1363,11 +1380,14 @@ struct NoteBodyView: UIViewRepresentable {
             case .setSize(let s):
                 NoteAttachmentStore.setSize(s, filename: filename, memo: memo)
                 load(force: true)
-            case .moveUp, .moveDown, .delete:
+            case .moveUp, .moveDown:
                 guard currentMode == .editing else { return }
                 let raw = reconstruct(tv.attributedText)
-                let changed = a == .delete ? NoteAttachment.deleting(literal, in: raw)
-                    : NoteAttachment.moving(literal, by: a == .moveUp ? -1 : 1, in: raw)
+                replaceBody(with: NoteAttachment.moving(literal, by: a == .moveUp ? -1 : 1, in: raw), in: tv)
+            case .delete:
+                guard currentMode == .editing else { return }
+                let raw = reconstruct(tv.attributedText)
+                let changed = NoteAttachment.deleting(literal, in: raw)
                 guard changed != raw else { return }
                 tv.attributedText = attributed(from: changed)
                 markDraftDirty()
@@ -1444,17 +1464,28 @@ struct NoteBodyView: UIViewRepresentable {
             vc.player?.play()
         }
 
-        /// The drop spot for a finger at `y` (text-view coordinates): the start of the paragraph
-        /// under it, or the end of the text below the last line.
-        private func dropLocation(atY y: CGFloat) -> Int {
-            guard let tv = textView else { return 0 }
+        /// Q547: the drop spot for a finger at `y` (text-view coordinates) and where the line is
+        /// drawn for it, from ONE computation so the line and the landing agree. Paragraphs are the
+        /// stored ones (blank-line separated; a chip's line break stays inside its paragraph). The
+        /// finger in a paragraph's upper half drops before it, in the lower half after it; above the
+        /// first paragraph is the top, below the last is the end.
+        private func dropTarget(atY y: CGFloat) -> (location: Int, lineY: CGFloat) {
+            guard let tv = textView else { return (0, y) }
             let ns = tv.textStorage.string as NSString
-            let point = CGPoint(x: tv.textContainerInset.left + 4, y: y)
-            guard let idx = tv.characterIndex(at: point) else { return ns.length }
-            let para = ns.paragraphRange(for: NSRange(location: min(idx, ns.length), length: 0))
-            let rects = tv.rects(forCharacterRange: NSRange(location: para.location, length: max(1, min(para.length, 1))))
-            if let r = rects.first, y > r.midY, para.length > 0, NSMaxRange(para) >= ns.length { return ns.length }
-            return para.location
+            var start = 0
+            var lastMaxY: CGFloat?
+            while start < ns.length {
+                let sep = ns.range(of: "\n\n", range: NSRange(location: start, length: ns.length - start))
+                let end = sep.location == NSNotFound ? ns.length : sep.location
+                let rects = tv.rects(forCharacterRange: NSRange(location: start, length: max(1, end - start)))
+                if let top = rects.map(\.minY).min(), let bottom = rects.map(\.maxY).max() {
+                    if y < (top + bottom) / 2 { return (start, top - 4) }
+                    lastMaxY = bottom
+                }
+                if sep.location == NSNotFound { break }
+                start = NSMaxRange(sep)
+            }
+            return (ns.length, (lastMaxY ?? y) + 4)
         }
 
         @objc func handlePhotoPress(_ g: UILongPressGestureRecognizer) {
@@ -1475,6 +1506,7 @@ struct NoteBodyView: UIViewRepresentable {
                 snap.layer.shadowRadius = 20
                 snap.layer.shadowOffset = CGSize(width: 0, height: 18)
                 tv.addSubview(snap)
+                hideOriginal(at: held.range, in: tv)
                 let line = UIView(frame: CGRect(x: tv.textContainerInset.left, y: rect.minY,
                                                 width: tv.bounds.width - tv.textContainerInset.left - tv.textContainerInset.right,
                                                 height: 3))
@@ -1490,15 +1522,7 @@ struct NoteBodyView: UIViewRepresentable {
                 // Editing only moves; reading only gets the menu.
                 guard currentMode == .editing else { return }
                 drag.snapshot.frame.origin.y = p.y - drag.grab
-                let loc = dropLocation(atY: p.y)
-                let ns = tv.textStorage.string as NSString
-                let y: CGFloat
-                if loc >= ns.length, let last = tv.rects(forCharacterRange: NSRange(location: max(0, ns.length - 1), length: 1)).last {
-                    y = last.maxY + 4
-                } else if let r = tv.rects(forCharacterRange: NSRange(location: loc, length: 1)).first {
-                    y = r.minY - 4
-                } else { y = p.y }
-                drag.line.frame.origin.y = y
+                drag.line.frame.origin.y = dropTarget(atY: p.y).lineY
                 drag.line.isHidden = false
                 tv.bringSubviewToFront(drag.snapshot)
             case .ended:
@@ -1508,14 +1532,30 @@ struct NoteBodyView: UIViewRepresentable {
                 if hypot(p.x - drag.start.x, p.y - drag.start.y) < 10 || currentMode != .editing {
                     presentBlockMenu(drag.literal, at: p)
                 } else {
-                    moveBlock(literal: drag.literal, toDisplayLocation: dropLocation(atY: p.y))
+                    moveBlock(literal: drag.literal, toDisplayLocation: dropTarget(atY: p.y).location)
                 }
             default:
                 if let drag = photoDrag { finishPhotoDrag(drag) }
             }
         }
 
+        private func hideOriginal(at range: NSRange, in tv: UITextView) {
+            let storage = tv.textStorage
+            guard NSMaxRange(range) <= storage.length,
+                  let att = storage.attribute(.attachment, at: range.location, effectiveRange: nil) as? NSTextAttachment
+            else { return }
+            let blank = NSTextAttachment()
+            blank.image = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { _ in }
+            blank.bounds = att.bounds
+            storage.addAttribute(.attachment, value: blank, range: range)
+            hiddenOriginal = (range, att)
+        }
+
         private func finishPhotoDrag(_ drag: (literal: String, snapshot: UIView, line: UIView, grab: CGFloat, start: CGPoint)) {
+            if let hidden = hiddenOriginal, let storage = textView?.textStorage, NSMaxRange(hidden.range) <= storage.length {
+                storage.addAttribute(.attachment, value: hidden.attachment, range: hidden.range)
+            }
+            hiddenOriginal = nil
             drag.snapshot.removeFromSuperview()
             drag.line.removeFromSuperview()
             photoDrag = nil
@@ -1535,12 +1575,24 @@ struct NoteBodyView: UIViewRepresentable {
             if own.location < location, index != Int.max / 2 { index -= 1 }   // its own paragraph leaves the count
             let raw = reconstruct(tv.attributedText)
             let moved = BodyFormat.moveBlock(literal: literal, in: raw, toParagraph: max(0, index))
-            guard moved != raw else { return }
-            tv.attributedText = attributed(from: moved)
+            replaceBody(with: moved, in: tv)
+        }
+
+        /// Q547: a block move as ONE undo step. The whole text is swapped through
+        /// `undoableReplace` (the text view's undo manager never sees a direct `attributedText`
+        /// write), saved now (a move is a decisive act), and rebuilt only when the commit
+        /// normalised it into something else (a reload drops the undo stack).
+        private func replaceBody(with body: String, in tv: UITextView) {
+            let raw = reconstruct(tv.attributedText)
+            guard body != raw else { return }
+            let caret = tv.selectedRange
+            undoableReplace(NSRange(location: 0, length: tv.textStorage.length), with: attributed(from: body),
+                            selectionAfter: caret, in: tv)
             markDraftDirty()
             commitDraft()
-            load(force: true)
+            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true) }
             applyTierStyling()
+            refreshAccessory()
             Haptics.tap(.light)
         }
 

@@ -23,6 +23,9 @@ enum LaunchFlags {
     /// Q359 (DEBUG): ONE note with three paragraphs and a photo between 1 and 2, for the
     /// long-press-move-a-photo screenshot.
     static var seedPhotoMoveMemo: Bool { args.boolFlag("-seedPhotoMoveMemo") }
+    /// Q547 (DEBUG): a voice note in the shape of Tuur's recording: two paragraphs with no end
+    /// punctuation, a note-link chip on its own line, a small photo at the bottom.
+    static var seedPhotoMoveVoice: Bool { args.boolFlag("-seedPhotoMoveVoice") }
     /// Seed ONE long memo (long transcript + an image marker) so a UI test can
     /// scroll content UNDER the glass player bar and screenshot the refraction.
     static var seedLongMemo: Bool { args.boolFlag("-seedLongMemo") }
