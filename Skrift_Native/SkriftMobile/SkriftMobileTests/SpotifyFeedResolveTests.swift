@@ -100,6 +100,13 @@ final class SpotifyFeedResolveTests: XCTestCase {
             XCTAssertEqual(episode.title, expect.episodeTitle, file: file, line: line)
             XCTAssertFalse(show.title.isEmpty, file: file, line: line)
             XCTAssertTrue(replay.fetched.contains(expect.feed), "\(folder): feed \(expect.feed) not read; read \(replay.fetched)", file: file, line: line)
+        case "show":
+            let result = try await PodcastImporter.resolve(replay.manifest.link, fetch: replay.fetch, redirect: replay.redirect)
+            guard case .chooseEpisode(let show) = result else {
+                return XCTFail("\(folder): expected a show to pick from, got \(result)", file: file, line: line)
+            }
+            XCTAssertEqual(show.title, expect.episodeTitle, file: file, line: line)
+            XCTAssertTrue(replay.fetched.contains(expect.feed), "\(folder): feed \(expect.feed) not read; read \(replay.fetched)", file: file, line: line)
         case "subscribersOnly":
             do {
                 let result = try await PodcastImporter.resolve(replay.manifest.link, fetch: replay.fetch, redirect: replay.redirect)
@@ -126,6 +133,31 @@ final class SpotifyFeedResolveTests: XCTestCase {
     /// Tuur's Deezer share link: link.deezer.com/s/… redirects to deezer.com/episode/947688582, whose page
     /// names the episode ("Blindboy") and its show (Fashion Neurosis with Bella Freud); the public feed is
     /// found through the iTunes search.
+    /// Tuur's Syntax link (TestFlight 199): oEmbed answers a show link with the newest EPISODE title
+    /// ("1053: What's in Our Home Lab"), so the show's name has to come from the show page's og:title.
+    func testSpotifyShowLinkFindsTheShowFeedFromThePageTitleNotTheEpisodeTitle() async throws {
+        try await assertResolves("spotify-show-syntax")
+    }
+
+    /// A show page that will not load falls back to oEmbed (for a show that title is an episode's, so the
+    /// iTunes search finds no show by it, and the refusal says "show").
+    func testSpotifyShowWithAPageThatWillNotLoadFallsBackToOEmbed() async throws {
+        let replay = try Replay(folder: "spotify-show-syntax")
+        let base = replay.fetch
+        let fetch: PodcastImporter.Fetch = { url in
+            if url.host == "open.spotify.com", url.path.hasPrefix("/show/") { throw URLError(.notConnectedToInternet) }
+            if url.host == "itunes.apple.com" { return Data(#"{"resultCount":0,"results":[]}"#.utf8) }
+            return try await base(url)
+        }
+        do {
+            _ = try await PodcastImporter.resolve(replay.manifest.link, fetch: fetch, redirect: replay.redirect)
+            XCTFail("expected a refusal")
+        } catch let refusal as PodcastRefusal {
+            XCTAssertEqual(refusal, PodcastRefusal.spotifyShowExclusive)
+        }
+        XCTAssertTrue(replay.fetched.contains { $0.contains("open.spotify.com/oembed") }, "oEmbed was not the fallback")
+    }
+
     func testDeezerShortLinkResolvesToTheEpisodeInThePublicFeed() async throws {
         try await assertResolves("deezer-fashion-neurosis")
     }
@@ -164,6 +196,22 @@ final class SpotifyFeedResolveTests: XCTestCase {
         } catch let refusal as PodcastRefusal {
             XCTAssertEqual(refusal, PodcastRefusal.appOnly("Deezer"))
             XCTAssertEqual(refusal.message, "Skrift can't read Deezer-only episodes: no public feed for this one turned up.")
+        }
+    }
+
+    /// A show with no iTunes match is refused as a SHOW, not an episode.
+    func testSpotifyShowWithNoPublicFeedSaysShow() async throws {
+        let replay = try Replay(folder: "spotify-show-syntax")
+        replay.override = { url in
+            url.host == "itunes.apple.com" ? Data(#"{"resultCount":0,"results":[]}"#.utf8) : nil
+        }
+        do {
+            _ = try await PodcastImporter.resolve(replay.manifest.link, fetch: replay.fetch, redirect: replay.redirect)
+            XCTFail("expected a refusal")
+        } catch let refusal as PodcastRefusal {
+            XCTAssertEqual(refusal, PodcastRefusal.spotifyShowExclusive)
+            XCTAssertTrue(refusal.message.contains("show"))
+            XCTAssertFalse(refusal.message.contains("episode"))
         }
     }
 

@@ -97,10 +97,17 @@ enum PodcastImporter {
             return try await resolveByNames(episodeTitle: title, showName: info.show, published: info.released,
                                             exclusive: PodcastRefusal.spotifyExclusive, fetch: fetch)
 
-        case .spotifyShow:
+        case .spotifyShow(let id):
+            // oEmbed answers a show link with the newest EPISODE's title (checked 2026-11-04), so the
+            // show's name comes from its page's og:title, as the episode case reads its page; oEmbed is
+            // only the fallback for a page that will not load.
             guard let oembed = PodcastResolver.oEmbedURL(for: link) else { throw PodcastRefusal.notALink }
-            let name = try PodcastResolver.spotifyTitle(fromOEmbed: try await fetch(oembed))
-            return try await resolveShowByName(name, exclusive: PodcastRefusal.spotifyExclusive, fetch: fetch)
+            var name = ""
+            if let page = URL(string: "https://open.spotify.com/show/\(id)"), let data = try? await fetch(page) {
+                name = PodcastResolver.htmlMeta(data)["og:title"] ?? ""
+            }
+            if name.isEmpty { name = try PodcastResolver.spotifyTitle(fromOEmbed: try await fetch(oembed)) }
+            return try await resolveShowByName(name, exclusive: PodcastRefusal.spotifyShowExclusive, fetch: fetch)
 
         case .deezerEpisode(let id):
             guard let page = URL(string: "https://www.deezer.com/episode/\(id)"),
