@@ -113,4 +113,26 @@ final class BottomBarQ544UITests: XCTestCase {
         wait(for: [gone], timeout: 5)
         XCTAssertEqual(app.keyboards.count, 0, "keyboard still up after Done")
     }
+
+    /// iPad regular width: nothing moved. The workbench toolbar carries Aa · ☑ · 📎 · link, and the
+    /// keyboard bar stays away, so there is no undo / redo / Done on screen (as before Q544).
+    func testIPadRegularWidthKeepsItsToolbarAndHasNoKeyboardBar() throws {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { throw XCTSkip("iPad layout only") }
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedDemoMemos", "-seedBareNote", "-selectFirstMemo",
+                               "-skipOnboarding"]
+        app.launch()
+        XCTAssertTrue(button(app, "ipad-tool-format").waitForExistence(timeout: 30), "iPad toolbar Aa missing")
+        let editor = app.textViews["transcript-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 20), "editor missing")
+        editor.tap()
+        Thread.sleep(forTimeInterval: 1.5)
+        for id in ["ipad-tool-format", "ipad-tool-checklist", "ipad-tool-attach", "ipad-tool-link"] {
+            XCTAssertTrue(button(app, id).exists, "\(id) missing while typing on iPad")
+        }
+        for id in barIDs {
+            XCTAssertFalse(button(app, id).exists, "\(id) showed on iPad at regular width")
+        }
+        capture(app, "q544-ipad-typing")
+    }
 }
