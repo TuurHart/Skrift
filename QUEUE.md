@@ -3918,7 +3918,7 @@ gate+: yes
 do: The unified Text sheet (mocks/book-text-unified.html) shows Level 2 Book text, and an import prompt offers to add an ePub. A podcast episode has no book file. Hide every book-file offer for an episode: the Text sheet's Level 2, any "add a book file" line in the Transcribe flow, and the once-per-book import prompt. Audiobooks are unchanged. Use the existing `kind` on the book's metadata; do not add a new flag. Tick the BUGS.md line and update FEATURES.md.
 check: A phone unit test on the rule (an episode offers no book file, an audiobook does) and a simulator screenshot of the sheet for an episode, looked at.
 
-### Q542 [tuur] (todo) mockup: one bar while typing, and small and large pictures
+### Q542 [tuur] (done) mockup: one bar while typing, and small and large pictures
 spec: D220 bug; Tuur 2026-11-04 ("can we unify the bars?", "do it now on mockup"); FeedbackKit 9343f168, cc368874; D202
 needs: -
 do: Mock only. (1) The two bars while typing against one bar. (2) Small and large pictures. Agent reads the source for the as-is state.
@@ -3931,6 +3931,20 @@ needs: -
 gate+: yes
 do: Tapping a chip in the note header (seen on the armed tag chip) also makes the note body first responder: keyboard, undo/redo and Done rise. Q540 tried a becomeFirstResponder guard on recentTouchPoint, which broke the focus tests, and reverted it. Separately TagRowScreenshotUITests (a corpus note with a tag, body focused) fails "the inline tag field did not open". FIRST run that test at bb006518 to learn whether it is old. Then find why a header tap reaches the body and fix it, and make + tag open and focus when the body already has the keyboard. A typed new note starts that way, so this may be part of what Tuur saw.
 check: UI tests: tapping a tag chip leaves the body unfocused and the keyboard down; + tag with the body focused opens the field and moves focus to it; TagRowScreenshotUITests passes; TagFocusQ540UITests still pass.
+
+### Q544 [auto] (todo) Phone: one bar above the keyboard while typing
+spec: D223; mock Skrift_Native/SkriftDesktop/mocks/Q542-bars-and-pictures.html, "One bar at the bottom"
+needs: -
+gate+: yes
+do: Build the mock's bottom-bar option on the phone. While typing, the bar above the keyboard (NoteAccessoryBar, layout .editor) holds Aa, checklist, photo, note link, undo, redo, Done; the top bar shows only Notes and ⋯ (MemoDetailView.swift:482-545; reading state stays + and ⋯). Each of the seven buttons gets a real 44 wide tap target and can use the bar's full 54 height while the pill stays 40 tall. Undo and redo keep their dimming and keep the accessibility ids accessory-undo, accessory-redo, accessory-done so UI tests still find them. Remove the top-bar typing buttons rather than hiding them (remove means delete); NoteEditorChrome loses whatever nothing calls any more. iPad regular width: check what it does today and keep it working; say what you found. Verify the bar also on the iPhone 17 at 393 wide. Update FEATURES.md.
+check: UI test: typing shows all seven in the bar and only Notes and ⋯ on top; undo, redo and Done work from the bar; reading state unchanged. EditorAppleQ359ScreenshotUITests, QuickNoteQ64SimUITests, QuickNoteFastTypingUITests, TagToastQ44UITests, NoteParityQ451ScreenshotUITests run, and any change to them is listed for the conductor. PNG of the bar with the keyboard up, looked at.
+
+### Q545 [auto] (todo) Small attachments are real small pictures and large fills the width
+spec: D224, D202; mock Skrift_Native/SkriftDesktop/mocks/Q542-bars-and-pictures.html, "Picture sizes"
+needs: -
+gate+: yes
+do: Small stops being a banner card. A small photo draws as the picture itself, longest side a third of the text width, never cropped (mock: wide 121 x 80, tall 90 x 121, on its own line, rounded as the mock). Large fills the text width with no height limit, never cropped (today tall stops at 320; mock: 3:4 is 362 x 483). Same idea for videos and files: a small video is a small frame of itself with its play mark and still plays as today; a captured PDF shows its page as a small picture; a file with no preview keeps the existing card, since there is no picture to show. The "Photo, JPEG, 1.2 MB" line goes for pictures. Tap keeps opening the picture full screen, unchanged (Tuur has not picked otherwise). The size switch moves to the hold menu's first page instead of behind the › page; keep "Set All to Small/Large" in ⋯. Shared drawing belongs in Shared/UI (NoteAttachmentArt), so the Mac and iPad get it in the same change; the stored small/large flag and the note's stored text do not change, and the export is unchanged. Update FEATURES.md.
+check: Unit test of the size rule (longest side, no crop, wide and tall). Simulator PNGs of small and large photos, wide and tall, a small video and a small file, looked at. Full SkriftDesktop build; Mac `-snapshot` if it runs headless, otherwise say so.
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -5675,3 +5689,6 @@ check: UI tests: tapping a tag chip leaves the body unfocused and the keyboard d
 - 2026-11-04 15:19 Q541 -> done — gate 83s @57db0525
 - 2026-11-04 15:29 Q540 -> done — gate 69s @44bc4b3f
 - 2026-11-04 15:29 Q543 added
+- 2026-11-04 15:49 Q544 added
+- 2026-11-04 15:49 Q545 added
+- 2026-11-04 15:49 Q542 -> done — Tuur picked 2026-11-04: one bar at the bottom, small a third, large full width, videos and files same idea (D223, D224)
