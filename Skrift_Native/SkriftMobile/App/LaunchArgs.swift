@@ -26,6 +26,8 @@ enum LaunchFlags {
     /// Q547 (DEBUG): a voice note in the shape of Tuur's recording: two paragraphs with no end
     /// punctuation, a note-link chip on its own line, a small photo at the bottom.
     static var seedPhotoMoveVoice: Bool { args.boolFlag("-seedPhotoMoveVoice") }
+    /// Q550 (DEBUG): the attach menu's Choose Photo inserts a drawn picture at the caret instead of opening the system picker.
+    static var fakePhotoPick: Bool { args.boolFlag("-fakePhotoPick") }
     /// Seed ONE long memo (long transcript + an image marker) so a UI test can
     /// scroll content UNDER the glass player bar and screenshot the refraction.
     static var seedLongMemo: Bool { args.boolFlag("-seedLongMemo") }

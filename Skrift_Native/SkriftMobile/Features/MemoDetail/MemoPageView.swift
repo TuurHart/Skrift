@@ -528,7 +528,18 @@ struct MemoPageView: View {
                 onRequestAttach: { item in
                     switch item {
                     case .takePhoto: showCameraCapture = true
-                    case .choosePhoto: showPhotoPicker = true
+                    case .choosePhoto:
+                        #if DEBUG
+                        // Q550: the system picker runs out of process; a UI test inserts a drawn picture instead.
+                        if LaunchFlags.fakePhotoPick {
+                            insertPickedPhoto(UIGraphicsImageRenderer(size: CGSize(width: 600, height: 400)).image { ctx in
+                                UIColor.systemTeal.setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 600, height: 400))
+                                UIColor.systemYellow.setFill(); ctx.fill(CGRect(x: 380, y: 60, width: 120, height: 120))
+                            })
+                            break
+                        }
+                        #endif
+                        showPhotoPicker = true
                     case .attachFile: showAttachFiles = true
                     case .scanDocument: break   // iPad's menu only
                     }
