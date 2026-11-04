@@ -3946,7 +3946,7 @@ gate+: yes
 do: Small stops being a banner card. A small photo draws as the picture itself, longest side a third of the text width, never cropped (mock: wide 121 x 80, tall 90 x 121, on its own line, rounded as the mock). Large fills the text width with no height limit, never cropped (today tall stops at 320; mock: 3:4 is 362 x 483). Same idea for videos and files: a small video is a small frame of itself with its play mark and still plays as today; a captured PDF shows its page as a small picture; a file with no preview keeps the existing card, since there is no picture to show. The "Photo, JPEG, 1.2 MB" line goes for pictures. Tap keeps opening the picture full screen, unchanged (Tuur has not picked otherwise). The size switch moves to the hold menu's first page instead of behind the › page; keep "Set All to Small/Large" in ⋯. Shared drawing belongs in Shared/UI (NoteAttachmentArt), so the Mac and iPad get it in the same change; the stored small/large flag and the note's stored text do not change, and the export is unchanged. Update FEATURES.md.
 check: Unit test of the size rule (longest side, no crop, wide and tall). Simulator PNGs of small and large photos, wide and tall, a small video and a small file, looked at. Full SkriftDesktop build; Mac `-snapshot` if it runs headless, otherwise say so.
 
-### Q546 [auto] (doing) Phone: the ⋯ and attach menus are real menus that open from their button
+### Q546 [auto] (done) Phone: the ⋯ and attach menus are real menus that open from their button
 spec: Tuur 2026-11-04 on Dev 202, FeedbackKit 93899eb0 + screen recording: Apple Notes menus open out of the button that was tapped; ours look wrong.
 needs: -
 gate+: yes
@@ -5730,3 +5730,4 @@ check: Headless `-snapshot` of the toast on the Mac if the harness can reach it,
 - 2026-11-04 20:34 Q549 -> doing — worker dispatched 2026-11-04
 - 2026-11-04 20:58 Q549 -> done — gate 147s @5a13a393
 - 2026-11-04 21:00 Q548 -> done — gate 136s @45ad53fd
+- 2026-11-04 21:03 Q546 -> done — gate 130s @94a43314
