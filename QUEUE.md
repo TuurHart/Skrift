@@ -3911,7 +3911,7 @@ gate+: yes
 do: Q539 passed a simulator test but failed for Tuur on his iPhone 17 Pro on Dev 200: on a note with no tags, tapping + tag did not bring up the keyboard (he had to tap again), and after typing a tag and pressing Return the field lost focus and he had to tap the tag control again. The Q539 test (TagFocusQ539UITests) ran on a rated fixture note that already had a tag, so it missed this. FIRST write a UI test on an unrated voice note with NO tags on the iPhone 17 simulator and make it fail the way he describes; report if it does not fail. Leads, unproven: MemoPageView.swift:627 hosts the row in the rating row's trailing content with style .phoneInline, so adding the first tag or opening the field can re-flow and re-mount the field and drop @FocusState; the phone pager keeps a neighbour page mounted; the 350 ms grace close in TagEditorRow.onChange(of: fieldFocused) closes the field if a re-focus did not stick. Fix the cause, not with more delays. Also from his screenshot: (a) the tag field capsule is not vertically centred with the chip beside it: its height is chipHeight - 6 and FlowLayout (Shared/UI/FlowLayout.swift:33) places every item top-aligned; centre items on a line. (b) The armed chip (tap a tag to delete) looks wrong: with .phoneInline the # touches the red outline and the ✕ sits on the right edge, so it needs real inner padding when armed, without shifting neighbours more than the ✕ needs. (c) The field's placeholder and caret should sit centred in its capsule. Keep the Mac unchanged: build the full SkriftDesktop scheme. Reopen the BUGS.md Q539 line's tick only when this passes.
 check: The new UI test fails before the fix and passes after, on a tag-less unrated note: tap + tag, type with no tap, Return, type a second tag with no tap, both chips land. Screenshot PNGs of the field beside a chip and of an armed chip, looked at. Full SkriftDesktop build succeeds. Tuur still has to confirm on the real iPhone.
 
-### Q541 [auto] (todo) Phone: Transcribe on a podcast does not offer a book file
+### Q541 [auto] (done) Phone: Transcribe on a podcast does not offer a book file
 spec: D220 bug; Tuur 2026-10-16 (FeedbackKit 7488094a); BUGS.md "Transcribe on a podcast offers to add a book file"
 needs: -
 gate+: yes
@@ -5665,3 +5665,4 @@ ask: Open the mockup and pick: how many bars while typing, and how small and lar
 - 2026-11-04 14:26 Q540 added
 - 2026-11-04 14:26 Q541 added
 - 2026-11-04 15:13 Q542 added
+- 2026-11-04 15:19 Q541 -> done — gate 83s @57db0525
