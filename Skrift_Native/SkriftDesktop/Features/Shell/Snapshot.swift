@@ -71,6 +71,7 @@ enum Snapshot {
             MainActor.assumeIsolated { renderTurnsBody(to: p, bodyFile: b, scheme: light ? .light : .dark); exit(0) }
         }
         if let p = path("-snapshot-tags")           { MainActor.assumeIsolated { renderTags(to: p); exit(0) } }
+        if let p = path("-snapshot-tag-toast")      { MainActor.assumeIsolated { renderTagToast(to: p); exit(0) } }
         if let p = path("-snapshot-conflict")       { MainActor.assumeIsolated { renderConflict(to: p); exit(0) } }
         // Q400: the one-shot merge-from-dev alert (ICLOUD_MERGE A4), synthetic counts, `-light` for light.
         if let p = path("-snapshot-merge-alert") {
@@ -802,6 +803,33 @@ enum Snapshot {
         .preferredColorScheme(.dark)
         .modelContainer(container)
         hostPNG(view, size: NSSize(width: 436, height: 640), to: path)
+    }
+
+    /// Q549: the tag-removal Undo toast on the Mac, HOSTED (real AppKit Button). Top = the real
+    /// `TagUndoToastView`; bottom = a replica with the default bordered Button (the pre-fix look),
+    /// so one PNG shows the double pill is gone. Triggered by: `-snapshot-tag-toast <path>`.
+    @MainActor private static func renderTagToast(to path: String) {
+        let view = VStack(alignment: .leading, spacing: 14) {
+            Text("TagUndoToastView (fixed: .plain)").font(.system(size: 10)).foregroundStyle(Theme.textMuted)
+            TagUndoToastView(tag: "Itworks", style: .mac, onUndo: {})
+            Text("Pre-fix replica (default bordered Button)").font(.system(size: 10)).foregroundStyle(Theme.textMuted)
+                .padding(.top, 8)
+            HStack(spacing: 12) {
+                Text("Removed #Itworks").font(.system(size: 13)).foregroundStyle(Color.white)
+                Button("Undo", action: {})
+                    .font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(TagRowStyle.mac.textColor, in: .capsule)
+            }
+            .padding(.leading, 16).padding(.trailing, 6).padding(.vertical, 6)
+            .background(Color.black.opacity(0.85), in: .capsule)
+            .fixedSize()
+        }
+        .padding(28)
+        .frame(width: 360, alignment: .leading)
+        .background(Theme.bg)
+        .preferredColorScheme(.dark)
+        hostPNG(view, size: NSSize(width: 360, height: 200), to: path)
     }
 
     /// Q39: the Mac edit-conflict prompt (C242/D139) against `mocks/Q4-edit-conflict.html`.
