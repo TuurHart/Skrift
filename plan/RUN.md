@@ -618,3 +618,9 @@ PodcastImporter reads og:title from the show page via htmlMeta, oEmbed only as f
 PodcastRefusal.spotifyShowExclusive ("This show is only on Spotify..."). Unused spotifyShowMatch deleted with its test.
 SpotifyFeedResolveTests 20/20, PodcastFeedTests 16/16; fixtures in test-fixtures/podcast-links/spotify-show-syntax/ recorded
 2026-11-04. Not run against the live network or on a device. Commits 92cf6e15, 608c0832.
+## Q536 — Undo reverses the checklist button (2026-11-04)
+Cause: toggleChecklistAtCaret, toggleTask, applyLineStyle and insertMemoLink edited tv.textStorage directly, which UIKit's
+undo manager never sees. Coordinator.undoableReplace makes each one undo step with caret restore; redo works.
+NoteBodyUndoTests 4/4, NoteBodyTests 10/10, MemoLinkSpaceTests 3/3. Still bypass undo: photo and attachment insert (they
+also write a manifest entry), Return-key checklist continuation, photo move. Unverified: a live tap on the Undo button in
+the running editor, on sim or device; tests call the coordinator directly. Commits 40855291, 75ef15f4.
