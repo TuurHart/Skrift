@@ -133,6 +133,9 @@ enum LaunchFlags {
     /// copy-edit/title/summary) + the name roster, and open its detail — so the Phase-4
     /// polished-text display can be screenshot-verified.
     static var seedPolished: Bool { args.boolFlag("-seedPolished") }
+    /// Q540 (DEBUG): with `-seedPolished`, make the memo UNRATED and TAG-LESS (what a fresh voice note
+    /// is) — the seed otherwise carries a tag and a rating, which hid the "+ tag" focus bug.
+    static var seedBareNote: Bool { args.boolFlag("-seedBareNote") }
     /// Q382 (DEBUG): with `-seedPolished`, DON'T open its detail as a root route — land on the
     /// list so a UI test taps the row and the note is PUSHED (the back button + tab bar are real).
     static var routeViaList: Bool { args.boolFlag("-routeViaList") }
