@@ -79,9 +79,11 @@ final class NoteBodyUndoSequenceTests: XCTestCase {
         let undo = try XCTUnwrap(tv.undoManager)
 
         var steps: [String] = [raw(c, tv)]            // the text after each user action, from empty
-        type("Hello", tv);   steps.append(raw(c, tv))
-        type("\n", tv);      steps.append(raw(c, tv))
-        type("World", tv);   steps.append(raw(c, tv))
+        // UIKit folds one unbroken run of typing (Return included) into a single Undo step,
+        // as Apple Notes does, so the run is one entry here.
+        type("Hello", tv); type("\n", tv); type("World", tv)
+        steps.append(raw(c, tv))
+        XCTAssertEqual(steps.last, "Hello\nWorld")
         c.insertPhoto(photo()); settle()
         let withPhoto = raw(c, tv)
         XCTAssertTrue(withPhoto.contains("[[img_001]]"), "the picture is in the text: \(withPhoto)")
@@ -105,6 +107,9 @@ final class NoteBodyUndoSequenceTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: photoFile.path),
                       "the picture's file stays while it can be redone")
         XCTAssertEqual(memo.metadata?.imageManifest?.count, 1, "the manifest entry stays while it can be redone")
+        c.commitDraft(debounced: true)           // the 1 s debounce saving the undone text must not drop the picture
+        XCTAssertTrue(FileManager.default.fileExists(atPath: photoFile.path))
+        XCTAssertEqual(memo.metadata?.imageManifest?.count, 1)
         XCTAssertTrue(undo.canRedo)
 
         // Redo: forward through the same texts, ending on the same picture.
@@ -155,19 +160,17 @@ final class NoteBodyUndoSequenceTests: XCTestCase {
     }
 
     func testDeletingAPictureUndoesAndRedoes() throws {
-        let (c, tv, _) = try editor()
-        type("Top", tv)
-        type("\n", tv)
-        c.insertPhoto(photo()); settle()
-        type("Bottom", tv)
-        c.commitDraft()
+        let (c, tv, memo) = try editor("Top\n\n[[img_001]]\n\nBottom")
+        memo.metadata = MemoMetadata(imageManifest: [ImageManifestEntry(filename: "photo_q550.jpg", offsetSeconds: 0)])
+        c.load(force: true)
+        tv.selectedRange = NSRange(location: 0, length: 0)
         let stored = raw(c, tv)
-        XCTAssertTrue(stored.contains("[[img_001]]"))
+        XCTAssertEqual(stored, "Top\n\n[[img_001]]\n\nBottom")
 
-        // Delete through the hold menu's path.
-        c.deleteBlock(literal: "[[img_001]]")
+        c.deleteBlock(literal: "[[img_001]]"); settle()
         let deleted = raw(c, tv)
         XCTAssertFalse(deleted.contains("[[img_001]]"), "the picture is gone: \(deleted)")
+        XCTAssertEqual(memo.metadata?.imageManifest?.count, 1, "the manifest entry stays while redoable")
 
         c.undo(); settle()
         XCTAssertEqual(raw(c, tv), stored, "Undo brings the picture back byte-for-byte")
