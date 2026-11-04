@@ -1,0 +1,22 @@
+{
+  "link": "https://open.spotify.com/show/4kYCRYJ3yK5DQbP5tbfZby",
+  "expect": {
+    "outcome": "show",
+    "feed": "https://feeds.megaphone.fm/FSI1483080183",
+    "episodeTitle": "Syntax - Tasty Web Development Treats"
+  },
+  "responses": {
+    "open.spotify.com/oembed?url=https://open.spotify.com/show/4kYCRYJ3yK5DQbP5tbfZby": {
+      "file": "oembed.json"
+    },
+    "open.spotify.com/show/4kYCRYJ3yK5DQbP5tbfZby": {
+      "file": "page.html"
+    },
+    "itunes.apple.com/search?entity=podcast&limit=10&media=podcast&term=Syntax - Tasty Web Development Treats": {
+      "file": "search-show.json"
+    },
+    "feeds.megaphone.fm/FSI1483080183": {
+      "file": "feed.xml"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <atom:link href="https://feeds.megaphone.fm/FSI1483080183" rel="self" type="application/rss+xml"/>
+    <title>Syntax - Tasty Web Development Treats</title>
+    <link>https://syntax.fm</link>
+    <language>en</language>
+    <description>Full Stack Developers Wes Bos and Scott Tolinski dive deep into web development topics.</description>
+    <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+    <itunes:image href="https://megaphone.imgix.net/podcasts/5197fe5a-42f7-11f0-affd-87d9985a1760/image/c86a54acd72683732c4773e25bf0ae14.png"/>
+    <item>
+      <title>1053: What’s in Our Home Lab</title>
+      <link>https://syntax.fm/1053</link>
+      <description>Scott and CJ tour their homelabs.</description>
+      <pubDate>Wed, 28 Oct 2026 12:00:00 -0000</pubDate>
+      <guid isPermaLink="false">f3c1d5a2-1053-4a7e-9c11-000000001053</guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI1483080183.mp3" length="52000000" type="audio/mpeg"/>
+      <itunes:duration>3486</itunes:duration>
+    </item>
+    <item>
+      <title>1052: Example Older Episode</title>
+      <link>https://syntax.fm/1052</link>
+      <description>An older episode, shortened for the fixture.</description>
+      <pubDate>Mon, 26 Oct 2026 12:00:00 -0000</pubDate>
+      <guid isPermaLink="false">f3c1d5a2-1052-4a7e-9c11-000000001052</guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI1483080184.mp3" length="48000000" type="audio/mpeg"/>
+      <itunes:duration>3200</itunes:duration>
+    </item>
+  </channel>
+</rss>

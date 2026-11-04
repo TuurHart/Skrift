@@ -15,6 +15,7 @@ struct PodcastRefusal: Error, Equatable, LocalizedError {
     static let notAFeed = PodcastRefusal(message: "That link isn't a podcast feed Skrift can read.")
     static let noPublicFeed = PodcastRefusal(message: "This show has no public feed, so Skrift can't take it.")
     static let spotifyExclusive = PodcastRefusal(message: "This episode is only on Spotify and has no public feed, so Skrift can't take it.")
+    static let spotifyShowExclusive = PodcastRefusal(message: "This show is only on Spotify and has no public feed, so Skrift can't take it.")
     static let subscribersOnly = PodcastRefusal(message: "That episode is in the show's feed, but it is for subscribers only, so Skrift can't download it.")
     /// A player-exclusive episode, named after the app so the person knows which link failed.
     static func appOnly(_ app: String) -> PodcastRefusal {
@@ -482,7 +483,8 @@ enum PodcastResolver {
         return nil
     }
 
-    /// Spotify's oEmbed `title`: the episode title for an episode link, the show name for a show link.
+    /// Spotify's oEmbed `title`: the episode title for an episode link. For a show link it is the newest
+    /// episode's title (checked 2026-11-04), so a show's name is read from its page's og:title instead.
     static func spotifyTitle(fromOEmbed data: Data) throws -> String {
         guard let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let title = (json["title"] as? String)?.trimmed, !title.isEmpty else {
@@ -501,17 +503,6 @@ enum PodcastResolver {
             return PodcastMatch(feedURL: feed,
                                 hint: PodcastHint(guid: r["episodeGuid"] as? String, title: name),
                                 showName: r["collectionName"] as? String ?? "")
-        }
-        throw PodcastRefusal.spotifyExclusive
-    }
-
-    /// iTunes show search for a Spotify show name.
-    static func spotifyShowMatch(name: String, searchResults data: Data) throws -> PodcastMatch {
-        let wanted = PodcastPick.normalise(name)
-        for r in results(data) {
-            guard let show = r["collectionName"] as? String, PodcastPick.normalise(show) == wanted,
-                  let raw = r["feedUrl"] as? String, let feed = URL(string: raw) else { continue }
-            return PodcastMatch(feedURL: feed, hint: PodcastHint(guid: nil, title: nil), showName: show)
         }
         throw PodcastRefusal.spotifyExclusive
     }

@@ -1,0 +1,5 @@
+{
+ "resultCount":1,
+ "results": [
+{"wrapperType":"track", "kind":"podcast", "collectionId":1253186678, "trackId":1253186678, "artistName":"Wes Bos & Scott Tolinski - Full Stack JavaScript Web Developers", "collectionName":"Syntax - Tasty Web Development Treats", "trackName":"Syntax - Tasty Web Development Treats", "collectionCensoredName":"Syntax - Tasty Web Development Treats", "trackCensoredName":"Syntax - Tasty Web Development Treats", "collectionViewUrl":"https://podcasts.apple.com/us/podcast/syntax-tasty-web-development-treats/id1253186678?uo=4", "feedUrl":"https://feeds.megaphone.fm/FSI1483080183", "trackViewUrl":"https://podcasts.apple.com/us/podcast/syntax-tasty-web-development-treats/id1253186678?uo=4", "releaseDate":"2026-10-28T12:00:00Z", "collectionExplicitness":"notExplicit", "trackExplicitness":"cleaned", "trackCount":1052, "country":"USA", "currency":"USD", "primaryGenreName":"Technology", "genres":["Technology", "Podcasts", "News", "Tech News"]}]
+}
