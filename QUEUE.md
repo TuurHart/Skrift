@@ -3883,7 +3883,7 @@ gate+: yes
 do: In a phone note, tapping the checklist button by accident and then Undo does not undo it. Find the checklist action in Features/MemoDetail/NoteBodyView.swift and make it one step on the text view's undo stack (registered through UITextView's undoManager or a text-storage edit the system records), both adding a checkbox to a line and ticking an existing one. Check what other format-toolbar actions in the same file do; fix any that bypass undo the same way. Tick the BUGS.md line.
 check: A phone unit or UI test: add a checkbox to a line, undo, the line is back byte-for-byte; redo returns it; tick and undo likewise.
 
-### Q537 [auto] (todo) Phone player: Back to playing sits above the text fade
+### Q537 [auto] (done) Phone player: Back to playing sits above the text fade
 spec: D220 bug; Tuur 2026-10-30 on TestFlight 199 (FeedbackKit 74d3ebe7)
 needs: -
 gate+: -
@@ -5633,3 +5633,4 @@ check: A phone UI test: tap + tag, type without tapping the field, Return, type 
 - 2026-11-04 13:22 Q538 added
 - 2026-11-04 13:22 Q539 added
 - 2026-11-04 13:51 Q539 -> done — gate 102s @3d74c23f
+- 2026-11-04 13:55 Q537 -> done — gate 193s @ca3908d0
