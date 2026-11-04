@@ -164,7 +164,7 @@ struct AudiobookLibraryView: View {
             // when a skipped-parts alert isn't about to claim the presentation.
             if let book = a0Candidate {
                 a0Candidate = nil
-                if importNotice == nil, !BookTextPrompt.seen(book.id) {
+                if importNotice == nil, book.offersBookFile, !BookTextPrompt.seen(book.id) {
                     BookTextPrompt.markSeen(book.id)
                     giveTextBook = book
                 }

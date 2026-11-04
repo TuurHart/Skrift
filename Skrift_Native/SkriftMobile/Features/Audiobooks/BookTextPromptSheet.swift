@@ -58,7 +58,8 @@ struct BookTextPromptSheet: View {
                 }
             }
 
-            card {
+            // Q541: an episode has no book file to add.
+            if book.offersBookFile { card {
                 (Text("② Add the real book ").foregroundStyle(Color.skText)
                  + Text("(optional)").foregroundStyle(Color.skTextFaint).fontWeight(.regular))
                     .font(.system(size: 13.5, weight: .semibold))
@@ -80,7 +81,7 @@ struct BookTextPromptSheet: View {
                 }
                 .padding(.top, 7)
                 .accessibilityIdentifier("book-text-prompt-add")
-            }
+            } }
 
             Text("Both run in the background — keep listening meanwhile.\nSkip this now and find it any time under \u{201C}Text…\u{201D}.")
                 .font(.system(size: 10.5)).foregroundStyle(Color.skTextFaint)

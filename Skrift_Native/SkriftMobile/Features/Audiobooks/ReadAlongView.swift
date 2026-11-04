@@ -501,7 +501,7 @@ struct ReadAlongView: View {
                 .padding(.bottom, 4)
             Text("Listen now, read along later")
                 .font(.system(size: 16, weight: .semibold)).foregroundStyle(Color.skText)
-            Text("Transcribe this book on-device to follow the words as they're read. \(TranscribeBookCopy.runsOnBattery)")
+            Text("Transcribe this \(book.transcribeNoun) on-device to follow the words as they're read. \(TranscribeBookCopy.runsOnBattery)")
                 .font(.system(size: 12.5)).foregroundStyle(Color.skTextDim)
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             Button(action: onTranscribe) {

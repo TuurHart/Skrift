@@ -109,6 +109,14 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// The kind to show and branch on: nil means a book.
     var sourceKind: LibrarySourceKind { kind ?? .book }
 
+    /// Q541: whether any "add the book's ePub" offer applies. A podcast episode has no book file, so
+    /// the Text sheet's Level 2, the Add row and the once-per-book import prompt are hidden for it.
+    /// Reads the existing `kind` (nil = a book); audiobooks and every other kind are unchanged.
+    var offersBookFile: Bool { sourceKind != .episode }
+
+    /// Q541: the noun the read-along nudge uses ("Transcribe this episode" for a podcast).
+    var transcribeNoun: String { sourceKind == .episode ? "episode" : "book" }
+
     /// Legacy convenience: the first (for single-file books, only) file.
     var audioFilename: String { files.first ?? "" }
 
