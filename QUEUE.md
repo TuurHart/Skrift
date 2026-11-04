@@ -3939,7 +3939,7 @@ gate+: yes
 do: Build the mock's bottom-bar option on the phone. While typing, the bar above the keyboard (NoteAccessoryBar, layout .editor) holds Aa, checklist, photo, note link, undo, redo, Done; the top bar shows only Notes and ⋯ (MemoDetailView.swift:482-545; reading state stays + and ⋯). Each of the seven buttons gets a real 44 wide tap target and can use the bar's full 54 height while the pill stays 40 tall. Undo and redo keep their dimming and keep the accessibility ids accessory-undo, accessory-redo, accessory-done so UI tests still find them. Remove the top-bar typing buttons rather than hiding them (remove means delete); NoteEditorChrome loses whatever nothing calls any more. iPad regular width: check what it does today and keep it working; say what you found. Verify the bar also on the iPhone 17 at 393 wide. Update FEATURES.md.
 check: UI test: typing shows all seven in the bar and only Notes and ⋯ on top; undo, redo and Done work from the bar; reading state unchanged. EditorAppleQ359ScreenshotUITests, QuickNoteQ64SimUITests, QuickNoteFastTypingUITests, TagToastQ44UITests, NoteParityQ451ScreenshotUITests run, and any change to them is listed for the conductor. PNG of the bar with the keyboard up, looked at.
 
-### Q545 [auto] (todo) Small attachments are real small pictures and large fills the width
+### Q545 [auto] (done) Small attachments are real small pictures and large fills the width
 spec: D224, D202; mock Skrift_Native/SkriftDesktop/mocks/Q542-bars-and-pictures.html, "Picture sizes"
 needs: -
 gate+: yes
@@ -5692,3 +5692,4 @@ check: Unit test of the size rule (longest side, no crop, wide and tall). Simula
 - 2026-11-04 15:49 Q544 added
 - 2026-11-04 15:49 Q545 added
 - 2026-11-04 15:49 Q542 -> done — Tuur picked 2026-11-04: one bar at the bottom, small a third, large full width, videos and files same idea (D223, D224)
+- 2026-11-04 16:22 Q545 -> done — gate 89s @ef492fc0
