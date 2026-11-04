@@ -662,3 +662,10 @@ note text and export code unchanged (git diff empty on Shared/Export, ExportV2, 
 export diff). PictureArtTests 3/3, Mac rule + hold menu + block rules 21/21, export 28/28, full Mac build OK. Conductor looked at phone PNGs
 (plan/reads/q545/): small photos, video, DXF card, hold menu "View as Large | Copy | Share | ›". Not done: Mac capture-PDF view and the
 phone's captured-image embed (still maxHeight 320); iPad, dark mode, tap driven, real photos unverified. Commits 1b3612bd, 72cd0a77.
+## Q544 — one bar while typing (2026-11-04, D223)
+Bar above the keyboard: Aa, checklist, photo, link, divider, undo, redo, Done, each a 44 x 54 tap target; pill stays 40 tall. Top bar while
+typing is Notes and ⋯; the old top-bar buttons are deleted and NoteEditorChrome lost its undo, redo and done. iPad regular width unchanged.
+BottomBarQ544UITests pass on iPhone 17 (402) and 17e (390), opening the note from the list; iPad probe passes. EditorAppleQ359 4/4,
+QuickNoteFastTyping 6/6, NoteParityQ451 1/1. Fail, attributed by the worker to stale assertions, not re-run at the base: QuickNoteQ64Sim
+test2_3 (asserts accessory-find, gone since Q359) and TagToastQ44 (looks for exact id tag-input). Conductor looked at the typing PNG.
+Unverified: real device, light theme. Commits c08cb1c5..43292640.
