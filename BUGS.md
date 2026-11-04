@@ -294,7 +294,7 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [x] **A note opened with no text** — NOT reproduced on Dev 195 (Tuur 2026-10-26: four fresh opens of the top note and one right after a new recording all showed text; Q521). Reopen if it recurs. (Tuur 2026-10-15, FeedbackKit `d2ae60e2` + `d1c33c07`, phone
       0.2.0): tapping the top note of the list opened an empty body with the player at 0:00/0:00, no
       words. Diagnose on Dev 194 first (the open path was rewritten since); no data read.
-- [ ] **Picture size small/large does the wrong thing** (Tuur 2026-10-23, FeedbackKit `cc368874`):
+- [x] **Picture size small/large does the wrong thing** (Tuur 2026-10-23, FeedbackKit `cc368874`): Q545 merged, Dev 202; his check owed.
       he expects small = a small picture and large = a large picture; it gives a large picture or a
       banner you tap to open. Mock the two sizes before building.
 - [x] **"Transcribe" on a podcast offers to add a book file** (Tuur 2026-10-16, FeedbackKit
@@ -346,17 +346,17 @@ These need a device round or a log pull before they can be fixed.
       Pull crash logs with `idevicecrashreport` per the pull-phone-feedback skill. Builds 45–53 span
       the recording, books and P8 work, so the lane is unknown.
 
-- [ ] **Two bars while editing a note** (Tuur 2026-10-26, FeedbackKit `9343f168`, Dev 195): the
+- [x] **Two bars while editing a note** (Tuur 2026-10-26, FeedbackKit `9343f168`, Dev 195): the Q544 merged, Dev 202; his check owed.
       top bar (undo, redo, ⋯, Done) plus a second bar above the keyboard. Decide whether one goes.
 - [x] **Two ways to add a recording to an open note** (Tuur 2026-10-26, Dev 195): the + button
       (MemoDetailView.swift:509, Q451) and ⋯ > Add recording do the same thing. Decided: keep the +;
       the ⋯ row stays only where no + shows (iPad). One rule, `AddRecordingDoors` (Q527).
-- [ ] **A newly added person's name only turns purple after leaving the note** (Tuur 2026-10-26,
+- [x] **A newly added person's name only turns purple after leaving the note** (Tuur 2026-10-26, Q523 merged.
       Dev 195): added "testing" as a person from an open note; the word stayed plain until he opened
       the feedback sheet and came back.
-- [ ] **Mac Settings text is light grey and hard to read** (Tuur 2026-10-26); the phone's Settings
+- [x] **Mac Settings text is light grey and hard to read** (Tuur 2026-10-26); the phone's Settings Q525 merged.
       read fine.
-- [ ] **Transcription takes much longer to start than in Glot** (Tuur 2026-10-26, Dev 195, a fresh
+- [x] **Transcription takes much longer to start than in Glot** (Tuur 2026-10-26, Dev 195, a fresh Q526 measured: no start-up gap proven; first launch after an install 27.7 s, next launch 0.7 s.
       recording); both run Parakeet. Measure cold-start to first words on both apps first.
 - [ ] **Saving Beauty (Byung-Chul Han): the book transcript misses large parts** (Tuur 2026-10-26,
       on the real Skrift, the August build). Recheck after the prod update; he reports it via
