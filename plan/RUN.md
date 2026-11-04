@@ -624,3 +624,10 @@ undo manager never sees. Coordinator.undoableReplace makes each one undo step wi
 NoteBodyUndoTests 4/4, NoteBodyTests 10/10, MemoLinkSpaceTests 3/3. Still bypass undo: photo and attachment insert (they
 also write a manifest entry), Return-key checklist continuation, photo move. Unverified: a live tap on the Undo button in
 the running editor, on sim or device; tests call the coordinator directly. Commits 40855291, 75ef15f4.
+
+## Q535 — not merged (2026-11-04)
+Rox's missing tab bar did not reproduce on the iPhone 17 sim, iOS 26.3: opening a note, then the share import's tab switch,
+brought the bar back with and without wt/Q535. Conductor rejected the defensive `.toolbar(.visible, for: .tabBar)`: it
+fixes nothing proven, and Review pushes notes in its own stack (JournalHomeView.swift:41), where Q387 found an explicit
+tab-level value wins over the note's `.hidden` (read in code, not run). Untried: cold launch with a pending import, iOS
+26.6.1 (runtime not installed). Branch kept at a2feafd8.
