@@ -654,3 +654,11 @@ FlowLayout(centerItems:) centres line items; armed chip gets 9 pt inner padding.
 Open: a tap on a header chip also focuses the note body (keyboard + Done rise; visible in the PNG), and TagRowScreenshotUITests fails
 "the inline tag field did not open" on a body-focused note, also with the parenting off; not run at the base, so not proven old or new.
 Unverified: real iPhone, Mac look after the FlowLayout change, wider UI suite. Commits 6ec81113..86c2fdb9.
+## Q545 — small is a real small picture, large fills the width (2026-11-04, D224)
+NoteAttachment.pictureSize: small = longest side a third of the text width (121x80 wide, 90x121 tall on 362), large = full width, no
+height cap (3:4 = 362x483), never cropped. NoteAttachmentArt draws small photo, small video (frame + play mark), small PDF page and
+large photo; a file with no preview keeps its card. phoneHoldMenu puts the size switch first. Tap still opens full screen. Stored flag,
+note text and export code unchanged (git diff empty on Shared/Export, ExportV2, Desktop/Pipeline, Mobile/Services; no seeded before/after
+export diff). PictureArtTests 3/3, Mac rule + hold menu + block rules 21/21, export 28/28, full Mac build OK. Conductor looked at phone PNGs
+(plan/reads/q545/): small photos, video, DXF card, hold menu "View as Large | Copy | Share | ›". Not done: Mac capture-PDF view and the
+phone's captured-image embed (still maxHeight 320); iPad, dark mode, tap driven, real photos unverified. Commits 1b3612bd, 72cd0a77.
