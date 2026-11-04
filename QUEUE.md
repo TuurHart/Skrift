@@ -3952,7 +3952,7 @@ needs: -
 gate+: yes
 do: `MemoDetailView.swift:554` (`.confirmationDialog(memoStatsLine, isPresented: $showActions)`, opened from the ⋯ at :507) and `MemoPageView.swift:184` (`.confirmationDialog(IPadLayout.attachHeader, isPresented: $showPhotoSourceDialog)`, opened from the photo button via `onRequestPhoto`, :538) hang off the whole page, so on iOS 26+ they draw as a centred bubble of purple capsules with a tail pointing at nothing. Make both a SwiftUI `Menu` on the button itself, iPhone and iPad regular width alike where they use these two dialogs: same items, same order, same actions, Delete destructive, the stats line ('15 words · 0:06') a menu section title. The comment above :554 says a toolbar Menu 'silently failed to present on device' inside the paged TabView; Q314 removed the pager, so try it, and say plainly if it still fails. The photo button sits in the bar above the keyboard (`NoteAccessoryBar`); the menu must open without dismissing the keyboard or losing the caret. Do not change other dialogs (speakers, title chooser, resolve).
 check: Simulator PNGs of both menus open, reading and typing, looked at: no tail, opens from its button, every item visible. Run each action that opens a sheet or changes state once (Find in Note, Take/Choose, Set All to Small, Lock). Full build of both apps.
-### Q547 [auto] (doing) Phone: dragging a picture keeps the note's paragraphs, shows one picture, lands at the line, and can be undone
+### Q547 [auto] (done) Phone: dragging a picture keeps the note's paragraphs, shows one picture, lands at the line, and can be undone
 spec: Tuur 2026-11-04 on Dev 202, screen recording /Users/tiurihartog/Downloads/ScreenRecording_11-04-2026 20-27-03_1.MP4 at 47-62 s (frames, not audio): dragging a small picture in a voice note.
 needs: -
 gate+: yes
@@ -5731,3 +5731,4 @@ check: Headless `-snapshot` of the toast on the Mac if the harness can reach it,
 - 2026-11-04 20:58 Q549 -> done — gate 147s @5a13a393
 - 2026-11-04 21:00 Q548 -> done — gate 136s @45ad53fd
 - 2026-11-04 21:03 Q546 -> done — gate 130s @94a43314
+- 2026-11-04 21:12 Q547 -> done — gate 98s @2bf372a4
