@@ -39,6 +39,17 @@ final class TagFocusQ540UITests: XCTestCase {
         runScenario(app, prefix: "q540-b")
     }
 
+    /// Same bare note as the first test, but PUSHED from the list (isolates route from fixture).
+    func testBareNoteOpenedFromListPushedRoute() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedPolished", "-seedBareNote", "-routeViaList"]
+        app.launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 20), "memo-row-0 never appeared")
+        row.tap()
+        runScenario(app, prefix: "q540-c")
+    }
+
     private func runScenario(_ app: XCUIApplication, prefix: String) {
         let addTag = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'add-tag-button'")).firstMatch
         XCTAssertTrue(addTag.waitForExistence(timeout: 20), "the + tag control is missing")
