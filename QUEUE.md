@@ -3982,6 +3982,12 @@ needs: -
 gate+: yes
 do: In `SkriftMobile/Features/MemoDetail/NoteBodyView.swift` `insertPhoto` and `insertAttachment`: after the insert the caret goes on its own empty line below the block, as Apple Notes does, and typing there is a new paragraph. This stays one undo group with the insert (Q550). First write a failing test on the real path: a voice note with unpunctuated paragraphs and an existing picture, insert a second picture, type a word, commit; every paragraph must stay separate and the new picture must stand alone. Also cover a caret in the middle of a sentence and at the end of the note. Do not change what `NotePhoto.inserting` does for a mid-sentence caret beyond the caret's final place. If the test shows the merge still happens with the caret fixed, fix `BodyV2.committed` for that case too. No trailing blank line may be saved if the user types nothing after the picture.
 check: New unit test file for the cases above, text asserted after commit and after Undo. Simulator PNG of picture then typed word, note opened from the list through `memo-row-0`, looked at. `NoteBodyUndoSequenceTests`, `NoteBodyMoveBlockTests`, `NoteBodyUndoTests` still pass. Full builds of both apps.
+### Q552 [auto] (doing) Mac: adding a picture keeps the note's paragraphs when they have no end punctuation
+spec: Q547 and Q551 found on the phone that `BodyV2.committed`/`lift` reads a picture after an unpunctuated paragraph as mid-sentence and glues the paragraphs around it. The Mac's insert path was not checked.
+needs: -
+gate+: yes
+do: `SkriftDesktop/Features/Review/BodyTextView.swift:1104` inserts a picture through `NotePhoto.inserting`. First write a failing test: a voice note 'first thought\n\nsecond thought\n\n[[img_001]]\n\nthird thought' with no end punctuation, insert a second picture with the caret at the end and with the caret mid-sentence, and assert every paragraph and the old picture stay put. Report the actual stored text. If nothing merges, the item ends with that test as the guard and no code change. If it merges, fix it without changing the phone paths from Q547 and Q551. Also run the shape through the Mac's typed commit at `BodyTextView.swift:667`.
+check: New test file in the Mac UnitTests scheme, actual stored text quoted in the report. Full SkriftDesktop build. No macOS UI tests.
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5750,3 +5756,5 @@ check: New unit test file for the cases above, text asserted after commit and af
 - 2026-11-04 21:53 Q551 added
 - 2026-11-04 21:53 Q551 -> doing — worker dispatched 2026-11-04
 - 2026-11-04 22:09 Q551 -> done — gate 72s @d57edd5b
+- 2026-11-04 22:10 Q552 added
+- 2026-11-04 22:10 Q552 -> doing — worker dispatched 2026-11-04
