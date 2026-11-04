@@ -22,7 +22,6 @@ struct MemoDetailView: View {
     /// The open note, fetched by id (Q314) — never an all-notes `@Query`. Set together with
     /// `selection` in `open(_:)`; `currentMemo` guards against it being deleted underneath us.
     @State var pageMemo: Memo?
-    @State var showActions = false
     @State var showSplitOptions = false
     /// Q359: while the body is being typed in, undo / redo / Done take the top bar (mock Q350).
     @ObservedObject var editorChrome = NoteEditorChrome.shared
@@ -504,7 +503,11 @@ struct MemoDetailView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 if hSize != .regular, !isPendingDraft {
-                    Button { showActions = true } label: {
+                    // Q546: a real Menu on the button (Apple Notes), not a page-level dialog. The
+                    // stats line is the section title; Q314 removed the pager that once swallowed it.
+                    Menu {
+                        Section(memoStatsLine) { actionsMenuItems }
+                    } label: {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 16, weight: .semibold))
                             .frame(width: 34, height: 34)
@@ -547,88 +550,6 @@ struct MemoDetailView: View {
                     .transition(.opacity)
                     .accessibilityIdentifier("split-toast")
             }
-        }
-        // A confirmationDialog is presented by the view controller (not anchored
-        // to the toolbar item), so the paged TabView can't swallow it — unlike a
-        // toolbar `Menu`, which silently failed to present on device.
-        .confirmationDialog(memoStatsLine, isPresented: $showActions, titleVisibility: .visible) {
-            // iPad on-demand polish (m5, seam only): offered when the device + engine
-            // qualify and the note has a real transcript. The Mac still auto-polishes.
-            // The SAME three states the Mac offers (`NoteWorkState`). This menu used to ask
-            // only `canPolish`, which stays true after a polish so it offered "Process" on a
-            // note it had just processed — while the inline button two hundred lines up
-            // hid itself correctly. One rule now, and Export is reachable per note at last:
-            // a polished note is exportable wherever it was polished (Tuur, 2026-08-14).
-            if let memo = currentMemo, workState(for: memo).wantsProcessing,
-               PolishCenter.shared.canPolish(memo) {
-                Button(SharedCopy.processVerb, action: { PolishCenter.shared.polishNow(memo) })
-            }
-            if let memo = currentMemo, !workState(for: memo).wantsProcessing,
-               PolishCenter.shared.isAvailable {
-                Button(workState(for: memo).label(for: memo.destination), action: { exportNow(memo) })
-            }
-            // Q359 (mock Q350 pick 1): Find left the keyboard bar for this menu.
-            if let memo = currentMemo, !memo.isShareCapture, SpeakerTranscript.parse(memo.transcript) == nil {
-                Button("Find in Note", action: { editorChrome.find() })
-            }
-            // Q527: the + in the nav bar is this note's door; share captures have none.
-            if AddRecordingDoors.showsMenuEntry(isCompactWidth: true, isPendingDraft: isPendingDraft,
-                                                isShareCapture: currentMemo?.isShareCapture == true) {
-                Button(NoteMenuItem.addRecording.label, action: { showAppendRecorder = true })
-            }
-            // Q87: the icon in the bar has no label, so the sheet says it in words, in its
-            // shared slot (`NoteMenuItem` order: Add recording, Split, Flatten). A split note
-            // offers the way back; the bar icon still re-splits.
-            if let memo = currentMemo, !memo.isShareCapture {
-                if SpeakerTranscript.isConversation(memo.transcript, source: memo.linkSource) {
-                    Button(NoteMenuItem.flattenToMonologue.label, action: { showFlattenConfirm = true })
-                } else if !(memo.transcript ?? "").isEmpty, memo.audioURL != nil {
-                    Button(NoteMenuItem.splitSpeakers.label + "…", action: { showSplitOptions = true })
-                }
-            }
-            if let memo = currentMemo, MemoSaver.canTranscribeAgain(memo) {
-                Button(transcribeAgainLabel(memo), action: { transcribeAgain(memo) })
-            }
-            // Q180 (note-menu-07): the dialog cannot nest a submenu, so Redo is one flat row per
-            // part (`NoteRedoItem.flatLabel`), under the SAME gate as the ⋯ menu's submenu.
-            if let memo = currentMemo, redoOffered(memo) {
-                ForEach(NoteRedoItem.offered(isConversation: redoIsConversation(memo)), id: \.self) { part in
-                    Button(part.flatLabel, action: { PolishCenter.shared.redo(part, for: memo) })
-                }
-            }
-            if let memo = currentMemo,
-               memo.canUndoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id)) {
-                Button(NoteMenuItem.undoTidyUp.label, action: { undoTidyUp(memo) })
-            }
-            if WallPrinter.shared.hasPrinter, let memo = currentMemo, !lockGate.isLocked(memo) {
-                Button(NoteMenuItem.printCard.label, action: {
-                    WallPrinter.shared.printCard(memo, repository: repository)
-                })
-            }
-            // Q356 (mock `noteMenu`, D90): only on a note that holds a PDF.
-            if let memo = currentMemo, LibraryHatch.canMoveToLibrary(memo) {
-                Button(LibraryHatch.moveLabel, action: { LibraryHatch.moveToLibrary(memo: memo) })
-            }
-            // D202: Set All to Small / Large, the same pair the iPad ⋯ menu has.
-            if let memo = currentMemo, !NoteAttachment.allFilenames(of: memo).isEmpty {
-                Button(NoteAttachment.setAllSmallTitle, action: { setAllSizes(.small, memo) })
-                Button(NoteAttachment.setAllLargeTitle, action: { setAllSizes(.large, memo) })
-            }
-            if let memo = currentMemo {
-                Button(NoteMenuItem.lockItem(isLocked: memo.locked).label, action: { toggleLock(memo) })
-            }
-            Button(NoteMenuItem.share.label, action: {
-                // Q101 (C161/C213): a locked, not-yet-unlocked note needs auth before it leaves the app.
-                Task { @MainActor in
-                    if let memo = currentMemo, lockGate.isLocked(memo) {
-                        guard await lockGate.unlock(memo.id) else { return }
-                    }
-                    showShare = true
-                }
-            })
-            Button(NoteMenuItem.copyTranscript.label, action: copyTranscript)
-            Button(NoteMenuItem.delete.label, role: .destructive, action: deleteCurrent)
-            Button("Cancel", role: .cancel) {}
         }
         // The chrome Export button's refusals/back-offs — every tap answers
         // (the no-vault iPad silence, 2026-08-18).
@@ -822,6 +743,87 @@ struct MemoDetailView: View {
         guard let memo = currentMemo else { return }
         Task { await GatedCopy.copyTranscript(memo, lockGate: lockGate,
                                               onEmpty: { flashExport(CopyTranscriptRule.emptyMessage) }) }
+    }
+
+    /// Q546: the phone ⋯ menu. Was a page-level confirmationDialog (a centred bubble with a tail on
+    /// iOS 26); now a Menu that opens out of the ⋯ button, the stats line as its section title.
+    @ViewBuilder var actionsMenuItems: some View {
+        // iPad on-demand polish (m5, seam only): offered when the device + engine
+        // qualify and the note has a real transcript. The Mac still auto-polishes.
+        // The SAME three states the Mac offers (`NoteWorkState`). This menu used to ask
+        // only `canPolish`, which stays true after a polish so it offered "Process" on a
+        // note it had just processed — while the inline button two hundred lines up
+        // hid itself correctly. One rule now, and Export is reachable per note at last:
+        // a polished note is exportable wherever it was polished (Tuur, 2026-08-14).
+        if let memo = currentMemo, workState(for: memo).wantsProcessing,
+           PolishCenter.shared.canPolish(memo) {
+            Button(SharedCopy.processVerb, action: { PolishCenter.shared.polishNow(memo) })
+        }
+        if let memo = currentMemo, !workState(for: memo).wantsProcessing,
+           PolishCenter.shared.isAvailable {
+            Button(workState(for: memo).label(for: memo.destination), action: { exportNow(memo) })
+        }
+        // Q359 (mock Q350 pick 1): Find left the keyboard bar for this menu.
+        if let memo = currentMemo, !memo.isShareCapture, SpeakerTranscript.parse(memo.transcript) == nil {
+            Button("Find in Note", action: { editorChrome.find() })
+        }
+        // Q527: the + in the nav bar is this note's door; share captures have none.
+        if AddRecordingDoors.showsMenuEntry(isCompactWidth: true, isPendingDraft: isPendingDraft,
+                                            isShareCapture: currentMemo?.isShareCapture == true) {
+            Button(NoteMenuItem.addRecording.label, action: { showAppendRecorder = true })
+        }
+        // Q87: the icon in the bar has no label, so the sheet says it in words, in its
+        // shared slot (`NoteMenuItem` order: Add recording, Split, Flatten). A split note
+        // offers the way back; the bar icon still re-splits.
+        if let memo = currentMemo, !memo.isShareCapture {
+            if SpeakerTranscript.isConversation(memo.transcript, source: memo.linkSource) {
+                Button(NoteMenuItem.flattenToMonologue.label, action: { showFlattenConfirm = true })
+            } else if !(memo.transcript ?? "").isEmpty, memo.audioURL != nil {
+                Button(NoteMenuItem.splitSpeakers.label + "…", action: { showSplitOptions = true })
+            }
+        }
+        if let memo = currentMemo, MemoSaver.canTranscribeAgain(memo) {
+            Button(transcribeAgainLabel(memo), action: { transcribeAgain(memo) })
+        }
+        // Q180 (note-menu-07): the dialog cannot nest a submenu, so Redo is one flat row per
+        // part (`NoteRedoItem.flatLabel`), under the SAME gate as the ⋯ menu's submenu.
+        if let memo = currentMemo, redoOffered(memo) {
+            ForEach(NoteRedoItem.offered(isConversation: redoIsConversation(memo)), id: \.self) { part in
+                Button(part.flatLabel, action: { PolishCenter.shared.redo(part, for: memo) })
+            }
+        }
+        if let memo = currentMemo,
+           memo.canUndoBodyNormalise(enhancement: repository.enhancement(forMemo: memo.id)) {
+            Button(NoteMenuItem.undoTidyUp.label, action: { undoTidyUp(memo) })
+        }
+        if WallPrinter.shared.hasPrinter, let memo = currentMemo, !lockGate.isLocked(memo) {
+            Button(NoteMenuItem.printCard.label, action: {
+                WallPrinter.shared.printCard(memo, repository: repository)
+            })
+        }
+        // Q356 (mock `noteMenu`, D90): only on a note that holds a PDF.
+        if let memo = currentMemo, LibraryHatch.canMoveToLibrary(memo) {
+            Button(LibraryHatch.moveLabel, action: { LibraryHatch.moveToLibrary(memo: memo) })
+        }
+        // D202: Set All to Small / Large, the same pair the iPad ⋯ menu has.
+        if let memo = currentMemo, !NoteAttachment.allFilenames(of: memo).isEmpty {
+            Button(NoteAttachment.setAllSmallTitle, action: { setAllSizes(.small, memo) })
+            Button(NoteAttachment.setAllLargeTitle, action: { setAllSizes(.large, memo) })
+        }
+        if let memo = currentMemo {
+            Button(NoteMenuItem.lockItem(isLocked: memo.locked).label, action: { toggleLock(memo) })
+        }
+        Button(NoteMenuItem.share.label, action: {
+            // Q101 (C161/C213): a locked, not-yet-unlocked note needs auth before it leaves the app.
+            Task { @MainActor in
+                if let memo = currentMemo, lockGate.isLocked(memo) {
+                    guard await lockGate.unlock(memo.id) else { return }
+                }
+                showShare = true
+            }
+        })
+        Button(NoteMenuItem.copyTranscript.label, action: copyTranscript)
+        Button(NoteMenuItem.delete.label, role: .destructive, action: deleteCurrent)
     }
 
     /// "512 words · 3:07" — the ⋯ sheet's title doubles as the note's stats line.

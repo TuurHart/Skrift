@@ -86,7 +86,8 @@ struct NoteBodyView: UIViewRepresentable {
     var linkTitle: (UUID) -> String? = { _ in nil }
     /// The accessory bar's 📷 — the page presents the photo picker, then hands
     /// the image back through `proxy.insertPhoto`.
-    var onRequestPhoto: () -> Void = {}
+    /// Q546: the keyboard bar's photo button is a menu; its pick lands here (Take / Choose / Attach File).
+    var onRequestAttach: (IPadLayout.AttachItem) -> Void = { _ in }
     /// Page-side handle into the coordinator (photo insertion from the picker).
     var proxy: NoteBodyProxy? = nil
     /// iPad reading-measure hint: the note column's capped width at regular size
@@ -164,7 +165,7 @@ struct NoteBodyView: UIViewRepresentable {
         c.onRevertPhoto = onRevertPhoto
         c.onTapAttachment = onTapAttachment
         c.onTapMemoLink = onTapMemoLink
-        c.onRequestPhoto = onRequestPhoto
+        c.onRequestAttach = onRequestAttach
         c.onRequestMemoLink = onRequestMemoLink
         c.linkTitle = linkTitle
         c.polishedBinding = polishedBinding
@@ -223,7 +224,7 @@ struct NoteBodyView: UIViewRepresentable {
         var onRevertPhoto: (Int) -> Void = { _ in }
         var onTapAttachment: (NoteAttachmentEntry) -> Void = { _ in }
         var onTapMemoLink: (UUID) -> Void = { _ in }
-        var onRequestPhoto: () -> Void = {}
+        var onRequestAttach: (IPadLayout.AttachItem) -> Void = { _ in }
         var onRequestMemoLink: () -> Void = {}
         var linkTitle: (UUID) -> String? = { _ in nil }
         var tapToSeek = true
@@ -664,11 +665,18 @@ struct NoteBodyView: UIViewRepresentable {
             bar.onUndo = { [weak self] in self?.undo() }
             bar.onRedo = { [weak self] in self?.redo() }
             bar.onDone = { [weak self] in self?.finishEditing() }
-            bar.onPhoto = { [weak self] in
-                guard let self, let tv = self.textView else { return }
-                self.pendingPhotoLocation = tv.selectedRange.location
-                self.onRequestPhoto()
-            }
+            // Q546: 📷 opens a menu out of its own button (Apple Notes), not a page-level dialog.
+            // A UIMenu on the bar's button leaves the keyboard up and the caret where it was; the
+            // insert point is read when the pick is made.
+            let attachItems: [IPadLayout.AttachItem] = (CameraImagePicker.isAvailable ? [.takePhoto] : [])
+                + [.choosePhoto, .attachFile]
+            bar.setPhotoMenu(UIMenu(title: IPadLayout.attachHeader, children: attachItems.map { item in
+                UIAction(title: item.title, image: UIImage(systemName: item.symbol)) { [weak self] _ in
+                    guard let self, let tv = self.textView else { return }
+                    self.pendingPhotoLocation = tv.selectedRange.location
+                    self.onRequestAttach(item)
+                }
+            }))
             bar.onChecklist = { [weak self] in self?.toggleChecklistAtCaret() }
             bar.onMemoLink = { [weak self] in
                 // Same picker the typed "[[" opens; no trigger to replace —

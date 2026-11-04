@@ -17,7 +17,6 @@ final class NoteAccessoryBar: UIView {
     var onUndo: (() -> Void)?
     var onRedo: (() -> Void)?
     var onFind: (() -> Void)?
-    var onPhoto: (() -> Void)?
     var onChecklist: (() -> Void)?
     var onMemoLink: (() -> Void)?
     var onDone: (() -> Void)?
@@ -97,7 +96,6 @@ final class NoteAccessoryBar: UIView {
         undoButton.addAction(UIAction { [weak self] _ in self?.onUndo?() }, for: .touchUpInside)
         redoButton.addAction(UIAction { [weak self] _ in self?.onRedo?() }, for: .touchUpInside)
         checklistButton.addAction(UIAction { [weak self] _ in self?.onChecklist?() }, for: .touchUpInside)
-        photoButton.addAction(UIAction { [weak self] _ in self?.onPhoto?() }, for: .touchUpInside)
         linkButton.addAction(UIAction { [weak self] _ in self?.onMemoLink?() }, for: .touchUpInside)
         findButton.addAction(UIAction { [weak self] _ in self?.onFind?() }, for: .touchUpInside)
         doneButton.addAction(UIAction { [weak self] _ in self?.onDone?() }, for: .touchUpInside)
@@ -169,6 +167,12 @@ final class NoteAccessoryBar: UIView {
     /// regardless of which layout system asks.
     override var intrinsicContentSize: CGSize {
         CGSize(width: UIView.noIntrinsicMetric, height: 54)
+    }
+
+    /// Q546: the photo button opens this menu out of itself.
+    func setPhotoMenu(_ menu: UIMenu) {
+        photoButton.menu = menu
+        photoButton.showsMenuAsPrimaryAction = true
     }
 
     /// Reflect the text view's state: the undo stack, and whether the caret
