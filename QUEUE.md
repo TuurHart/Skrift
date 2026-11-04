@@ -3970,7 +3970,7 @@ needs: -
 gate+: yes
 do: `Shared/UI/TagEditorRow.swift` `TagUndoToastView` (:412): on macOS `Button` keeps its default bordered look inside the capsule background. Give it `.buttonStyle(.plain)` so Undo is one purple pill on both apps. Nothing else changes.
 check: Headless `-snapshot` of the toast on the Mac if the harness can reach it, otherwise a small ImageRenderer PNG, looked at. Phone simulator PNG unchanged. Full builds of both apps.
-### Q550 [auto] (doing) Phone: Undo steps back through everything in a note, in order, like Apple Notes
+### Q550 [auto] (done) Phone: Undo steps back through everything in a note, in order, like Apple Notes
 spec: D225; Tuur 2026-11-04 on Dev 203: typed text, took a photo, and Undo could not get past the photo; in Apple Notes the same steps all undo. "It seems to undo a little bit, and then you run into a thing it doesn't undo."
 needs: -
 gate+: yes
@@ -5740,3 +5740,4 @@ check: New unit test file for the sequence above with text asserted at every ste
 - 2026-11-04 21:12 Q547 -> done — gate 98s @2bf372a4
 - 2026-11-04 21:28 Q550 added
 - 2026-11-04 21:28 Q550 -> doing — worker dispatched 2026-11-04
+- 2026-11-04 21:52 Q550 -> done — gate 86s @93a5a1bb
