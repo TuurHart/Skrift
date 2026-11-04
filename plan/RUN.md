@@ -606,3 +606,9 @@ PodcastImporter reads og:title from the show page via htmlMeta, oEmbed only as f
 PodcastRefusal.spotifyShowExclusive ("This show is only on Spotify..."). Unused spotifyShowMatch deleted with its test.
 SpotifyFeedResolveTests 20/20, PodcastFeedTests 16/16; fixtures in test-fixtures/podcast-links/spotify-show-syntax/ recorded
 2026-11-04. Not run against the live network or on a device. Commits 92cf6e15, 608c0832.
+## Q538 — a Spotify show link finds the show's public feed (2026-11-04)
+Cause: for a show link, Spotify's oEmbed title is now the newest EPISODE title, so the show-name search never matched.
+PodcastImporter reads og:title from the show page via htmlMeta, oEmbed only as fallback; a show with no iTunes match gets
+PodcastRefusal.spotifyShowExclusive ("This show is only on Spotify..."). Unused spotifyShowMatch deleted with its test.
+SpotifyFeedResolveTests 20/20, PodcastFeedTests 16/16; fixtures in test-fixtures/podcast-links/spotify-show-syntax/ recorded
+2026-11-04. Not run against the live network or on a device. Commits 92cf6e15, 608c0832.
