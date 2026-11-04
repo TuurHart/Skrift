@@ -27,6 +27,7 @@ enum DemoDataSeeder {
         if LaunchFlags.seedPhotoMoveMemo { repo.insert(photoTextMemo(paragraphs: true)); return }
         if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
+        if LaunchFlags.seedPictureSizes { repo.insert(pictureSizesMemo(allLarge: LaunchFlags.seedAttachmentLarge)); return }
         if LaunchFlags.seedAttachmentMemo { repo.insert(attachmentMemo(allLarge: LaunchFlags.seedAttachmentLarge)); return }
         if LaunchFlags.seedSharedVideoMemo { repo.insert(sharedVideoMemo()); return }
         if LaunchFlags.seedNameLinking { repo.insert(nameLinkingMemo()); return }
@@ -144,6 +145,70 @@ enum DemoDataSeeder {
             transcriptConfidence: 0.9,
             metadata: meta
         )
+    }
+
+    /// Q545: placeholder pictures only (invented note): a wide and a tall photo, a video, a PDF, a DXF.
+    static func pictureSizesMemo(allLarge: Bool = false) -> Memo {
+        let id = UUID()
+        let wideName = "photo_\(id.uuidString)_001.jpg"
+        let tallName = "photo_\(id.uuidString)_002.jpg"
+        writePlaceholderPhoto(to: AppPaths.recordingsDirectory.appendingPathComponent(wideName), size: CGSize(width: 1500, height: 1000))
+        writePlaceholderPhoto(to: AppPaths.recordingsDirectory.appendingPathComponent(tallName), size: CGSize(width: 1200, height: 1600))
+        let files = NoteAttachmentFixture.write(into: AppPaths.recordingsDirectory, owner: id)
+        var meta = MemoMetadata(imageManifest: [ImageManifestEntry(filename: wideName, offsetSeconds: 4),
+                                                ImageManifestEntry(filename: tallName, offsetSeconds: 8)])
+        meta.attachmentManifest = files.manifest
+        meta.largeAttachments = allLarge ? files.manifest.map(\.filename) + [wideName, tallName] : nil
+        return Memo.make(
+            id: id,
+            audioFilename: "memo_\(id.uuidString).m4a",
+            duration: 40,
+            recordedAt: Date().addingTimeInterval(-600),
+            syncStatus: .waiting,
+            transcript: """
+            The view from the back deck of the ferry.
+
+            [[img_001]]
+
+            The lighthouse stairs, steeper than they look.
+
+            [[img_002]]
+
+            The engine clip, a quote and a drawing.
+
+            [[vid_001]]
+
+            [[file_002]]
+
+            [[file_003]]
+
+            Ask at the kiosk about the return times.
+            """,
+            transcriptStatus: .done,
+            transcriptConfidence: 0.9,
+            metadata: meta
+        )
+    }
+
+    /// A sky, a sun and a boat in the picture's own shape (the mock's placeholder), with a thin frame
+    /// so a crop or a stretch shows at once.
+    private static func writePlaceholderPhoto(to url: URL, size: CGSize) {
+        let image = UIGraphicsImageRenderer(size: size).image { ctx in
+            let c = ctx.cgContext
+            let colors = [UIColor(red: 0.45, green: 0.70, blue: 0.88, alpha: 1).cgColor, UIColor(red: 0.95, green: 0.85, blue: 0.62, alpha: 1).cgColor]
+            if let g = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors as CFArray, locations: [0, 1]) {
+                c.drawLinearGradient(g, start: .zero, end: CGPoint(x: 0, y: size.height), options: [])
+            }
+            UIColor(red: 1, green: 0.9, blue: 0.4, alpha: 1).setFill()
+            c.fillEllipse(in: CGRect(x: size.width * 0.62, y: size.height * 0.12, width: size.width * 0.2, height: size.width * 0.2))
+            UIColor(red: 0.12, green: 0.30, blue: 0.45, alpha: 1).setFill()
+            c.fill(CGRect(x: 0, y: size.height * 0.7, width: size.width, height: size.height * 0.3))
+            UIColor.white.setFill()
+            c.fill(CGRect(x: size.width * 0.3, y: size.height * 0.62, width: size.width * 0.3, height: size.height * 0.08))
+            UIColor.red.setStroke(); c.setLineWidth(size.width * 0.012)
+            c.stroke(CGRect(origin: .zero, size: size).insetBy(dx: size.width * 0.006, dy: size.width * 0.006))
+        }
+        try? image.jpegData(compressionQuality: 0.9)?.write(to: url)
     }
 
     /// Q454: Tuur's shared clip ("Well I might", 0:06) as `processVideo` stores it (D210).

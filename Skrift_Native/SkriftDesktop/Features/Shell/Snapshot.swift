@@ -33,6 +33,8 @@ enum Snapshot {
         if let p = path("-snapshot-editor-apple") { MainActor.assumeIsolated { renderEditorApple(dir: p); exit(0) } }
         // Q391: the Q384 note (video, photo, DXF, PDF) small-by-default and all-large, into one folder.
         if let p = path("-snapshot-attachments") { MainActor.assumeIsolated { renderAttachments(dir: p); exit(0) } }
+        // Q545: wide + tall photo, video, PDF, DXF at small (the default) and large, into one folder.
+        if let p = path("-snapshot-pictures") { MainActor.assumeIsolated { renderPictureSizes(dir: p); exit(0) } }
         if let p = path("-snapshot-settings-light") { MainActor.assumeIsolated { renderSettings(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot-settings-hosted") {
             let w = CGFloat(path("-settingsWidth").flatMap { Double($0) } ?? 620)
@@ -1012,6 +1014,45 @@ enum Snapshot {
                 .background(Color.white)
                 .preferredColorScheme(.light)
             hostPNG(pane, size: NSSize(width: 900, height: name == "mac-1-note" ? 900 : 1500),
+                    to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png").path)
+        }
+    }
+
+    /// Q545 (mock Q542 "Picture sizes", Mac frame): a wide and a tall photo, a video, a DXF and a PDF,
+    /// small by default (`mac-pictures-small.png`) and all large (`mac-pictures-large.png`). Invented
+    /// note, placeholder pictures. `-snapshot-pictures <dir>`.
+    @MainActor private static func renderPictureSizes(dir: String) {
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent("snap-pictures")
+        try? FileManager.default.removeItem(at: work)
+        try? FileManager.default.createDirectory(at: URL(fileURLWithPath: dir), withIntermediateDirectories: true)
+        let files = NoteAttachmentFixture.write(into: work, owner: UUID())
+        let wide = work.appendingPathComponent("photo_001.jpg"), tall = work.appendingPathComponent("photo_002.jpg")
+        writeSamplePhoto(to: wide, size: NSSize(width: 1500, height: 1000))
+        writeSamplePhoto(to: tall, size: NSSize(width: 1200, height: 1600))
+        if let video = files.manifest.first {
+            let url = work.appendingPathComponent(video.filename)
+            let deadline = Date().addingTimeInterval(15)
+            while NotePoster.shared.frame(for: url) == nil, Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+            }
+        }
+        NSApplication.shared.appearance = NSAppearance(named: .aqua)
+        let body = "The view from the back deck of the ferry.\n\n[[img_001]]\n\nThe lighthouse stairs, steeper than they look.\n\n[[img_002]]\n\nThe engine clip, a quote and a drawing.\n\n[[vid_001]]\n\n[[file_002]]\n\n[[file_003]]\n\nAsk at the kiosk about the return times."
+        let everything = files.manifest.map(\.filename) + [wide.lastPathComponent, tall.lastPathComponent]
+        for (name, large) in [("mac-pictures-small", [String]()), ("mac-pictures-large", everything)] {
+            let pane = BodyTextView(text: .constant(body),
+                                    imageURL: { $0 == 1 ? wide : ($0 == 2 ? tall : nil) },
+                                    onAddPhoto: { _ in nil },
+                                    attachments: { files.manifest },
+                                    attachmentURL: { work.appendingPathComponent($0.filename) },
+                                    largeAttachments: { large },
+                                    onSetAttachmentSize: { _, _ in })
+                .frame(width: 820)
+                .padding(.horizontal, 40).padding(.vertical, 32)
+                .frame(width: 900, alignment: .topLeading)
+                .background(Color.white)
+                .preferredColorScheme(.light)
+            hostPNG(pane, size: NSSize(width: 900, height: name.hasSuffix("small") ? 1000 : 2600),
                     to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png").path)
         }
     }
