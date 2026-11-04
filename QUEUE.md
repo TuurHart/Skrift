@@ -3988,7 +3988,7 @@ needs: -
 gate+: yes
 do: `SkriftDesktop/Features/Review/BodyTextView.swift:1104` inserts a picture through `NotePhoto.inserting`. First write a failing test: a voice note 'first thought\n\nsecond thought\n\n[[img_001]]\n\nthird thought' with no end punctuation, insert a second picture with the caret at the end and with the caret mid-sentence, and assert every paragraph and the old picture stay put. Report the actual stored text. If nothing merges, the item ends with that test as the guard and no code change. If it merges, fix it without changing the phone paths from Q547 and Q551. Also run the shape through the Mac's typed commit at `BodyTextView.swift:667`.
 check: New test file in the Mac UnitTests scheme, actual stored text quoted in the report. Full SkriftDesktop build. No macOS UI tests.
-### Q553 [auto] (doing) One-time body rewrite keeps paragraph breaks in notes with mixed picture shapes
+### Q553 [auto] (done) One-time body rewrite keeps paragraph breaks in notes with mixed picture shapes
 spec: Q552 flagged `BodyNormaliseMigration`. Read 2026-11-04: `needsNormalise` is false for a clean picture paragraph whatever the punctuation, so ordinary notes are never rewritten. But in a note holding BOTH an old inline marker AND a clean picture paragraph after unpunctuated text, `rewrite` goes through `BodyV2.committed` or `markersMoved` (`BodyV2.lift` over all runs), which may glue those paragraphs, and `preserves` compares words and markers only, so it would pass the guard. Runs once per note at first open on a device; `Shared/ReconcileV2/ReconcileV2Pass.swift` `markTranscribed` has the same shape, only for a memo with an empty transcript.
 needs: -
 gate+: yes
@@ -5767,3 +5767,4 @@ check: New test file; existing `BodyNormaliseMigration` tests and goldens pass u
 - 2026-11-04 22:22 Q552 -> done — gate 87s @3a526322
 - 2026-11-04 22:23 Q553 added
 - 2026-11-04 22:23 Q553 -> doing — worker dispatched 2026-11-04
+- 2026-11-04 22:36 Q553 -> done — gate 77s @bc01425c
