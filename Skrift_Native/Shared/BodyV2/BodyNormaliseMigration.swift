@@ -24,22 +24,7 @@ enum BodyNormaliseMigration {
     /// markers resolve (a marker past it is the author's text, not a picture).
     static func needsNormalise(_ body: String, manifestCount: Int = .max) -> Bool {
         guard body.contains("[[img_") else { return false }
-        let ns = body as NSString
-        for run in BodyV2Marker.runs(in: body, manifestCount: manifestCount) {
-            let r = ns.substring(with: run.range) as NSString
-            let first = r.range(of: "[[").location
-            let lastEnd = r.range(of: "]]", options: .backwards).location + 2
-            let core = r.substring(with: NSRange(location: first, length: lastEnd - first))
-            guard core == BodyV2Marker.block(run.numbers) else { return true }
-            let end = run.range.location + run.range.length
-            let atTop = ns.substring(to: run.range.location + first)
-                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            guard atTop || run.newlinesBefore >= 2 else { return true }
-            if end == ns.length { continue }
-            guard run.newlinesAfter >= 2, r.hasSuffix("\n") else { return true }
-            if ",;:.!?)".contains(Character(UnicodeScalar(ns.character(at: end)) ?? " ")) { return true }
-        }
-        return false
+        return BodyV2Marker.runs(in: body, manifestCount: manifestCount).contains { !BodyV2.isCleanRun($0, in: body) }
     }
 
     // MARK: - C203: the shapes D4 leaves alone
@@ -77,11 +62,11 @@ enum BodyNormaliseMigration {
         let out: String
         if machineText {
             let manifest = (0..<manifestCount).map { _ in ImageManifestEntry(filename: "", offsetSeconds: 0) }
-            out = BodyV2.committed(.init(text: body, manifest: manifest, source: .typed))
+            out = BodyV2.committed(.init(text: body, manifest: manifest, source: .typed, keepCleanRuns: true))
         } else {
             out = markersMoved(body, manifestCount: manifestCount)
         }
-        guard out != body, preserves(body, out),
+        guard out != body, preserves(body, out), keepsBreaks(body, out, manifestCount: manifestCount),
               !needsNormalise(out, manifestCount: manifestCount) else { return nil }
         return out
     }
@@ -90,7 +75,7 @@ enum BodyNormaliseMigration {
     /// its own paragraph; the prose is left as typed except the break the marker sat in.
     static func markersMoved(_ body: String, manifestCount: Int) -> String {
         let text = body.replacingOccurrences(of: "\r\n", with: "\n")
-        let runs = BodyV2Marker.runs(in: text, manifestCount: manifestCount)
+        let runs = BodyV2Marker.runs(in: text, manifestCount: manifestCount).filter { !BodyV2.isCleanRun($0, in: text) }
         let (bare, lifted) = BodyV2.lift(text, runs: runs)
         let ns = bare as NSString
         let spots: [(at: Int?, n: Int)] = lifted.map { item in
@@ -105,6 +90,50 @@ enum BodyNormaliseMigration {
     static func preserves(_ old: String, _ new: String) -> Bool {
         words(old) == words(new)
             && BodyV2Marker.numbers(in: old).sorted() == BodyV2Marker.numbers(in: new).sorted()
+    }
+
+    /// Q553: every blank line between two pieces of prose that did not touch a marker run needing a
+    /// move (a clean picture paragraph counts as untouched) is still a blank line in `new`. A
+    /// rewrite that glued two paragraphs fails this and is refused. Both texts hold the same
+    /// words (`preserves`), so the nth word of one is the nth of the other.
+    static func keepsBreaks(_ old: String, _ new: String, manifestCount: Int = .max) -> Bool {
+        let moved = BodyV2Marker.runs(in: old, manifestCount: manifestCount)
+            .filter { !BodyV2.isCleanRun($0, in: old) }.map(\.range)
+        let before = wordGaps(old), after = wordGaps(new)
+        guard before.count == after.count else { return false }
+        for (i, gap) in before.enumerated() where gap.newlines >= 2 && i < after.count {
+            let touched = moved.contains { NSIntersectionRange($0, gap.range).length > 0 || NSLocationInRange(gap.range.location, $0) }
+            if !touched && after[i].newlines < 2 { return false }
+        }
+        return true
+    }
+
+    /// For each word after the first: the whitespace-and-marker stretch before it, and how many
+    /// newlines that stretch holds. Markers are skipped, as `words` reads them.
+    private static func wordGaps(_ s: String) -> [(range: NSRange, newlines: Int)] {
+        let ns = s as NSString
+        var inMarker = IndexSet()
+        for m in BodyV2Marker.regex.matches(in: s, range: NSRange(location: 0, length: ns.length)) {
+            inMarker.insert(integersIn: m.range.location..<(m.range.location + m.range.length))
+        }
+        func isSpace(_ i: Int) -> Bool {
+            guard let u = Unicode.Scalar(ns.character(at: i)) else { return false }
+            return CharacterSet.whitespacesAndNewlines.contains(u)
+        }
+        var out: [(NSRange, Int)] = []
+        var gapStart: Int? = nil, newlines = 0, seenWord = false, i = 0
+        while i < ns.length {
+            if inMarker.contains(i) || isSpace(i) {
+                if gapStart == nil { gapStart = i; newlines = 0 }
+                if ns.character(at: i) == 10 { newlines += 1 }
+                i += 1
+                continue
+            }
+            if seenWord, let g = gapStart { out.append((NSRange(location: g, length: i - g), newlines)) }
+            seenWord = true; gapStart = nil
+            while i < ns.length, !inMarker.contains(i), !isSpace(i) { i += 1 }
+        }
+        return out
     }
 
     static func words(_ s: String) -> [Substring] {

@@ -41,6 +41,10 @@ enum BodyV2 {
         /// merged paragraphs. Off for caret insertions (`NotePhoto.inserting` wraps a mid-sentence
         /// photo in blank lines and relies on the snap).
         var keepOwnParagraphs: Bool = false
+        /// Q553: the one-time rewrite of a stored body. A picture run already in v2's shape
+        /// (`isCleanRun`) is left where it stands, so only the markers that needed moving move
+        /// and the paragraph breaks around the others survive. Off everywhere else.
+        var keepCleanRuns: Bool = false
     }
 
     static func committed(_ input: Input) -> String {
@@ -58,7 +62,9 @@ enum BodyV2 {
             }
         }
 
-        let (bare, lifted) = lift(text, runs: runs)
+        // Q553: a run already in v2 shape stays where it is (its paragraph breaks with it).
+        let kept = input.keepCleanRuns ? runs.filter { isCleanRun($0, in: text) } : []
+        let (bare, lifted) = lift(text, runs: input.keepCleanRuns ? runs.filter { r in !kept.contains { $0.range == r.range } } : runs)
         let ns = bare as NSString
         var spots: [(at: Int?, n: Int)] = []                        // nil = the top
         if timed {
@@ -80,7 +86,7 @@ enum BodyV2 {
                 }
             }
         } else {
-            let present = Set(lifted.map(\.n))
+            let present = Set(lifted.map(\.n)).union(kept.flatMap(\.numbers))
             if !input.userEdited, input.source != .typed {
                 for n in 1...max(count, 1) where n <= count && !present.contains(n) { spots.append((nil, n)) }
             }
@@ -133,6 +139,27 @@ enum BodyV2 {
         let before = run.range.location == 0
             || (run.newlinesBefore >= 2 && endsAtBoundary(ns.substring(to: run.range.location)))
         return before && (end == ns.length || run.newlinesAfter >= 2)
+    }
+
+    /// A run in v2's stored shape: exactly `BodyV2Marker.block` of its numbers, at the top or
+    /// after a blank line, then a blank line straight into the next paragraph (v1's wrap leaves
+    /// a space there) or the end, with no punctuation glued to it. `needsNormalise` is "some
+    /// run is not this".
+    static func isCleanRun(_ run: BodyV2Marker.Run, in body: String) -> Bool {
+        let ns = body as NSString
+        let r = ns.substring(with: run.range) as NSString
+        let first = r.range(of: "[[").location
+        let lastEnd = r.range(of: "]]", options: .backwards).location + 2
+        let core = r.substring(with: NSRange(location: first, length: lastEnd - first))
+        guard core == BodyV2Marker.block(run.numbers) else { return false }
+        let end = run.range.location + run.range.length
+        let atTop = ns.substring(to: run.range.location + first)
+            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        guard atTop || run.newlinesBefore >= 2 else { return false }
+        if end == ns.length { return true }
+        guard run.newlinesAfter >= 2, r.hasSuffix("\n") else { return false }
+        if ",;:.!?)".contains(Character(UnicodeScalar(ns.character(at: end)) ?? " ")) { return false }
+        return true
     }
 
     /// Blank line (or the text's edge) on both sides, whatever the text before it ends with.
