@@ -3890,7 +3890,7 @@ gate+: -
 do: In the read-along player the "Back to playing" pill is faded along with the text. Cause, read in code: Features/Audiobooks/ReadAlongView.swift:310 adds the pill as an `.overlay` inside the view that line 326 masks with the top and bottom LinearGradient. Apply the mask to the scrolling text only and keep the pill outside it, at its current position. Tick the BUGS.md line.
 check: A rendered screenshot on the iPhone 17 simulator with following off: the pill is fully opaque and the text behind it still fades. Look at the PNG.
 
-### Q538 [auto] (doing) Podcast: a Spotify show link finds the show's public feed
+### Q538 [auto] (done) Podcast: a Spotify show link finds the show's public feed
 spec: D220 bug; Tuur 2026-11-01 on TestFlight 199 (FeedbackKit 7239ba06)
 needs: -
 gate+: yes
@@ -5637,3 +5637,4 @@ check: A phone UI test: tap + tag, type without tapping the field, Return, type 
 - 2026-11-04 14:03 Q536 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
 - 2026-11-04 14:03 Q538 -> stuck — gate weakened: modified Skrift_Native/SkriftMobile/SkriftMobileTests/PodcastFeedTests.swift modified Skrift_Native/SkriftMobile/SkriftMobileTests/SpotifyFeedResolveTests.swift 
 - 2026-11-04 14:04 Q538 -> doing — hand accept: item told it to update SpotifyFeedResolveTests, conductor told it to delete the dead spotifyShowMatch and its test
+- 2026-11-04 14:07 Q538 -> done — hand-merged (item says update SpotifyFeedResolveTests; conductor ordered deleting the dead spotifyShowMatch with its one test (remove means delete); no assertion weakened)
