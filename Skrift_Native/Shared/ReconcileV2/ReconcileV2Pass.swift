@@ -189,8 +189,13 @@ extension ReconcileV2 {
             // Body v2 (C10): a body with pictures goes through the one writer; one without is
             // stored as is (an imported note's nested-list indentation must survive).
             let manifest = memo.metadata?.imageManifest ?? []
-            memo.transcript = BodyV2Marker.runs(in: words, manifestCount: manifest.count).isEmpty ? words
-                : BodyV2.committed(BodyV2.Input(text: words, manifest: manifest, source: .speech, userEdited: userEdited))
+            // Q553: a picture paragraph already in v2 shape stays put, and a commit that still
+            // glued two paragraphs is refused: the words are stored as they came.
+            let committed = BodyV2Marker.runs(in: words, manifestCount: manifest.count).isEmpty ? words
+                : BodyV2.committed(BodyV2.Input(text: words, manifest: manifest, source: .speech, userEdited: userEdited,
+                                                keepCleanRuns: true))
+            memo.transcript = BodyNormaliseMigration.words(words) == BodyNormaliseMigration.words(committed)
+                && BodyNormaliseMigration.keepsBreaks(words, committed, manifestCount: manifest.count) ? committed : words
             memo.transcriptStatus = .done
             memo.transcriptConfidence = 1.0
             memo.transcriptUserEdited = userEdited

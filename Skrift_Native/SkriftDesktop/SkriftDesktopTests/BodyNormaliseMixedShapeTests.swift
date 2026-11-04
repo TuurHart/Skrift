@@ -66,10 +66,17 @@ final class BodyNormaliseMixedShapeTests: XCTestCase {
     }
 
     /// The preservation guard itself: a result that glued two prose paragraphs is refused.
-    func testPreservesRefusesAGluedParagraph() {
+    func testGuardRefusesAGluedParagraph() {
         let old = "One line\n\nTwo line\n\n[[img_001]]"
-        XCTAssertFalse(BodyNormaliseMigration.preserves(old, "One line Two line\n\n[[img_001]]"))
-        XCTAssertTrue(BodyNormaliseMigration.preserves(old, "One line\n\nTwo line\n\n[[img_001]]"))
+        XCTAssertFalse(BodyNormaliseMigration.keepsBreaks(old, "One line Two line\n\n[[img_001]]"))
+        XCTAssertTrue(BodyNormaliseMigration.keepsBreaks(old, "One line\n\nTwo line\n\n[[img_001]]"))
+        // The mixed shape as the old code produced it: the break next to the CLEAN picture is gone.
+        XCTAssertFalse(BodyNormaliseMigration.keepsBreaks(
+            mixed, "He sat down and kept walking along the road Then the second paragraph begins here.\n\n[[img_001]]\n\n[[img_002]]",
+            manifestCount: 2))
+        // The v1 wrap's own breaks may go.
+        XCTAssertTrue(BodyNormaliseMigration.keepsBreaks(
+            "The cat sat\n\n[[img_001]]\n\n down.", "The cat sat down.\n\n[[img_001]]", manifestCount: 1))
     }
 
     // MARK: markTranscribed
