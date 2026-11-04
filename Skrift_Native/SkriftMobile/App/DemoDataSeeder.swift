@@ -25,6 +25,7 @@ enum DemoDataSeeder {
         if LaunchFlags.seedQuoteMemo { repo.insert(editedQuoteMemo()); return }
         if LaunchFlags.seedLongMemo { repo.insert(longMemo()); return }
         if LaunchFlags.seedPhotoMoveMemo { repo.insert(photoTextMemo(paragraphs: true)); return }
+        if LaunchFlags.seedPhotoMoveVoice { repo.insert(photoMoveVoiceMemo()); return }
         if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
         if LaunchFlags.seedPictureSizes { repo.insert(pictureSizesMemo(allLarge: LaunchFlags.seedAttachmentLarge)); return }
@@ -122,6 +123,24 @@ enum DemoDataSeeder {
             metadata: MemoMetadata(
                 imageManifest: [ImageManifestEntry(filename: photoName, offsetSeconds: 4)]
             )
+        )
+    }
+
+    /// Q547: a voice note like the one in Tuur's recording (no punctuation, a chip line, a photo last).
+    static func photoMoveVoiceMemo() -> Memo {
+        let id = UUID()
+        let photoName = "photo_\(id.uuidString)_001.jpg"
+        writePlaceholderPhoto(to: AppPaths.recordingsDirectory.appendingPathComponent(photoName), size: CGSize(width: 1200, height: 1600))
+        return Memo.make(
+            id: id,
+            audioFilename: "memo_\(id.uuidString).m4a",
+            duration: 6,
+            recordedAt: Date().addingTimeInterval(-1_800),
+            syncStatus: .waiting,
+            transcript: "New recording, blah blah blah blah blah\n\nYeah yeah oh nice that works good\n[[memo:\(UUID().uuidString)|djuhfdufh]]\n\n[[img_001]]",
+            transcriptStatus: .done,
+            transcriptConfidence: 0.9,
+            metadata: MemoMetadata(imageManifest: [ImageManifestEntry(filename: photoName, offsetSeconds: 4)])
         )
     }
 

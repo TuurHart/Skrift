@@ -33,6 +33,14 @@ enum BodyV2 {
         /// C124: the moments (seconds) at which a merged note's 2nd, 3rd… clip begins. Each
         /// opens a new paragraph even mid-sentence or with no pause. Speech with word times only.
         var clipStarts: [Double] = []
+        /// Q547: the editor's commit of what the user SEES. A picture standing on its own
+        /// paragraph stays there even when the paragraph before it ends without `.?!…:` (a
+        /// voice note, a typed list line). Without this the sentence rule below read it as a
+        /// picture dropped mid-sentence, glued its two neighbours into one paragraph and moved
+        /// it to the end of that sentence: every edit (a drag, a typed word) of such a note
+        /// merged paragraphs. Off for caret insertions (`NotePhoto.inserting` wraps a mid-sentence
+        /// photo in blank lines and relies on the snap).
+        var keepOwnParagraphs: Bool = false
     }
 
     static func committed(_ input: Input) -> String {
@@ -42,7 +50,7 @@ enum BodyV2 {
         let runs = BodyV2Marker.runs(in: text, manifestCount: count)
 
         if !timed {
-            if !runs.isEmpty, runs.allSatisfy({ isBlock($0, in: text) }) {
+            if !runs.isEmpty, runs.allSatisfy({ isBlock($0, in: text) || (input.keepOwnParagraphs && isOwnParagraph($0, in: text)) }) {
                 return BodyV2Text.normalised(text)                  // already stored in v2 shape
             }
             if runs.isEmpty, input.userEdited || input.source == .typed || count == 0 {
@@ -125,6 +133,12 @@ enum BodyV2 {
         let before = run.range.location == 0
             || (run.newlinesBefore >= 2 && endsAtBoundary(ns.substring(to: run.range.location)))
         return before && (end == ns.length || run.newlinesAfter >= 2)
+    }
+
+    /// Blank line (or the text's edge) on both sides, whatever the text before it ends with.
+    static func isOwnParagraph(_ run: BodyV2Marker.Run, in text: String) -> Bool {
+        let end = run.range.location + run.range.length
+        return (run.range.location == 0 || run.newlinesBefore >= 2) && (end == (text as NSString).length || run.newlinesAfter >= 2)
     }
 
     private static func endsAtBoundary(_ s: String) -> Bool {
