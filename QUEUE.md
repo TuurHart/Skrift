@@ -3876,7 +3876,7 @@ gate+: yes
 do: Rox shared a voice memo from Voice Memos into Skrift, opened the app, and the bottom tab bar was gone: the screenshot shows Library with no tab bar, though FeedbackKit recorded the screen as "Note". D200: an open note hides the bar with `.toolbar(.hidden, for: .tabBar)` (Features/Root/IPadTabControl.swift:72-92 sets nothing at compact width). Suspect: an incoming share lands, the tab or navigation path switches while a pushed note holds the hidden preference, and the bar stays hidden on the new tab. Reproduce on the iPhone 17 simulator through the share-import path (the note opened by an import, then a tab switch to Library, then cold launch with a pending import). Fix so the bar always shows on every root screen and hides only while a note is really pushed. Also check iOS 26 specifically if a simulator runtime exists; Rox is on 26.6.1 and Tuur on 27. Tick the BUGS.md line.
 check: A phone test or UI test: open a note through the import path, leave it for Library by the same route, and the tab bar exists; a normally opened note still hides it. Report what was reproduced; if it was not reproduced, say so plainly and mark the fix unverified.
 
-### Q536 [auto] (stuck) Phone: Undo reverses tapping the checklist button in a note
+### Q536 [auto] (doing) Phone: Undo reverses tapping the checklist button in a note
 spec: D220 bug; Tuur 2026-11-02 on TestFlight 199 (FeedbackKit ad562bb3)
 needs: -
 gate+: yes
@@ -5638,3 +5638,4 @@ check: A phone UI test: tap + tag, type without tapping the field, Return, type 
 - 2026-11-04 14:03 Q538 -> stuck — gate weakened: modified Skrift_Native/SkriftMobile/SkriftMobileTests/PodcastFeedTests.swift modified Skrift_Native/SkriftMobile/SkriftMobileTests/SpotifyFeedResolveTests.swift 
 - 2026-11-04 14:04 Q538 -> doing — hand accept: item told it to update SpotifyFeedResolveTests, conductor told it to delete the dead spotifyShowMatch and its test
 - 2026-11-04 14:07 Q538 -> done — hand-merged (item says update SpotifyFeedResolveTests; conductor ordered deleting the dead spotifyShowMatch with its one test (remove means delete); no assertion weakened)
+- 2026-11-04 14:08 Q536 -> doing — BUGS.md tick conflict resolved on wt/Q536 (e610ca83)
