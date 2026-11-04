@@ -7,8 +7,9 @@ import SwiftUI
 /// round 2 same day: NO ⋯ overflow while every verb still fits — find rides
 /// inline. Revisit overflow-vs-scroll only when scan/markup verbs arrive.
 final class NoteAccessoryBar: UIView {
-    /// `.editor` = the note editor's bar per the signed Q350 mock (pick 1): Aa · checklist ·
-    /// photo · note link; undo / redo / Done live in the top bar, Find in the ⋯ menu.
+    /// `.editor` = the note editor's bar per the signed Q542 mock ("One bar at the bottom", Q544):
+    /// Aa · checklist · photo · note link · | · undo · redo · Done, each tap target 44 wide and the
+    /// bar's full 54 tall while the pill stays 40 tall; Find lives in the ⋯ menu.
     /// `.quickNote` = the quick-note screen's bar, unchanged (undo · redo · find · Done).
     enum Layout { case quickNote, editor }
 
@@ -21,16 +22,36 @@ final class NoteAccessoryBar: UIView {
     var onMemoLink: (() -> Void)?
     var onDone: (() -> Void)?
 
-    private let undoButton = NoteAccessoryBar.iconButton("arrow.uturn.backward", id: "accessory-undo")
-    private let redoButton = NoteAccessoryBar.iconButton("arrow.uturn.forward", id: "accessory-redo")
-    private let checklistButton = NoteAccessoryBar.iconButton("checklist", id: "accessory-checklist")
-    private let photoButton = NoteAccessoryBar.iconButton("camera", id: "accessory-photo")
-    private let linkButton = NoteAccessoryBar.iconButton("arrow.right", id: "accessory-link")
-    private let findButton = NoteAccessoryBar.iconButton("magnifyingglass", id: "accessory-find")
-    private let doneButton = UIButton(type: .system)
-    private let formatButton = UIButton(type: .system)
+    /// Tap target of one button: the editor bar gives each the bar's full height (Q544); the
+    /// quick-note bar keeps its 33 x 30.
+    private struct Metrics {
+        let width: CGFloat, height: CGFloat
+        /// Space between the tap target's edge and the painted highlight (the lit Aa / checklist).
+        let fillInsets: NSDirectionalEdgeInsets
+        static let editor = Metrics(width: 44, height: 54,
+                                    fillInsets: .init(top: 12, leading: 4, bottom: 12, trailing: 4))
+        static let quickNote = Metrics(width: 33, height: 30, fillInsets: .zero)
+    }
+
+    private let undoButton: UIButton
+    private let redoButton: UIButton
+    private let checklistButton: UIButton
+    private let photoButton: UIButton
+    private let linkButton: UIButton
+    private let findButton: UIButton
+    private let doneButton: UIButton
+    private let formatButton: UIButton
 
     init(layout: Layout = .quickNote) {
+        let m: Metrics = layout == .editor ? .editor : .quickNote
+        undoButton = NoteAccessoryBar.iconButton("arrow.uturn.backward", id: "accessory-undo", m)
+        redoButton = NoteAccessoryBar.iconButton("arrow.uturn.forward", id: "accessory-redo", m)
+        checklistButton = NoteAccessoryBar.iconButton("checklist", id: "accessory-checklist", m)
+        photoButton = NoteAccessoryBar.iconButton("camera", id: "accessory-photo", m)
+        linkButton = NoteAccessoryBar.iconButton("arrow.right", id: "accessory-link", m)
+        findButton = NoteAccessoryBar.iconButton("magnifyingglass", id: "accessory-find", m)
+        doneButton = UIButton(configuration: .plain())
+        formatButton = UIButton(configuration: .plain())
         super.init(frame: CGRect(x: 0, y: 0, width: 0, height: 54))
         autoresizingMask = .flexibleWidth
         backgroundColor = .clear
@@ -54,14 +75,24 @@ final class NoteAccessoryBar: UIView {
         divider.widthAnchor.constraint(equalToConstant: 0.5).isActive = true
         divider.heightAnchor.constraint(equalToConstant: 18).isActive = true
 
-        doneButton.setTitle("Done", for: .normal)
-        doneButton.titleLabel?.font = .systemFont(ofSize: 13.5, weight: .semibold)
-        doneButton.setTitleColor(UIColor(Color.skAccent), for: .normal)
-        doneButton.backgroundColor = UIColor(Color.skAccentSoft)
-        doneButton.layer.cornerRadius = 9
-        doneButton.layer.cornerCurve = .continuous
-        doneButton.contentEdgeInsets = UIEdgeInsets(top: 5, left: 12, bottom: 5, right: 12)
+        // Done: the painted pill is 30 tall; the editor's tap target is the full row height.
+        var done = UIButton.Configuration.plain()
+        done.title = "Done"
+        done.baseForegroundColor = UIColor(Color.skAccent)
+        done.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer {
+            var a = $0; a.font = .systemFont(ofSize: 13.5, weight: .semibold); return a
+        }
+        done.background.backgroundColor = UIColor(Color.skAccentSoft)
+        done.background.cornerRadius = 9
+        if layout == .editor {
+            done.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12)
+            done.background.backgroundInsets = NSDirectionalEdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0)
+        } else {
+            done.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 12, bottom: 5, trailing: 12)
+        }
+        doneButton.configuration = done
         doneButton.accessibilityIdentifier = "accessory-done"
+        if layout == .editor { doneButton.heightAnchor.constraint(equalToConstant: m.height).isActive = true }
 
         undoButton.addAction(UIAction { [weak self] _ in self?.onUndo?() }, for: .touchUpInside)
         redoButton.addAction(UIAction { [weak self] _ in self?.onRedo?() }, for: .touchUpInside)
@@ -71,21 +102,27 @@ final class NoteAccessoryBar: UIView {
         findButton.addAction(UIAction { [weak self] _ in self?.onFind?() }, for: .touchUpInside)
         doneButton.addAction(UIAction { [weak self] _ in self?.onDone?() }, for: .touchUpInside)
 
-        formatButton.setTitle("Aa", for: .normal)
-        formatButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
-        formatButton.setTitleColor(UIColor(Color.skTextDim), for: .normal)
-        formatButton.layer.cornerRadius = 8
-        formatButton.layer.cornerCurve = .continuous
+        var aa = UIButton.Configuration.plain()
+        aa.title = "Aa"
+        aa.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer {
+            var a = $0; a.font = .systemFont(ofSize: 16, weight: .semibold); return a
+        }
+        aa.contentInsets = .zero
+        aa.background.cornerRadius = 8
+        aa.background.backgroundInsets = m.fillInsets
+        formatButton.configuration = aa
+        formatButton.tintColor = UIColor(Color.skTextDim)
         formatButton.accessibilityIdentifier = "accessory-format"
         formatButton.accessibilityLabel = "Format"
-        formatButton.widthAnchor.constraint(equalToConstant: 33).isActive = true
-        formatButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        formatButton.widthAnchor.constraint(equalToConstant: m.width).isActive = true
+        formatButton.heightAnchor.constraint(equalToConstant: m.height).isActive = true
         formatButton.addAction(UIAction { [weak self] _ in self?.onFormat?() }, for: .touchUpInside)
 
         let items: [UIView]
         switch layout {
         case .editor:
-            items = [formatButton, checklistButton, photoButton, linkButton, UIView()]
+            items = [formatButton, checklistButton, photoButton, linkButton, divider,
+                     undoButton, redoButton, UIView(), doneButton]
         case .quickNote:
             items = [undoButton, redoButton, divider, checklistButton, photoButton, linkButton, findButton,
                      UIView(), doneButton]
@@ -93,18 +130,25 @@ final class NoteAccessoryBar: UIView {
         let stack = UIStackView(arrangedSubviews: items)
         stack.axis = .horizontal
         stack.alignment = .center
-        stack.spacing = 2
+        // The editor row is six 44 pt buttons, a divider and Done with no gaps between the
+        // buttons, so it fits the 356 pt inside an iPhone 13's bar with room over (mock Q542).
+        stack.spacing = layout == .editor ? 0 : 2
         if layout == .quickNote {
             stack.setCustomSpacing(7, after: redoButton)
             stack.setCustomSpacing(7, after: divider)
+        } else {
+            stack.setCustomSpacing(4, after: linkButton)
+            stack.setCustomSpacing(4, after: divider)
         }
         stack.translatesAutoresizingMaskIntoConstraints = false
-        pill.addSubview(stack)
+        // The editor's row sits on the bar, not inside the 40 pt pill: a tap target taller than
+        // its parent loses every touch outside the parent's bounds.
+        addSubview(stack)
 
         NSLayoutConstraint.activate([
             pill.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             pill.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
-            pill.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            pill.bottomAnchor.constraint(equalTo: bottomAnchor, constant: layout == .editor ? -7 : -8),
             pill.heightAnchor.constraint(equalToConstant: 40),
             stack.leadingAnchor.constraint(equalTo: pill.leadingAnchor, constant: 7),
             stack.trailingAnchor.constraint(equalTo: pill.trailingAnchor, constant: -7),
@@ -134,27 +178,28 @@ final class NoteAccessoryBar: UIView {
         redoButton.isEnabled = canRedo
         checklistButton.tintColor = inChecklist
             ? UIColor(Color.skAccent) : UIColor(Color.skTextDim)
-        checklistButton.backgroundColor = inChecklist
+        checklistButton.configuration?.background.backgroundColor = inChecklist
             ? UIColor(Color.skAccentSoft) : .clear
     }
 
     /// Light the Aa button while the Format panel replaces the keyboard.
     func setFormatOpen(_ open: Bool) {
-        formatButton.setTitleColor(UIColor(open ? Color.skAccent : Color.skTextDim), for: .normal)
-        formatButton.backgroundColor = open ? UIColor(Color.skAccentSoft) : .clear
+        formatButton.tintColor = UIColor(open ? Color.skAccent : Color.skTextDim)
+        formatButton.configuration?.background.backgroundColor = open ? UIColor(Color.skAccentSoft) : .clear
     }
 
-    private static func iconButton(_ symbol: String, id: String) -> UIButton {
-        let b = UIButton(type: .system)
-        b.setImage(UIImage(systemName: symbol,
-                           withConfiguration: UIImage.SymbolConfiguration(pointSize: 14.5, weight: .medium)),
-                   for: .normal)
+    private static func iconButton(_ symbol: String, id: String, _ m: Metrics) -> UIButton {
+        var c = UIButton.Configuration.plain()
+        c.image = UIImage(systemName: symbol,
+                          withConfiguration: UIImage.SymbolConfiguration(pointSize: 14.5, weight: .medium))
+        c.contentInsets = .zero
+        c.background.cornerRadius = 8
+        c.background.backgroundInsets = m.fillInsets
+        let b = UIButton(configuration: c)
         b.tintColor = UIColor(Color.skTextDim)
-        b.layer.cornerRadius = 8
-        b.layer.cornerCurve = .continuous
         b.accessibilityIdentifier = id
-        b.widthAnchor.constraint(equalToConstant: 33).isActive = true
-        b.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        b.widthAnchor.constraint(equalToConstant: m.width).isActive = true
+        b.heightAnchor.constraint(equalToConstant: m.height).isActive = true
         return b
     }
 }

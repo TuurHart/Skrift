@@ -484,32 +484,13 @@ struct MemoDetailView: View {
             }
             // COMPACT (phone) nav bar only — at regular these live in the
             // workbench's chrome band (`workbenchChrome`).
-            // Reading: + (add recording) · ⋯. Typing (mock Q350 pick 1): undo · redo · ⋯ · Done.
-            // Split speakers lives in the ⋯ menu (D196). The editing ids keep the old
-            // accessory names so existing UI tests still find Done / Undo.
+            // Reading: + (add recording) · ⋯. Typing (mock Q542 "One bar at the bottom", Q544): only
+            // Notes and ⋯ — undo, redo and Done sit in the keyboard bar (`NoteAccessoryBar`).
+            // Split speakers lives in the ⋯ menu (D196).
             ToolbarItem(placement: .topBarTrailing) {
-                if hSize != .regular, editorChrome.isEditing {
-                    HStack(spacing: 2) {
-                        Button { editorChrome.undo() } label: {
-                            Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 15, weight: .semibold))
-                                .frame(width: 34, height: 34)
-                        }
-                        .disabled(!editorChrome.canUndo)
-                        .accessibilityIdentifier("accessory-undo")
-                        .accessibilityLabel("Undo")
-                        Button { editorChrome.redo() } label: {
-                            Image(systemName: "arrow.uturn.forward")
-                                .font(.system(size: 15, weight: .semibold))
-                                .frame(width: 34, height: 34)
-                        }
-                        .disabled(!editorChrome.canRedo)
-                        .accessibilityIdentifier("accessory-redo")
-                        .accessibilityLabel("Redo")
-                    }
-                    .foregroundStyle(Color.skTextDim)
-                } else if AddRecordingDoors.showsPlusButton(isCompactWidth: hSize != .regular, isPendingDraft: isPendingDraft,
-                                                            isShareCapture: currentMemo?.isShareCapture == true) {
+                if hSize != .regular, !editorChrome.isEditing,
+                   AddRecordingDoors.showsPlusButton(isCompactWidth: hSize != .regular, isPendingDraft: isPendingDraft,
+                                                     isShareCapture: currentMemo?.isShareCapture == true) {
                     // Q451: a new note gets + and ⋯ once its first text makes it a note.
                     Button { showAppendRecorder = true } label: {
                         Image(systemName: "plus")
@@ -530,18 +511,6 @@ struct MemoDetailView: View {
                             .foregroundStyle(Color.skTextDim)
                     }
                     .accessibilityIdentifier("detail-menu")
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                if hSize != .regular, editorChrome.isEditing {
-                    Button { editorChrome.done() } label: {
-                        Text("Done")
-                            .font(.system(size: 13.5, weight: .semibold))
-                            .foregroundStyle(Color.skAccent)
-                            .padding(.horizontal, 13).frame(height: 30)
-                            .background(Color.skAccentSoft, in: .rect(cornerRadius: 9, style: .continuous))
-                    }
-                    .accessibilityIdentifier("accessory-done")
                 }
             }
         }

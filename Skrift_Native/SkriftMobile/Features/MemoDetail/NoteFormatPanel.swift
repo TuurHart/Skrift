@@ -1,21 +1,16 @@
 import SwiftUI
 import UIKit
 
-/// What the open editor tells the chrome around it (Q359, mock Q350 pick 1): while typing,
-/// undo / redo and Done sit in the top bar, as in Apple Notes; Find lives in the ⋯ menu.
-/// The coordinator of the note on screen registers itself; the nav bar observes this.
+/// What the open editor tells the chrome around it: whether it is being typed in (the nav bar and
+/// the player bar react), and which coordinator is on screen (the ⋯ menu's Find, the iPad toolbar).
+/// Undo / redo / Done live in the keyboard bar (Q544), so nothing here carries them.
 @MainActor
 final class NoteEditorChrome: ObservableObject {
     static let shared = NoteEditorChrome()
     @Published var isEditing = false
-    @Published var canUndo = false
-    @Published var canRedo = false
     /// The coordinator of the page on screen (set on every update of the current page).
     weak var current: NoteBodyView.Coordinator?
 
-    func undo() { current?.undo() }
-    func redo() { current?.redo() }
-    func done() { current?.finishEditing() }
     func find() { current?.presentFind() }
 }
 
