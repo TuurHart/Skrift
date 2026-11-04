@@ -11,6 +11,7 @@ extension ReconcileV2 {
         private let context: ModelContext
         private var names: [UUID: [String: [String: Int]]]?   // memo → kind → filename → bytes
         private var loaded: [UUID: [MemoAsset]] = [:]
+        private var loadedKinds: [String: [MemoAsset]] = [:]   // "memo|kind" → rows
 
         init(_ context: ModelContext) { self.context = context }
 
@@ -35,7 +36,24 @@ extension ReconcileV2 {
             if let hit = loaded[memoID] { return hit }
             ReconcileWork.bump(\.assetBlobFetches)
             let rows = (try? context.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
+            ReconcileWork.add(\.assetBlobBytes, rows.reduce(0) { $0 + $1.byteCount })
             loaded[memoID] = rows
+            return rows
+        }
+
+        /// Q548: only the memo's rows of ONE kind, blobs included. A late photo, thumbnail, timings
+        /// or diarization heal used to fault every asset of the memo through `blobs(for:)`, so a
+        /// 4 MB photo dragged the memo's whole recording (MBs) through the store on the main
+        /// thread with it. Same rows the heal picks from, none it ignores.
+        func blobs(for memoID: UUID, kind: String) -> [MemoAsset] {
+            if let hit = loaded[memoID] { return hit.filter { $0.kind == kind } }
+            let key = "\(memoID.uuidString)|\(kind)"
+            if let hit = loadedKinds[key] { return hit }
+            ReconcileWork.bump(\.assetBlobFetches)
+            let rows = (try? context.fetch(FetchDescriptor<MemoAsset>(
+                predicate: #Predicate { $0.memoID == memoID && $0.kind == kind }))) ?? []
+            ReconcileWork.add(\.assetBlobBytes, rows.reduce(0) { $0 + $1.byteCount })
+            loadedKinds[key] = rows
             return rows
         }
     }
@@ -66,7 +84,7 @@ extension ReconcileV2 {
             let dest = folder.appendingPathComponent(name)
             guard !FileManager.default.fileExists(atPath: dest.path),
                   assets.has(memo.id, MemoAsset.Kind.thumbnail, named: name),
-                  let thumb = assets.blobs(for: memo.id).first(where: { $0.kind == MemoAsset.Kind.thumbnail && $0.filename == name }),
+                  let thumb = assets.blobs(for: memo.id, kind: MemoAsset.Kind.thumbnail).first(where: { $0.filename == name }),
                   !thumb.blob.isEmpty else { return false }
             return write(thumb.blob, to: dest)
         }
@@ -76,7 +94,7 @@ extension ReconcileV2 {
             guard let name = memo.metadata?.videoFilename, !name.isEmpty,
                   VaultExporter.keptSourceVideo(in: folder) == nil,
                   assets.has(memo.id, MemoAsset.Kind.video, named: name),
-                  let movie = assets.blobs(for: memo.id).first(where: { $0.kind == MemoAsset.Kind.video && $0.filename == name }),
+                  let movie = assets.blobs(for: memo.id, kind: MemoAsset.Kind.video).first(where: { $0.filename == name }),
                   !movie.blob.isEmpty else { return false }
             return write(movie.blob, to: folder.appendingPathComponent(VideoKeep.macSourceName(forAssetFilename: name)))
         }
@@ -95,8 +113,8 @@ extension ReconcileV2 {
                     && kinds.contains { assets.has(memo.id, $0, named: name) }
             })
             var wrote = false
-            for a in missing.isEmpty ? [] : assets.blobs(for: memo.id)
-            where missing.contains(a.filename) && kinds.contains(a.kind) && !a.blob.isEmpty {
+            for a in missing.isEmpty ? [] : kinds.flatMap({ assets.blobs(for: memo.id, kind: $0) })
+            where missing.contains(a.filename) && !a.blob.isEmpty {
                 wrote = write(a.blob, to: dir.appendingPathComponent(a.filename)) || wrote
             }
             if MacNoteAttachments.manifest(in: folder) != entries, let data = try? JSONEncoder().encode(entries) {
@@ -120,7 +138,7 @@ extension ReconcileV2 {
             })
             if !missing.isEmpty {
                 try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-                for photo in assets.blobs(for: memo.id) where photo.kind == MemoAsset.Kind.photo && missing.contains(photo.filename) {
+                for photo in assets.blobs(for: memo.id, kind: MemoAsset.Kind.photo) where missing.contains(photo.filename) {
                     wrote = write(photo.blob, to: dir.appendingPathComponent(photo.filename)) || wrote
                 }
             }
@@ -140,7 +158,7 @@ extension ReconcileV2 {
         static func timings(_ memo: Memo, _ row: PipelineFile, _ assets: AssetIndex) -> Bool {
             guard row.wordTimingsJSON?.isEmpty ?? true, row.transcribeStatus == .done,
                   !(row.transcript ?? "").isEmpty, assets.has(memo.id, MemoAsset.Kind.wordTimings, minBytes: 3),
-                  let words = Ingest.decodeTimings(assets.blobs(for: memo.id)) else { return false }
+                  let words = Ingest.decodeTimings(assets.blobs(for: memo.id, kind: MemoAsset.Kind.wordTimings)) else { return false }
             row.wordTimings = words
             return true
         }
@@ -157,7 +175,7 @@ extension ReconcileV2 {
             let empty = row.diarizationSegmentsJSON?.isEmpty ?? true
             let phoneWords = transcriptChanged && row.transcript == Ingest.phoneWords(memo, audio: true)
             guard empty || phoneWords,
-                  let segments = Ingest.decodeDiarization(assets.blobs(for: memo.id)),
+                  let segments = Ingest.decodeDiarization(assets.blobs(for: memo.id, kind: MemoAsset.Kind.diarization)),
                   segments != row.diarizationSegments else { return false }
             row.diarizationSegments = segments
             return true

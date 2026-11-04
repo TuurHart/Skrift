@@ -97,6 +97,20 @@ extension MemoCloudReconciler {
     /// get the old synchronous ingest, so its returned count is the rows just created.
     @discardableResult
     static func reconcile(deferIngest: Bool = true) -> Int {
+        // Q548: this whole function runs on the main actor. The timing line from the `defer`
+        // below pins a live hang to a phase (the Mac's stand-in for the phone's DevLog).
+        var marks: [(String, Double)] = []
+        let t0 = CFAbsoluteTimeGetCurrent()
+        var last = t0
+        func mark(_ phase: String) {
+            let now = CFAbsoluteTimeGetCurrent()
+            marks.append((phase, (now - last) * 1000)); last = now
+        }
+        defer {
+            let total = (CFAbsoluteTimeGetCurrent() - t0) * 1000
+            let parts = marks.map { "\($0.0) \(Int($0.1))" }.joined(separator: ", ")
+            AppLog.cloudkit.log("reconcile timing (main thread): \(Int(total), privacy: .public) ms [\(parts, privacy: .public)]")
+        }
         guard let cloud = MemoCloudStore.syncContainer else {
             // The Connections index sweep rides every reconcile trigger — even with cloud
             // sync off: locally-ingested files need indexing too.
@@ -117,6 +131,7 @@ extension MemoCloudReconciler {
             VocabularyCloudSync.run()
             PolishPromptsCloudSync.run()
         }
+        mark("carriers")
         let local = SharedStore.container.mainContext
         // READ THROUGH A FRESH CONTEXT. A CloudKit import writes to the persistent STORE but does
         // NOT refresh `mainContext`'s already-registered `Memo` objects — so `cloud.mainContext`
@@ -153,6 +168,7 @@ extension MemoCloudReconciler {
                                      thisDevice: thisDevice, outputDir: AppPaths.audioOutputDirectory,
                                      firstImportDone: firstCloudImportDone, deferIngest: deferIngest)
         let outcome = pass.sweep
+        mark("relink+sweep")
         // R40 / C168: a sweep that could not read the store pulled nothing. The sweep logged it;
         // the sync state shows it ("couldn't start" + this text as the detail line) until a
         // later sweep reads the store again. Nothing below has a snapshot to work from.
@@ -179,13 +195,16 @@ extension MemoCloudReconciler {
         }
         // The lifecycle sweep reuses this pass's memo snapshot on an open (G12) instead of its
         // own full fetch; it still runs only when a person opened the app (v3 doctrine).
+        mark("reexport")
         LifecycleSweepScheduler.reconcileDidFetch(memos: pass.snapshot.allMemos, context: cloudContext)
+        mark("lifecycle")
         // The Connections index sweep, AFTER the cloud work, so just-imported memos index in
         // the same pass — from the rows + memos this pass already fetched (G11). Self-gated
         // (consent + model on disk) and hash-diffed ⇒ a redundant fire is nearly free.
         ConnectionsIndexService.shared.sweepSoon(
             local, reuse: .init(files: pass.snapshot.rows, memos: pass.snapshot.allMemos,
                                 enhancements: pass.snapshot.enhancements))
+        mark("connectionsIndex")
 
         if !outcome.pendingNewIDs.isEmpty {
             ingestInBackground(outcome.pendingNewIDs, container: cloud, context: context)
@@ -297,6 +316,8 @@ extension MemoCloudReconciler {
                 let enhancements = (try? cloud.fetch(FetchDescriptor<MemoEnhancement>(
                     predicate: #Predicate { chunk.contains($0.memoID) }))) ?? []
                 var outcome = ReconcileV2.Outcome()
+                let commitStart = CFAbsoluteTimeGetCurrent()   // Q548: the one main-thread step of the ingest
+                defer { AppLog.cloudkit.log("reconcile timing (main thread): ingest commit \(Int((CFAbsoluteTimeGetCurrent() - commitStart) * 1000), privacy: .public) ms for \(chunk.count, privacy: .public)") }
                 ReconcileV2.Ingest.commit(attempts, memos: memos,
                                           enhancements: Dictionary(enhancements.map { ($0.memoID, $0) },
                                                                    uniquingKeysWith: { a, _ in a }),
