@@ -3964,7 +3964,7 @@ needs: -
 gate+: yes
 do: Find what runs on the main thread while CloudKit changes arrive and a synced note or photo is ingested on the Mac (`MemoCloudIngest`, `MemoCloudReconciler`, `MemoCloudUpdate`, asset materialising and image decoding, sidebar re-projection, `@Query`/fetches in the shell). Read it, then measure it: a test or harness on the Dev-safe store that times main-thread work for an arriving note with a phone-sized photo. Move the slow part off the main thread with no change to what gets saved. Report the measured before and after. If the cause cannot be pinned without seeing a live hang, say so and add a DevLog timing line instead of guessing.
 check: A measured before and after in the finding. UnitTests scheme and full SkriftDesktop build. No macOS UI tests, no launching any Skrift app, no real data.
-### Q549 [auto] (doing) Mac: the tag Undo toast is one pill, no button inside a button
+### Q549 [auto] (done) Mac: the tag Undo toast is one pill, no button inside a button
 spec: Tuur 2026-11-04, Dev 202 Mac screenshot: 'Removed #Itworks' with a lighter pill inside a bigger purple pill around Undo.
 needs: -
 gate+: yes
@@ -5728,3 +5728,4 @@ check: Headless `-snapshot` of the toast on the Mac if the harness can reach it,
 - 2026-11-04 20:34 Q547 -> doing — worker dispatched 2026-11-04
 - 2026-11-04 20:34 Q548 -> doing — worker dispatched 2026-11-04
 - 2026-11-04 20:34 Q549 -> doing — worker dispatched 2026-11-04
+- 2026-11-04 20:58 Q549 -> done — gate 147s @5a13a393
