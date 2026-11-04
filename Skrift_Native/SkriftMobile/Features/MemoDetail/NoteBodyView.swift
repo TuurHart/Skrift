@@ -759,6 +759,50 @@ struct NoteBodyView: UIViewRepresentable {
             onRequestMemoLink()
         }
 
+        /// Q536: one toolbar edit as ONE step on the text view's undo stack. A direct
+        /// `textStorage` edit is invisible to UIKit's undo manager (the checklist button, a tick
+        /// and the Aa line styles all did that), so the swap registers its own inverse:
+        /// undo restores the replaced attributed text, and the inverse registered during the
+        /// undo becomes the redo. Selection is restored on both sides.
+        func undoableReplace(_ range: NSRange, with piece: NSAttributedString,
+                             selectionAfter: NSRange, in tv: UITextView) {
+            let storage = tv.textStorage
+            guard range.location >= 0, NSMaxRange(range) <= storage.length else { return }
+            let selectionBefore = tv.selectedRange
+            let old = storage.attributedSubstring(from: range)
+            tv.undoManager?.beginUndoGrouping()
+            storage.replaceCharacters(in: range, with: piece)
+            let len = storage.length
+            let loc = min(selectionAfter.location, len)
+            tv.selectedRange = NSRange(location: loc, length: min(selectionAfter.length, len - loc))
+            registerReplaceUndo(restoring: old, over: NSRange(location: range.location, length: piece.length),
+                                selectionOnUndo: selectionBefore, selectionOnRedo: selectionAfter, in: tv)
+            tv.undoManager?.endUndoGrouping()
+        }
+
+        private func registerReplaceUndo(restoring old: NSAttributedString, over range: NSRange,
+                                         selectionOnUndo: NSRange, selectionOnRedo: NSRange,
+                                         in tv: UITextView) {
+            tv.undoManager?.registerUndo(withTarget: self) { [weak tv] c in
+                MainActor.assumeIsolated {
+                    guard let tv else { return }
+                    let storage = tv.textStorage
+                    guard NSMaxRange(range) <= storage.length else { return }
+                    let current = storage.attributedSubstring(from: range)
+                    storage.replaceCharacters(in: range, with: old)
+                    let len = storage.length
+                    let loc = min(selectionOnUndo.location, len)
+                    tv.selectedRange = NSRange(location: loc, length: min(selectionOnUndo.length, len - loc))
+                    c.registerReplaceUndo(restoring: current,
+                                          over: NSRange(location: range.location, length: old.length),
+                                          selectionOnUndo: selectionOnRedo, selectionOnRedo: selectionOnUndo, in: tv)
+                    c.textViewDidChange(tv)
+                    c.applyTierStyling()
+                }
+            }
+            tv.undoManager?.setActionName("Edit")
+        }
+
         /// Aa ▸ Monostyled (D197): inline code on a one-line selection, else a fenced block —
         /// the shared rule, applied through the text input system so it lands on the undo stack.
         func applyMonostyled() {
@@ -819,8 +863,8 @@ struct NoteBodyView: UIViewRepresentable {
             let caretRaw = max(0, r.selection.location - offset)
             let piece = attributed(from: newRaw)
             let caretDisplay = attributed(from: (newRaw as NSString).substring(to: min(caretRaw, (newRaw as NSString).length))).length
-            tv.textStorage.replaceCharacters(in: line.range, with: piece)
-            tv.selectedRange = NSRange(location: line.range.location + caretDisplay, length: 0)
+            undoableReplace(line.range, with: piece,
+                            selectionAfter: NSRange(location: line.range.location + caretDisplay, length: 0), in: tv)
             Haptics.tap(.light)
             textViewDidChange(tv)
             applyTierStyling()
@@ -982,16 +1026,16 @@ struct NoteBodyView: UIViewRepresentable {
                 // Un-task: drop the box (and its padding space when present).
                 var drop = 1
                 if line.location + 1 < ns.length, ns.character(at: line.location + 1) == 32 { drop = 2 }
-                storage.deleteCharacters(in: NSRange(location: line.location, length: drop))
-                tv.selectedRange = NSRange(location: max(line.location, caret - drop), length: 0)
+                undoableReplace(NSRange(location: line.location, length: drop), with: NSAttributedString(),
+                                selectionAfter: NSRange(location: max(line.location, caret - drop), length: 0), in: tv)
             } else {
                 let piece = NSMutableAttributedString(attachment: Self.taskAttachment(checked: false))
                 piece.addAttribute(Self.taskKey, value: false,
                                    range: NSRange(location: 0, length: piece.length))
                 piece.addAttributes(baseAttributes(), range: NSRange(location: 0, length: piece.length))
                 piece.append(NSAttributedString(string: " ", attributes: baseAttributes()))
-                storage.insert(piece, at: line.location)
-                tv.selectedRange = NSRange(location: caret + piece.length, length: 0)
+                undoableReplace(NSRange(location: line.location, length: 0), with: piece,
+                                selectionAfter: NSRange(location: caret + piece.length, length: 0), in: tv)
             }
             Haptics.tap(.light)
             textViewDidChange(tv)
@@ -1763,9 +1807,8 @@ struct NoteBodyView: UIViewRepresentable {
             let piece = NSMutableAttributedString(attachment: Self.taskAttachment(checked: !checked))
             piece.addAttribute(Self.taskKey, value: !checked, range: NSRange(location: 0, length: piece.length))
             piece.addAttributes(baseAttributes(), range: NSRange(location: 0, length: piece.length))
-            tv.textStorage.replaceCharacters(in: NSRange(location: index, length: 1), with: piece)
-            let len = tv.textStorage.length
-            tv.selectedRange = NSRange(location: min(sel.location, len), length: 0)
+            undoableReplace(NSRange(location: index, length: 1), with: piece,
+                            selectionAfter: NSRange(location: sel.location, length: 0), in: tv)
             Haptics.tap(.light)
             markDraftDirty()
             commitDraft()
@@ -1819,10 +1862,11 @@ struct NoteBodyView: UIViewRepresentable {
             guard let tv = textView, currentMode == .editing else { return }
             let storage = tv.textStorage
             var at = min(pendingLinkTrigger?.location ?? tv.selectedRange.location, storage.length)
+            var replaced = NSRange(location: at, length: 0)       // the typed "[[" goes in the same undo step
             if let trigger = pendingLinkTrigger,
                trigger.location + trigger.length <= storage.length,
                storage.attributedSubstring(from: trigger).string == "[[" {
-                storage.deleteCharacters(in: trigger)
+                replaced = trigger
                 at = trigger.location
             }
             pendingLinkTrigger = nil
@@ -1832,8 +1876,8 @@ struct NoteBodyView: UIViewRepresentable {
                                                      title: clean.isEmpty ? "Untitled" : clean,
                                                      base: baseAttributes()))
             piece.append(NSAttributedString(string: " ", attributes: baseAttributes()))
-            storage.insert(piece, at: at)
-            tv.selectedRange = NSRange(location: at + piece.length, length: 0)
+            undoableReplace(replaced, with: piece,
+                            selectionAfter: NSRange(location: at + piece.length, length: 0), in: tv)
             markDraftDirty()
             commitDraft()
         }
