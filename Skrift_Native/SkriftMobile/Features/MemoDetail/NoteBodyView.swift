@@ -2371,6 +2371,34 @@ final class NoteBodyTextView: UITextView {
             if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
             addSubview(host.view)
         }
+        let center = NotificationCenter.default
+        center.addObserver(self, selector: #selector(tagFieldDidBegin(_:)),
+                           name: UITextField.textDidBeginEditingNotification, object: nil)
+        center.addObserver(self, selector: #selector(tagFieldDidEnd(_:)),
+                           name: UITextField.textDidEndEditingNotification, object: nil)
+    }
+
+    /// Q543: true while the header's "+ tag" field is the first responder.
+    private var tagFieldEditing = false
+
+    private func isTagField(_ n: Notification) -> Bool {
+        (n.object as? UITextField)?.accessibilityIdentifier?.hasPrefix("tag-input") == true
+    }
+    @objc private func tagFieldDidBegin(_ n: Notification) { if isTagField(n) { tagFieldEditing = true } }
+    @objc private func tagFieldDidEnd(_ n: Notification) { if isTagField(n) { tagFieldEditing = false } }
+
+    /// Q543: when the tag field resigns (Return), UIKit's `UIResponder.resignFirstResponder` hands
+    /// focus straight to this text view (seen in the stack: UITextField.resignFirstResponder →
+    /// UIResponder.resignFirstResponder → here), so the body's keyboard, undo/redo and Done rose
+    /// after every tag Return, and after an empty Return that closes the field the body stayed
+    /// focused. Refuse focus that arrives while the tag field is editing unless a touch landed on
+    /// this view in the last 0.6 s (a real tap on the body while the field is open still wins).
+    override func becomeFirstResponder() -> Bool {
+        if tagFieldEditing {
+            let touchedBody = recentTouchPoint.map { !pointIsInAccessory($0) } ?? false
+            if !touchedBody { return false }
+        }
+        return super.becomeFirstResponder()
     }
 
     func setAccessories(header: AnyView, footer: AnyView) {

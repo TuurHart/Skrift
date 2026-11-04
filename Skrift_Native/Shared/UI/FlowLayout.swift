@@ -10,13 +10,17 @@ struct FlowLayout: Layout {
     /// Q540: centre each item vertically on its line (the tag field is 6 pt shorter than the chip
     /// beside it). Off by default: other callers keep their top-aligned look.
     var centerItems = false
+    /// Q543: a nested flow is proposed exactly the width it reported, and that width can come back
+    /// a fraction short after pixel rounding, which wrapped the last item ("+ tag") onto a second
+    /// line that the measured height did not include. Within half a point is still one line.
+    private static let wrapSlack: CGFloat = 0.5
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
         var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0, widest: CGFloat = 0
         for s in subviews {
             let sz = s.sizeThatFits(.unspecified)
-            if x + sz.width > maxWidth, x > 0 {
+            if x + sz.width > maxWidth + Self.wrapSlack, x > 0 {
                 x = 0; y += rowHeight + lineSpacing; rowHeight = 0
             }
             x += sz.width + spacing
@@ -32,7 +36,7 @@ struct FlowLayout: Layout {
         var x = bounds.minX
         for (i, s) in subviews.enumerated() {
             let sz = s.sizeThatFits(.unspecified)
-            if x + sz.width > bounds.maxX, x > bounds.minX {
+            if x + sz.width > bounds.maxX + Self.wrapSlack, x > bounds.minX {
                 lines.append([]); x = bounds.minX
             }
             lines[lines.count - 1].append((i, sz))
