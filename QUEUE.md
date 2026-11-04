@@ -3925,6 +3925,13 @@ do: Mock only. (1) The two bars while typing against one bar. (2) Small and larg
 check: Tuur picks on the mock page; the pick becomes a SPEC decision and a build item.
 ask: Open the mockup and pick: how many bars while typing, and how small and large pictures should look.
 
+### Q543 [auto] (todo) Phone: tapping a header tag does not focus the note body, and + tag opens when the body has the keyboard
+spec: D220 bug; found by Q540 2026-11-04
+needs: -
+gate+: yes
+do: Tapping a chip in the note header (seen on the armed tag chip) also makes the note body first responder: keyboard, undo/redo and Done rise. Q540 tried a becomeFirstResponder guard on recentTouchPoint, which broke the focus tests, and reverted it. Separately TagRowScreenshotUITests (a corpus note with a tag, body focused) fails "the inline tag field did not open". FIRST run that test at bb006518 to learn whether it is old. Then find why a header tap reaches the body and fix it, and make + tag open and focus when the body already has the keyboard. A typed new note starts that way, so this may be part of what Tuur saw.
+check: UI tests: tapping a tag chip leaves the body unfocused and the keyboard down; + tag with the body focused opens the field and moves focus to it; TagRowScreenshotUITests passes; TagFocusQ540UITests still pass.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5667,3 +5674,4 @@ ask: Open the mockup and pick: how many bars while typing, and how small and lar
 - 2026-11-04 15:13 Q542 added
 - 2026-11-04 15:19 Q541 -> done — gate 83s @57db0525
 - 2026-11-04 15:29 Q540 -> done — gate 69s @44bc4b3f
+- 2026-11-04 15:29 Q543 added
