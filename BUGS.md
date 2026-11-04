@@ -311,7 +311,7 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [ ] **Idea, after the freeze: hold a word in the player for its definition** (Tuur 2026-10-30, FeedbackKit `82c0b0c9`).
 - [ ] **The ⋯ and attach menus look wrong: a floating bubble with a tail pointing at nothing** (Tuur 2026-11-04, Dev 202, FeedbackKit `93899eb0`). Q546.
 - [ ] **Dragging a picture collapses the note's paragraphs into one, shows the picture twice, misses the drop line and cannot be undone** (Tuur 2026-11-04, Dev 202, screen recording). Q547.
-- [ ] **The Mac freezes with a rainbow cursor while a synced picture arrives** (Tuur 2026-11-04). Q548.
+- [ ] **The Mac freezes with a rainbow cursor while a synced picture arrives** (Tuur 2026-11-04). Q548. Not pinned: the photo itself costs about nothing in tests; a timing line now logs each phase, so read it during the next live hang.
 - [ ] **Mac tag Undo toast draws a button inside a button** (Tuur 2026-11-04, Dev 202). Q549.
 - [ ] **Mac: three sidebar problems** (Tuur 2026-09-30, prod Mac build): (a) shift-click does not
       select a range of notes; (b) imported voice memos did not transcribe on their own — C49 says a
