@@ -637,3 +637,10 @@ Pass, by Tuur: Back to playing (Q537), checklist Undo (Q536), a Spotify link pas
 through to Add episodes and started downloading (Q538; he was unsure he did it right, and it was not the Syntax link).
 FAIL: + tag on a note with no tags (Q539): no keyboard on the first tap, focus lost after Return. Our simulator test used a
 rated note that already had a tag. Reopened as Q540 with the pill alignment from FeedbackKit 2354290c.
+## Q541 — a podcast episode offers no book file (2026-11-04)
+Audiobook.offersBookFile (sourceKind != .episode, existing kind) hides Level 2 and the Add row in BookTextSheet, the ePub card
+in BookTextPromptSheet, and the once-per-book prompt in AudiobookLibraryView; ReadAlongView's nudge says "episode".
+EpisodeNoBookFileTests 7/7, BookTextSummaryDisplayTests 31/31. The first screenshot showed the audiobook layout because the
+shared simulator's library folder held a leftover audiobook (-inMemoryStore does not cover it); after simctl uninstall and a fresh
+install, conductor looked at the episode sheet: "Transcribe this episode", no Level 2, no Add row. Unverified: the real
+player Text… menu and the import flow (render hooks only); device. Commits 4069e1a9, 6857482f, 19ea0656.
