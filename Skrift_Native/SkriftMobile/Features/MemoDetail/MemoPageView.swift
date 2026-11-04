@@ -1530,19 +1530,19 @@ struct MemoPageView: View {
                 if let url = memo.sharedFileURL, url.pathExtension.lowercased() == "pdf",
                    let entry = PDFThumbnailLoader.firstPage(
                        at: url, maxWidth: UIScreen.main.bounds.width - 2 * Theme.Space.margin) {
-                    // D202: the PDF block switches too, SMALL (the shared grey card) by default.
+                    // D202/D224: the PDF block switches too, SMALL (its first page as a small picture,
+                    // a third of the text width) by default.
                     let key = NoteAttachment.capturedFilename(of: memo) ?? url.lastPathComponent
                     let size = NoteAttachment.size(of: key, large: memo.metadata?.largeAttachments)
                     Group {
-                        if size == .small {
+                        if size == .small,
+                           let page = NoteAttachmentArt.capturedPDF(
+                               fileURL: url, column: UIScreen.main.bounds.width - 2 * Theme.Space.margin) {
                             Button { presentCapturedFile(url) } label: {
-                                Image(uiImage: NoteAttachmentArt.pdfCard(
-                                    name: sc.fileName ?? url.lastPathComponent, pages: entry.pageCount, fileURL: url,
-                                    width: UIScreen.main.bounds.width - 2 * Theme.Space.margin,
-                                    dark: colorScheme == .dark))
-                                .resizable().aspectRatio(contentMode: .fit)
+                                Image(uiImage: page)
                             }
                             .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("capture-pdf-card")
                         } else {
                             CapturePDFInlineBlock(entry: entry) { presentCapturedFile(url) }

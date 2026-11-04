@@ -196,6 +196,36 @@ enum NoteAttachment {
         return set.isEmpty ? nil : set
     }
 
+    // MARK: Picture sizes (Q545, D224, mock Q542-bars-and-pictures "Picture sizes")
+
+    /// A small picture's longest side, as a share of the text width.
+    static let smallPictureFraction: CGFloat = 1.0 / 3.0
+    /// A small picture's corner radius; a large one rounds by `NoteLook.photoCornerFraction`.
+    static let smallPictureCornerRadius: CGFloat = 6
+
+    /// The width a picture block measures against: the text width, at most 720 pt on iPad and Mac.
+    static func pictureColumn(column: CGFloat, wide: Bool) -> CGFloat {
+        wide ? min(column, wideMediaMaxWidth) : column
+    }
+
+    /// The size a picture (photo, video frame, PDF page) draws at, never cropped. SMALL: the longest
+    /// side is a third of `column` (a wide one 121 x 80 on a 362 column, a tall one 90 x 121).
+    /// LARGE: `column` wide, whatever the height. `natural` unknown or empty = 16:9.
+    static func pictureSize(natural: CGSize?, size: Size, column: CGFloat) -> CGSize {
+        let n = natural.flatMap { $0.width > 0 && $0.height > 0 ? $0 : nil } ?? CGSize(width: 16, height: 9)
+        let col = max(1, column)
+        switch size {
+        case .large:
+            return CGSize(width: col, height: max(1, (col * n.height / n.width).rounded()))
+        case .small:
+            let long = max(1, (col * smallPictureFraction).rounded())
+            if n.width >= n.height {
+                return CGSize(width: long, height: max(1, (long * n.height / n.width).rounded(.down)))
+            }
+            return CGSize(width: max(1, (long * n.width / n.height).rounded(.down)), height: long)
+        }
+    }
+
     /// The ⋯ menu's "Set All to Small" / "Set All to Large": every attachment the note holds.
     static func settingAll(_ size: Size, filenames: [String]) -> [String]? {
         size == .small || filenames.isEmpty ? nil : filenames
@@ -434,6 +464,17 @@ enum NoteAttachment {
         let blockVerbs = blockActions(size: size, paragraph: paragraph, count: count, shareable: false)
             .filter { editing || $0 == .setSize(size == .large ? .small : .large) }
         return fileVerbs + blockVerbs
+    }
+
+    /// The phone's hold menu: the same verbs with the size switch FIRST, so it sits on the edit
+    /// menu's first page instead of behind the › (Q545). The Mac's right-click list is one page and
+    /// keeps `holdMenu`'s order.
+    static func phoneHoldMenu(size: Size, paragraph: Int, count: Int, hasFile: Bool, isMedia: Bool,
+                              editing: Bool) -> [BlockAction] {
+        let all = holdMenu(size: size, paragraph: paragraph, count: count, hasFile: hasFile, isMedia: isMedia, editing: editing)
+        let switchTo = BlockAction.setSize(size == .large ? .small : .large)
+        guard all.contains(switchTo) else { return all }
+        return [switchTo] + all.filter { $0 != switchTo }
     }
 
     /// A held block's facts, read off its marker literal (both apps' Copy and Save): a photo

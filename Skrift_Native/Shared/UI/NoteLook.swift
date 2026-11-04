@@ -6,7 +6,7 @@ import CoreGraphics
 /// each app's drawing code stays its own and cannot drift on a value.
 ///
 /// Picks (a signed mock wins where it names a value, otherwise the phone's):
-/// - inline photo: phone rule (fills the column, 320pt tall cap)
+/// - inline photo: Q545 / D224 (small a third of the text width, large the full width, no height cap)
 /// - memo-link chip: the Mac's bordered look and 🗒 glyph (mocks/journal-desktop.html,
 ///   related-panel.html draw `🗒 Title`); the title cut stays a per-app limit because a
 ///   chip image cannot wrap and the phone column is narrow
@@ -16,23 +16,9 @@ import CoreGraphics
 enum NoteLook {
     // MARK: Inline photo
 
-    /// Tallest an inline photo grows, in points.
-    static let photoMaxHeight: CGFloat = 320
-    /// Corner radius as a fraction of the photo's shorter side.
+    /// Corner radius of a large photo as a fraction of its shorter side. Sizes (small a third of the
+    /// text width, large the full width, nothing cropped or capped) are `NoteAttachment.pictureSize`.
     static let photoCornerFraction: CGFloat = 0.04
-
-    /// Size to draw a photo of `image` size in a column `columnWidth` wide: fill the column,
-    /// keep the aspect, cap the height (a portrait frame shrinks its WIDTH to keep aspect).
-    static func photoSize(image: CGSize, columnWidth: CGFloat) -> CGSize {
-        guard image.width > 0, image.height > 0, columnWidth > 0 else {
-            return CGSize(width: max(0, columnWidth), height: 0)
-        }
-        let aspect = image.width / image.height
-        var w = columnWidth
-        var h = w / aspect
-        if h > photoMaxHeight { h = photoMaxHeight; w = h * aspect }
-        return CGSize(width: w, height: h)
-    }
 
     // MARK: Memo-link chip
 

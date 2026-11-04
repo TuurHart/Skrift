@@ -1235,12 +1235,13 @@ struct NoteBodyView: UIViewRepresentable {
             if let literal = attachmentLiteral(in: range, of: tv), let e = attachmentEntry(literal: literal) {
                 let next: NoteAttachment.Size = NoteAttachment.size(of: e.filename, large: memo.metadata?.largeAttachments) == .large ? .small : .large
                 let action = NoteAttachment.BlockAction.setSize(next)
-                children.append(UIAction(title: action.title, image: UIImage(systemName: action.symbol)) { [weak self] _ in
+                // First, so the switch sits on the bar's first page, not behind the › (Q545).
+                children.insert(UIAction(title: action.title, image: UIImage(systemName: action.symbol)) { [weak self] _ in
                     guard let self else { return }
                     NoteAttachmentStore.setSize(next, filename: e.filename, memo: self.memo)
                     tv.resignFirstResponder()
                     self.load(force: true)
-                })
+                }, at: 0)
             }
             if let name = newPersonOffer(for: range, in: tv) {
                 let item = UIAction(title: NameActionLabel.newPerson,
@@ -1338,9 +1339,9 @@ struct NoteBodyView: UIViewRepresentable {
             let raw = reconstruct(textView?.attributedText)
             let spot = NoteAttachment.paragraphIndex(of: literal, in: raw) ?? (0, 1)
             let size = NoteAttachment.size(of: filename, large: memo.metadata?.largeAttachments)
-            let actions = NoteAttachment.holdMenu(size: size, paragraph: spot.index, count: spot.count,
-                                                  hasFile: blockFileURL(literal) != nil, isMedia: NoteAttachment.isMedia(literal: literal),
-                                                  editing: currentMode == .editing)
+            let actions = NoteAttachment.phoneHoldMenu(size: size, paragraph: spot.index, count: spot.count,
+                                                       hasFile: blockFileURL(literal) != nil, isMedia: NoteAttachment.isMedia(literal: literal),
+                                                       editing: currentMode == .editing)
             var children: [UIMenuElement] = actions.map { a in
                 UIAction(title: a.title, image: UIImage(systemName: a.symbol),
                          attributes: a == .delete ? .destructive : []) { [weak self] _ in
@@ -2051,9 +2052,7 @@ struct NoteBodyView: UIViewRepresentable {
             let dark = textView?.traitCollection.userInterfaceStyle == .dark
             // iPad (a reading cap is set) caps media at 720 / the card at 520 pt (pick 8).
             let wide = readingWidthCap != nil
-            let media = size == .large && url != nil && entry.kind == NoteAttachment.Kind.video
-            let img = NoteAttachmentArt.image(entry, size: size,
-                                              width: NoteAttachment.blockWidth(column: contentWidth, wide: wide, largeMedia: media),
+            let img = NoteAttachmentArt.image(entry, size: size, column: contentWidth, wide: wide,
                                               maxVideoHeight: NoteAttachment.videoMaxHeight(wide: wide), fileURL: url, dark: dark)
             att.image = img
             att.bounds = CGRect(x: 0, y: -4, width: img.size.width, height: img.size.height)
@@ -2199,41 +2198,24 @@ struct NoteBodyView: UIViewRepresentable {
         private func imageAttachment(markerIndex: Int) -> NSTextAttachment {
             let att = NSTextAttachment()
             let width = contentWidth
-            // D202: a photo is SMALL (the shared grey card) until switched to large.
-            if let url = memo.imageURL(markerIndex: markerIndex), FileManager.default.fileExists(atPath: url.path),
-               NoteAttachment.size(of: url.lastPathComponent, large: memo.metadata?.largeAttachments) == .small {
-                let w = NoteAttachment.blockWidth(column: width, wide: readingWidthCap != nil, largeMedia: false)
-                att.image = NoteAttachmentArt.photoCard(filename: url.lastPathComponent, fileURL: url, width: w,
-                                                        dark: textView?.traitCollection.userInterfaceStyle == .dark)
-                att.bounds = CGRect(x: 0, y: -4, width: w, height: NoteAttachment.cardMinHeight)
-                return att
+            // D224: a photo is the picture itself, never cropped: SMALL (the default) a third of
+            // the text width on its longest side, LARGE the full text width at any height.
+            if let url = memo.imageURL(markerIndex: markerIndex), FileManager.default.fileExists(atPath: url.path) {
+                let size = NoteAttachment.size(of: url.lastPathComponent, large: memo.metadata?.largeAttachments)
+                let column = NoteAttachment.pictureColumn(column: width, wide: readingWidthCap != nil)
+                let target = NoteAttachment.pictureSize(natural: NoteAttachmentArt.pixelSize(of: url), size: size, column: column)
+                if let img = MemoImageLoader.thumbnail(at: url, maxWidth: max(target.width, target.height)) {
+                    let drawn = NoteAttachmentArt.picture(img, size: size, column: column)
+                    att.image = drawn
+                    // NSTextAttachment scales to FILL `bounds` (no aspect preserve), so the bounds
+                    // are exactly the drawn picture's.
+                    att.bounds = CGRect(x: 0, y: -4, width: drawn.size.width, height: drawn.size.height)
+                    return att
+                }
             }
-            if let url = memo.imageURL(markerIndex: markerIndex),
-               let img = MemoImageLoader.thumbnail(at: url, maxWidth: width) {
-                att.image = Self.roundedCorners(img)
-                // NSTextAttachment scales to FILL `bounds` (no aspect preserve),
-                // so bounds must match the image aspect. Fit width × 320-pt cap;
-                // a portrait frame shrinks WIDTH to keep aspect.
-                let fit = NoteLook.photoSize(image: img.size, columnWidth: width)
-                att.bounds = CGRect(x: 0, y: -4, width: fit.width, height: fit.height)
-            } else {
-                att.image = Self.placeholder(width: width)
-                att.bounds = CGRect(x: 0, y: -4, width: width, height: 150)
-            }
+            att.image = Self.placeholder(width: width)
+            att.bounds = CGRect(x: 0, y: -4, width: width, height: 150)
             return att
-        }
-
-        /// Clip an inline photo to soft rounded corners — reads better in the note body.
-        private static func roundedCorners(_ image: UIImage) -> UIImage {
-            let size = image.size
-            guard size.width > 0, size.height > 0 else { return image }
-            let radius = min(size.width, size.height) * NoteLook.photoCornerFraction
-            let rect = CGRect(origin: .zero, size: size)
-            let r = UIGraphicsImageRendererFormat.default(); r.scale = image.scale
-            return UIGraphicsImageRenderer(size: size, format: r).image { _ in
-                UIBezierPath(roundedRect: rect, cornerRadius: radius).addClip()
-                image.draw(in: rect)
-            }
         }
 
         private static func placeholder(width: CGFloat) -> UIImage {

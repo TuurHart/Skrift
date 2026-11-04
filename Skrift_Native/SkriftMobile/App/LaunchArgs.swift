@@ -43,6 +43,9 @@ enum LaunchFlags {
     /// `-seedAttachmentLarge` every block starts large (Set All to Large).
     static var seedAttachmentMemo: Bool { args.boolFlag("-seedAttachmentMemo") }
     static var seedAttachmentLarge: Bool { args.boolFlag("-seedAttachmentLarge") }
+    /// Q545 (DEBUG): one note with a wide and a tall placeholder photo, a video, a PDF and a DXF,
+    /// to look at the small / large picture sizes (`-seedAttachmentLarge` starts them all large).
+    static var seedPictureSizes: Bool { args.boolFlag("-seedPictureSizes") }
     /// Q454 (DEBUG): a shared video's note in the D210 shape `MemoSaver.processVideo` leaves —
     /// the kept movie as the one inline video block at the top, the transcript below it.
     static var seedSharedVideoMemo: Bool { args.boolFlag("-seedSharedVideoMemo") }
