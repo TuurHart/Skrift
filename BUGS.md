@@ -305,7 +305,8 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [x] **Undo can't reverse the checklist button** (Tuur 2026-11-02, TestFlight 199, FeedbackKit `ad562bb3`). Q536.
 - [x] **"Back to playing" is faded with the text** (Tuur 2026-10-30, TestFlight 199, FeedbackKit `74d3ebe7`): the pill sat inside the masked view, `ReadAlongView.swift:310` and `:326`. Q537: the edge-fade mask now sits on the ScrollView only and the pill is an overlay after it.
 - [x] **Spotify show link wrongly refused as Spotify-only** (Tuur 2026-11-01, TestFlight 199, FeedbackKit `7239ba06`): the show (Syntax) has a public feed; Spotify's oEmbed now gives the newest episode title for a show link, `PodcastImporter.swift:101-103`. Q538.
-- [x] **+ tag needs an extra tap to type, and another after Return** (Tuur 2026-10-30, TestFlight 199, FeedbackKit `8dfb23b4`). Q539.
+- [ ] **+ tag needs an extra tap to type, and another after Return** (Tuur 2026-10-30, TestFlight 199, FeedbackKit `8dfb23b4`). Q539 failed on the real iPhone on Dev 200; reopened as Q540.
+- [ ] **Tag pills misaligned: the field is off-centre beside a chip, and an armed chip's text touches its outline** (Tuur 2026-11-04, Dev 200, FeedbackKit `2354290c`). Q540.
 - [ ] **Idea, after the freeze: share a note as a nice card** (Tuur 2026-11-04, FeedbackKit `3815cf9c`): sharing an audiobook quote plus note sends only the audio; he wants the text as a good-looking image or long picture for WhatsApp, choosing the text. Mock first.
 - [ ] **Idea, after the freeze: hold a word in the player for its definition** (Tuur 2026-10-30, FeedbackKit `82c0b0c9`).
 - [ ] **Mac: three sidebar problems** (Tuur 2026-09-30, prod Mac build): (a) shift-click does not

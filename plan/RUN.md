@@ -631,3 +631,9 @@ brought the bar back with and without wt/Q535. Conductor rejected the defensive 
 fixes nothing proven, and Review pushes notes in its own stack (JournalHomeView.swift:41), where Q387 found an explicit
 tab-level value wins over the note's `.hidden` (read in code, not run). Untried: cold launch with a pending import, iOS
 26.6.1 (runtime not installed). Branch kept at a2feafd8.
+
+## Dev 200 on Tuur's iPhone (2026-11-04)
+Pass, by Tuur: Back to playing (Q537), checklist Undo (Q536), a Spotify link pasted from a Bernie Sanders show or episode went
+through to Add episodes and started downloading (Q538; he was unsure he did it right, and it was not the Syntax link).
+FAIL: + tag on a note with no tags (Q539): no keyboard on the first tap, focus lost after Return. Our simulator test used a
+rated note that already had a tag. Reopened as Q540 with the pill alignment from FeedbackKit 2354290c.

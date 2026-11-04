@@ -3904,6 +3904,20 @@ gate+: yes
 do: On a phone note, "+ tag" opens the tag pane without focus, so typing takes an extra tap, and after Return the field must be selected again. Make the field focused with the keyboard up as soon as the pane opens. Return adds the tag, clears the field and keeps focus for the next tag; tapping outside ends it. An empty Return closes the keyboard. Keep the existing suggestions. Tick the BUGS.md line.
 check: A phone UI test: tap + tag, type without tapping the field, Return, type a second tag, Return; both tags are on the note and the field stayed focused.
 
+### Q540 [auto] (todo) Phone: + tag really focuses on a real note, and the tag pills line up
+spec: D220 bug; Tuur 2026-11-04 on Dev 200 (FeedbackKit 2354290c; reopens Q539)
+needs: -
+gate+: yes
+do: Q539 passed a simulator test but failed for Tuur on his iPhone 17 Pro on Dev 200: on a note with no tags, tapping + tag did not bring up the keyboard (he had to tap again), and after typing a tag and pressing Return the field lost focus and he had to tap the tag control again. The Q539 test (TagFocusQ539UITests) ran on a rated fixture note that already had a tag, so it missed this. FIRST write a UI test on an unrated voice note with NO tags on the iPhone 17 simulator and make it fail the way he describes; report if it does not fail. Leads, unproven: MemoPageView.swift:627 hosts the row in the rating row's trailing content with style .phoneInline, so adding the first tag or opening the field can re-flow and re-mount the field and drop @FocusState; the phone pager keeps a neighbour page mounted; the 350 ms grace close in TagEditorRow.onChange(of: fieldFocused) closes the field if a re-focus did not stick. Fix the cause, not with more delays. Also from his screenshot: (a) the tag field capsule is not vertically centred with the chip beside it: its height is chipHeight - 6 and FlowLayout (Shared/UI/FlowLayout.swift:33) places every item top-aligned; centre items on a line. (b) The armed chip (tap a tag to delete) looks wrong: with .phoneInline the # touches the red outline and the ✕ sits on the right edge, so it needs real inner padding when armed, without shifting neighbours more than the ✕ needs. (c) The field's placeholder and caret should sit centred in its capsule. Keep the Mac unchanged: build the full SkriftDesktop scheme. Reopen the BUGS.md Q539 line's tick only when this passes.
+check: The new UI test fails before the fix and passes after, on a tag-less unrated note: tap + tag, type with no tap, Return, type a second tag with no tap, both chips land. Screenshot PNGs of the field beside a chip and of an armed chip, looked at. Full SkriftDesktop build succeeds. Tuur still has to confirm on the real iPhone.
+
+### Q541 [auto] (todo) Phone: Transcribe on a podcast does not offer a book file
+spec: D220 bug; Tuur 2026-10-16 (FeedbackKit 7488094a); BUGS.md "Transcribe on a podcast offers to add a book file"
+needs: -
+gate+: yes
+do: The unified Text sheet (mocks/book-text-unified.html) shows Level 2 Book text, and an import prompt offers to add an ePub. A podcast episode has no book file. Hide every book-file offer for an episode: the Text sheet's Level 2, any "add a book file" line in the Transcribe flow, and the once-per-book import prompt. Audiobooks are unchanged. Use the existing `kind` on the book's metadata; do not add a new flag. Tick the BUGS.md line and update FEATURES.md.
+check: A phone unit test on the rule (an episode offers no book file, an audiobook does) and a simulator screenshot of the sheet for an episode, looked at.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5641,3 +5655,5 @@ check: A phone UI test: tap + tag, type without tapping the field, Return, type 
 - 2026-11-04 14:08 Q536 -> doing — BUGS.md tick conflict resolved on wt/Q536 (e610ca83)
 - 2026-11-04 14:09 Q536 -> done — gate 67s @e884faed
 - 2026-11-04 14:10 Q535 -> stuck — NOT merged. Not reproduced on the iPhone 17 sim (iOS 26.3): the bar returned with and without the change. wt/Q535 adds .toolbar(.visible) on Library/Review/Settings, but Review pushes notes (JournalHomeView.swift:41) and Q387 found an explicit tab-level value beats the note's .hidden, so it risks D200 on those notes. Untried: cold launch with a pending import, iOS 26.6.1. Needs Rox's steps.
+- 2026-11-04 14:26 Q540 added
+- 2026-11-04 14:26 Q541 added
