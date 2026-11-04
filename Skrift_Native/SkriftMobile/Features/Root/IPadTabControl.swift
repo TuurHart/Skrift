@@ -66,11 +66,12 @@ extension View {
     /// Per tab: the system tab bar only on the phone layout; at regular width the non-Notes tabs
     /// carry the tab row at the top-leading corner, at the list column's width, where the Notes
     /// tab carries it inside its list column (`MemosListView`).
-    @ViewBuilder func ipadTabChrome(_ size: UserInterfaceSizeClass?, hostsOwnRow: Bool) -> some View {
+    @ViewBuilder func ipadTabChrome(_ size: UserInterfaceSizeClass?, hostsOwnRow: Bool,
+                                    carriesBar: Bool = false) -> some View {
         let regular = !IPadLayout.showsSystemTabBar(size)
         // Q387: at compact width set NOTHING for the tab bar: an explicit `.automatic` here wins over
         // the open note's `.toolbar(.hidden, for: .tabBar)` (D200), so the phone's note kept the bar.
-        TabBarVisibility(regular: regular, content: self)
+        TabBarVisibility(regular: regular, carriesBar: carriesBar, content: self)
             .safeAreaInset(edge: .top, spacing: 0) {
                 if regular && !hostsOwnRow {
                     HStack(spacing: 0) {
@@ -82,12 +83,17 @@ extension View {
     }
 }
 
-/// Hides the tab bar at regular width only; at compact it adds no tab-bar preference at all, so a
-/// pushed note can hide it (D200). The branch only flips when the size class does.
+/// Hides the tab bar at regular width only. At compact the Notes tab adds no tab-bar preference at
+/// all, so a pushed note can hide it (D200). Every other root tab (`carriesBar`) states `.visible`
+/// for itself: the hidden preference of a note still pushed on Notes otherwise stuck to the
+/// TabView when a share import switched to Library (Q535, Rox on TestFlight 199).
 private struct TabBarVisibility<Content: View>: View {
     let regular: Bool
+    let carriesBar: Bool
     let content: Content
     var body: some View {
-        if regular { content.toolbar(.hidden, for: .tabBar) } else { content }
+        if regular { content.toolbar(.hidden, for: .tabBar) }
+        else if carriesBar { content.toolbar(.visible, for: .tabBar) }
+        else { content }
     }
 }

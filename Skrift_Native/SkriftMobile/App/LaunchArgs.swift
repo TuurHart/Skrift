@@ -52,6 +52,9 @@ enum LaunchFlags {
     /// Open a specific root tab on launch: "notes" / "books" / "journal" /
     /// "settings" — per-tab screenshot verification of the global mini-player.
     static var openTab: String? { args.stringValue("-openTab") }
+    /// Q535 (DEBUG): mounts a tap target (`debug-switch-tab`) that switches to this root tab exactly
+    /// as a share import does (`TabSelectionBridge.select`) while a pushed note may be open on Notes.
+    static var switchTabLater: String? { args.stringValue("-switchTabLater") }
     /// Q516: start "Export all notes…" a few seconds after Settings appears, so the Simulator can
     /// screenshot the building row and the share sheet (with `-openTab settings`).
     static var exportAllOnLaunch: Bool { args.boolFlag("-exportAllOnLaunch") }

@@ -59,13 +59,13 @@ struct AppTabView: View {
                 .tag(Tab.notes)
 
             AudiobookLibraryView()
-                .ipadTabChrome(hSize, hostsOwnRow: false)
+                .ipadTabChrome(hSize, hostsOwnRow: false, carriesBar: true)
                 .feedbackScreen("Library")
                 .tabItem { Label("Library", systemImage: "book") }
                 .tag(Tab.books)
 
             JournalHomeView()
-                .ipadTabChrome(hSize, hostsOwnRow: false)
+                .ipadTabChrome(hSize, hostsOwnRow: false, carriesBar: true)
                 .feedbackScreen(SharedCopy.reviewTitle)
                 // Display name = SharedCopy.reviewTitle (Tuur, 2026-07-07) — internal
                 // ids stay `journal` (the `-openTab journal` flag + file names are
@@ -74,7 +74,7 @@ struct AppTabView: View {
                 .tag(Tab.journal)
 
             SettingsView()
-                .ipadTabChrome(hSize, hostsOwnRow: false)
+                .ipadTabChrome(hSize, hostsOwnRow: false, carriesBar: true)
                 .feedbackScreen("Settings")
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(Tab.settings)
@@ -126,6 +126,24 @@ struct AppTabView: View {
             if LaunchFlags.showTextPrompt { showSeededTextPrompt = true }
         }
         #if DEBUG
+        // Q535: `-switchTabLater books|journal|settings` mounts a tiny tap target that fires the
+        // share import's tab switch (`TabSelectionBridge.select`) on demand, so a UI test can do
+        // it while a note is open on Notes.
+        .overlay(alignment: .leading) {
+            if let later = LaunchFlags.switchTabLater {
+                Button {
+                    switch later {
+                    case "books": TabSelectionBridge.shared.select(.books)
+                    case "journal": TabSelectionBridge.shared.select(.journal)
+                    case "settings": TabSelectionBridge.shared.select(.settings)
+                    default: TabSelectionBridge.shared.select(.notes)
+                    }
+                } label: {
+                    Color.red.opacity(0.01).frame(width: 44, height: 44).contentShape(Rectangle())
+                }
+                .accessibilityIdentifier("debug-switch-tab")
+            }
+        }
         .fullScreenCover(isPresented: $showTileGallery) { BookTileGallery() }
         // `-showPlayer` (Q353): the full player over the seeded session, for screenshots.
         .fullScreenCover(isPresented: $showSeededPlayer) { AudiobookPlayerView() }
