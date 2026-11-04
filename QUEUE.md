@@ -3925,7 +3925,7 @@ do: Mock only. (1) The two bars while typing against one bar. (2) Small and larg
 check: Tuur picks on the mock page; the pick becomes a SPEC decision and a build item.
 ask: Open the mockup and pick: how many bars while typing, and how small and large pictures should look.
 
-### Q543 [auto] (todo) Phone: tapping a header tag does not focus the note body, and + tag opens when the body has the keyboard
+### Q543 [auto] (done) Phone: tapping a header tag does not focus the note body, and + tag opens when the body has the keyboard
 spec: D220 bug; found by Q540 2026-11-04
 needs: -
 gate+: yes
@@ -5694,3 +5694,4 @@ check: Unit test of the size rule (longest side, no crop, wide and tall). Simula
 - 2026-11-04 15:49 Q542 -> done — Tuur picked 2026-11-04: one bar at the bottom, small a third, large full width, videos and files same idea (D223, D224)
 - 2026-11-04 16:22 Q545 -> done — gate 89s @ef492fc0
 - 2026-11-04 16:23 Q544 -> done — gate 77s @425fb246
+- 2026-11-04 16:31 Q543 -> done — gate 68s @a142bb64
