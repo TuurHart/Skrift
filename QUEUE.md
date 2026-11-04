@@ -3876,28 +3876,28 @@ gate+: yes
 do: Rox shared a voice memo from Voice Memos into Skrift, opened the app, and the bottom tab bar was gone: the screenshot shows Library with no tab bar, though FeedbackKit recorded the screen as "Note". D200: an open note hides the bar with `.toolbar(.hidden, for: .tabBar)` (Features/Root/IPadTabControl.swift:72-92 sets nothing at compact width). Suspect: an incoming share lands, the tab or navigation path switches while a pushed note holds the hidden preference, and the bar stays hidden on the new tab. Reproduce on the iPhone 17 simulator through the share-import path (the note opened by an import, then a tab switch to Library, then cold launch with a pending import). Fix so the bar always shows on every root screen and hides only while a note is really pushed. Also check iOS 26 specifically if a simulator runtime exists; Rox is on 26.6.1 and Tuur on 27. Tick the BUGS.md line.
 check: A phone test or UI test: open a note through the import path, leave it for Library by the same route, and the tab bar exists; a normally opened note still hides it. Report what was reproduced; if it was not reproduced, say so plainly and mark the fix unverified.
 
-### Q536 [auto] (todo) Phone: Undo reverses tapping the checklist button in a note
+### Q536 [auto] (stuck) Phone: Undo reverses tapping the checklist button in a note
 spec: D220 bug; Tuur 2026-11-02 on TestFlight 199 (FeedbackKit ad562bb3)
 needs: -
 gate+: yes
 do: In a phone note, tapping the checklist button by accident and then Undo does not undo it. Find the checklist action in Features/MemoDetail/NoteBodyView.swift and make it one step on the text view's undo stack (registered through UITextView's undoManager or a text-storage edit the system records), both adding a checkbox to a line and ticking an existing one. Check what other format-toolbar actions in the same file do; fix any that bypass undo the same way. Tick the BUGS.md line.
 check: A phone unit or UI test: add a checkbox to a line, undo, the line is back byte-for-byte; redo returns it; tick and undo likewise.
 
-### Q537 [auto] (todo) Phone player: Back to playing sits above the text fade
+### Q537 [auto] (done) Phone player: Back to playing sits above the text fade
 spec: D220 bug; Tuur 2026-10-30 on TestFlight 199 (FeedbackKit 74d3ebe7)
 needs: -
 gate+: -
 do: In the read-along player the "Back to playing" pill is faded along with the text. Cause, read in code: Features/Audiobooks/ReadAlongView.swift:310 adds the pill as an `.overlay` inside the view that line 326 masks with the top and bottom LinearGradient. Apply the mask to the scrolling text only and keep the pill outside it, at its current position. Tick the BUGS.md line.
 check: A rendered screenshot on the iPhone 17 simulator with following off: the pill is fully opaque and the text behind it still fades. Look at the PNG.
 
-### Q538 [auto] (todo) Podcast: a Spotify show link finds the show's public feed
+### Q538 [auto] (doing) Podcast: a Spotify show link finds the show's public feed
 spec: D220 bug; Tuur 2026-11-01 on TestFlight 199 (FeedbackKit 7239ba06)
 needs: -
 gate+: yes
 do: Pasting https://open.spotify.com/show/4kYCRYJ3yK5DQbP5tbfZby is refused with "This episode is only on Spotify and has no public feed". That is false: the show is "Syntax - Tasty Web Development Treats" and iTunes lists its feed. Cause: Services/Podcasts/PodcastImporter.swift:101-103 takes the show name from Spotify's oEmbed title, and for a show link oEmbed now returns the newest EPISODE title ("1053: What's in Our Home Lab", checked with curl 2026-11-04), so `spotifyShowMatch` never matches; the comment at PodcastFeed.swift:485 is out of date. Fix: for `.spotifyShow` read the name from the show page's `og:title` through the existing `htmlMeta`, as `.spotifyEpisode` does for its page, falling back to oEmbed. A show refusal must say "show", not "episode". Update SpotifyFeedResolveTests. Tick the BUGS.md line.
 check: Unit tests with the recorded shapes: a show page og:title of "Syntax - Tasty Web Development Treats" plus an oEmbed episode title resolves to the iTunes feed; a show with no iTunes match gets a refusal that says show.
 
-### Q539 [auto] (todo) Phone: + tag opens the keyboard at once and Return stays ready for the next tag
+### Q539 [auto] (done) Phone: + tag opens the keyboard at once and Return stays ready for the next tag
 spec: D220 bug; Tuur 2026-10-30 on TestFlight 199 (FeedbackKit 8dfb23b4)
 needs: -
 gate+: yes
@@ -5632,3 +5632,8 @@ check: A phone UI test: tap + tag, type without tapping the field, Return, type 
 - 2026-11-04 13:22 Q537 added
 - 2026-11-04 13:22 Q538 added
 - 2026-11-04 13:22 Q539 added
+- 2026-11-04 13:51 Q539 -> done — gate 102s @3d74c23f
+- 2026-11-04 13:55 Q537 -> done — gate 193s @ca3908d0
+- 2026-11-04 14:03 Q536 -> stuck — merge conflict onto claude/skrift-parity-audit-91f702
+- 2026-11-04 14:03 Q538 -> stuck — gate weakened: modified Skrift_Native/SkriftMobile/SkriftMobileTests/PodcastFeedTests.swift modified Skrift_Native/SkriftMobile/SkriftMobileTests/SpotifyFeedResolveTests.swift 
+- 2026-11-04 14:04 Q538 -> doing — hand accept: item told it to update SpotifyFeedResolveTests, conductor told it to delete the dead spotifyShowMatch and its test

@@ -271,7 +271,22 @@ struct TagEditorRow: View {
                 .focused($fieldFocused)
                 .accessibilityIdentifier("tag-input" + idSuffix)
                 .onSubmit {
-                    if typed.isEmpty { editing = false } else { commitDraft(); fieldFocused = true }
+                    if typed.isEmpty { editing = false } else { commitDraft(); refocusSoon() }
+                }
+                // Phone/iPad (Q539): focus lands as soon as the field exists, so the keyboard is
+                // up with no second tap. Setting focus in the "+ tag" button action ran before the
+                // field was in the tree, so it was dropped.
+                .onAppear { refocusSoon() }
+                .onChange(of: fieldFocused) { _, focused in
+                    // Tapping outside ends the entry (phone only; the Mac keeps its own idiom). The
+                    // grace delay lets Return's momentary defocus re-focus without closing the field.
+                    guard !focused, !style.usesDropdownMenu else { return }
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(350))
+                        guard editing, !fieldFocused else { return }
+                        if !typed.isEmpty { commitDraft() }
+                        editing = false
+                    }
                 }
                 .onChange(of: draft) { _, v in
                     selectedIndex = -1
@@ -283,7 +298,7 @@ struct TagEditorRow: View {
                     let tail = String(v[v.index(after: lastSep)...]).trimmingCharacters(in: .whitespaces)
                     draft = tail
                     commitDraft(text: head)
-                    fieldFocused = true
+                    refocusSoon()
                 }
                 // Mac only (D139 mock): ↑↓ walk the menu, Tab jumps to the top match,
                 // Return accepts a highlighted row, Esc closes. Unhandled keys (.ignored)
@@ -362,6 +377,13 @@ struct TagEditorRow: View {
         // Adding a tag dismisses any live removal toast — a stale Undo shouldn't
         // outlive a change that already moved past it.
         onToast(nil)
+    }
+
+    /// SwiftUI drops a `@FocusState` write made in the same pass that mounts or submits the
+    /// field; applying it on the next main-queue turn sticks (keyboard up, Return stays ready).
+    private func refocusSoon() {
+        fieldFocused = true
+        DispatchQueue.main.async { fieldFocused = true }
     }
 
     private func removeTag(_ tag: String) {
