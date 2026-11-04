@@ -19,11 +19,27 @@ final class TagFocusQ540UITests: XCTestCase {
         a.name = name; a.lifetime = .keepAlways; add(a)
     }
 
+    /// Root-route fixture: one raw, unrated, tag-less note, no neighbours.
     func testTaglessUnratedNote_plusTagFocusesTypesAndStaysFocusedAfterReturn() {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemoryStore", "-seedPolished", "-seedBareNote", "-selectFirstMemo"]
         app.launch()
+        runScenario(app, prefix: "q540-a")
+    }
 
+    /// The real path: the note is PUSHED from the list, so the pager keeps neighbours mounted.
+    /// Demo memo 2 (row 1) is unrated and tag-less with demo memos 1 and 3 beside it.
+    func testTaglessUnratedNoteOpenedFromListWithNeighbours() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedDemoMemos", "-seedBareNote"]
+        app.launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-1").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 20), "memo-row-1 never appeared")
+        row.tap()
+        runScenario(app, prefix: "q540-b")
+    }
+
+    private func runScenario(_ app: XCUIApplication, prefix: String) {
         let addTag = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'add-tag-button'")).firstMatch
         XCTAssertTrue(addTag.waitForExistence(timeout: 20), "the + tag control is missing")
         XCTAssertFalse(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'tag-chip-'")).firstMatch.exists,

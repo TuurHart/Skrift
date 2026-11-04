@@ -414,7 +414,7 @@ enum DemoDataSeeder {
                     + (LaunchFlags.seedLinkedPair ? " " + MemoLinkSyntax.link(id: demoHarborMemoID, title: "dawn note") : ""),
                 transcriptStatus: .done,
                 transcriptConfidence: 0.81,
-                significance: 0.5,
+                significance: LaunchFlags.seedBareNote ? 0 : 0.5,   // Q540: unrated, tag-less, in a list with neighbours
                 createdAt: now.addingTimeInterval(-7_200)
             ),
             Memo(
