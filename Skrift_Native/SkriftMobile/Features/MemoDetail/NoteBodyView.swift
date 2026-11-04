@@ -1386,6 +1386,20 @@ struct NoteBodyView: UIViewRepresentable {
             return UIMenu(children: children)
         }
 
+        /// Hold menu ▸ Delete on a picture / video / file block.
+        func deleteBlock(literal: String) {
+            guard let tv = textView, currentMode == .editing else { return }
+            let raw = reconstruct(tv.attributedText)
+            let changed = NoteAttachment.deleting(literal, in: raw)
+            guard changed != raw else { return }
+            tv.attributedText = attributed(from: changed)
+            markDraftDirty()
+            commitDraft()
+            load(force: true)
+            applyTierStyling()
+            Haptics.tap(.light)
+        }
+
         private func performBlockAction(_ a: NoteAttachment.BlockAction, literal: String, filename: String, at point: CGPoint) {
             guard let tv = textView else { return }
             switch a {
@@ -1397,16 +1411,7 @@ struct NoteBodyView: UIViewRepresentable {
                 let raw = reconstruct(tv.attributedText)
                 replaceBody(with: NoteAttachment.moving(literal, by: a == .moveUp ? -1 : 1, in: raw), in: tv)
             case .delete:
-                guard currentMode == .editing else { return }
-                let raw = reconstruct(tv.attributedText)
-                let changed = NoteAttachment.deleting(literal, in: raw)
-                guard changed != raw else { return }
-                tv.attributedText = attributed(from: changed)
-                markDraftDirty()
-                commitDraft()
-                load(force: true)
-                applyTierStyling()
-                Haptics.tap(.light)
+                deleteBlock(literal: literal)
             case .share:
                 guard let url = blockFileURL(literal), let host = Self.hostController(of: tv) else { return }
                 let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
