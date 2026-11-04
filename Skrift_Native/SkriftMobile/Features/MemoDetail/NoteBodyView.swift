@@ -2021,7 +2021,8 @@ struct NoteBodyView: UIViewRepresentable {
         func committedBody(_ text: String) -> String {
             let manifest = memo.metadata?.imageManifest ?? []
             let stored = BodyV2.committed(BodyV2.Input(text: text, manifest: manifest,
-                                                       source: memo.bodyV2Source, userEdited: true))
+                                                       source: memo.bodyV2Source, userEdited: true,
+                                                       keepOwnParagraphs: true))
             return NoteAttachment.blockShaped(stored, manifest: memo.metadata?.attachmentManifest ?? [])
         }
 
