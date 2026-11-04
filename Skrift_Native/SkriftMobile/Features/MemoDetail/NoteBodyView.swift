@@ -657,10 +657,13 @@ struct NoteBodyView: UIViewRepresentable {
         // MARK: keyboard accessory (undo · redo · find · photo · Done)
 
         func installAccessoryBar(on tv: NoteBodyTextView) {
-            // Q359 (mock Q350 pick 1): Aa · checklist · photo · note link. Undo / redo /
-            // Done sit in the top bar (`NoteEditorChrome`), Find in the ⋯ menu.
+            // Q544 (mock Q542 "One bar at the bottom"): Aa · checklist · photo · note link ·
+            // undo · redo · Done. The top bar keeps only Notes and ⋯; Find is in the ⋯ menu.
             let bar = NoteAccessoryBar(layout: .editor)
             bar.onFormat = { [weak self] in self?.toggleFormatPanel() }
+            bar.onUndo = { [weak self] in self?.undo() }
+            bar.onRedo = { [weak self] in self?.redo() }
+            bar.onDone = { [weak self] in self?.finishEditing() }
             bar.onPhoto = { [weak self] in
                 guard let self, let tv = self.textView else { return }
                 self.pendingPhotoLocation = tv.selectedRange.location
@@ -681,15 +684,10 @@ struct NoteBodyView: UIViewRepresentable {
             let canUndo = textView?.undoManager?.canUndo ?? false
             let canRedo = textView?.undoManager?.canRedo ?? false
             accessory?.refresh(canUndo: canUndo, canRedo: canRedo, inChecklist: caretInTaskLine())
-            let chrome = NoteEditorChrome.shared
-            if chrome.current === self {
-                if chrome.canUndo != canUndo { chrome.canUndo = canUndo }
-                if chrome.canRedo != canRedo { chrome.canRedo = canRedo }
-            }
             refreshFormatState()
         }
 
-        // MARK: top-bar verbs (NoteEditorChrome)
+        // MARK: bar verbs (the keyboard bar's undo · redo · Done; Find via NoteEditorChrome)
 
         func undo() { textView?.undoManager?.undo(); refreshAccessory() }
         func redo() { textView?.undoManager?.redo(); refreshAccessory() }
