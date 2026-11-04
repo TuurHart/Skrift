@@ -5695,3 +5695,4 @@ check: Unit test of the size rule (longest side, no crop, wide and tall). Simula
 - 2026-11-04 16:22 Q545 -> done — gate 89s @ef492fc0
 - 2026-11-04 16:23 Q544 -> done — gate 77s @425fb246
 - 2026-11-04 16:31 Q543 -> done — gate 68s @a142bb64
+- 2026-11-04 20:20 Q535 -> stuck — Parked 2026-11-04 by Tuur: Rox can't say when the bar went; she reports it if it happens again. Branch kept at a2feafd8.
