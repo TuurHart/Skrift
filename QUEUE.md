@@ -3958,7 +3958,7 @@ needs: -
 gate+: yes
 do: Four faults, all in `NoteBodyView.swift` `handlePhotoPress` / `moveBlock` (:1460-1545). (1) DATA: the note read 'New recording…\n\nYeah yeah…\n[link chip]' and after the first drop read as ONE paragraph, 'New recording… Yeah yeah… [link chip]', and stayed that way. `BodyFormat.moveBlock` keeps \n\n by itself, so look at what runs after it: `reconstruct` (`displayOnlyKey` runs lose their newlines, :2187), `commitDraft`, `load(force:)`, `attributed(from:)`. Prove with a failing unit test on the real path first; a move must change nothing but the block's place. Check whether the note's stored text changed or only its display, and state which. (2) The original stays drawn under the lifted copy, so the picture shows twice; hide it during the drag. (3) The drop did not land where the line showed: the line sat under the first paragraph and the picture stayed at the bottom. Make the line and the result agree, including above the first paragraph and below the last. (4) A move cannot be undone: route it through `Coordinator.undoableReplace` (Q536). Also look at 37 s in the recording: with the keyboard up, the caret sits against the picture's edge with the Paste/Select menu; D224 says a tap on a picture opens it. If a tap with the keyboard up does not open it, fix it the same way as the reading tap.
 check: Unit tests: a move through the real path keeps every paragraph and the chip's line, up and down, voice and typed notes; undo restores the exact text. Simulator drag via XCUITest on a seeded note with PNGs during and after the drag, looked at.
-### Q548 [auto] (doing) Mac: the app does not freeze while a synced note or picture arrives
+### Q548 [auto] (done) Mac: the app does not freeze while a synced note or picture arrives
 spec: Tuur 2026-11-04: opening Skrift on the Mac gave a rainbow cursor for several seconds, ending the moment the picture he had just taken on the phone appeared. He did not say whether it was Dev or the real app.
 needs: -
 gate+: yes
@@ -5729,3 +5729,4 @@ check: Headless `-snapshot` of the toast on the Mac if the harness can reach it,
 - 2026-11-04 20:34 Q548 -> doing — worker dispatched 2026-11-04
 - 2026-11-04 20:34 Q549 -> doing — worker dispatched 2026-11-04
 - 2026-11-04 20:58 Q549 -> done — gate 147s @5a13a393
+- 2026-11-04 21:00 Q548 -> done — gate 136s @45ad53fd
