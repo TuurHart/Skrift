@@ -336,7 +336,7 @@ struct NoteBodyView: UIViewRepresentable {
                 MainActor.assumeIsolated {
                     guard let self, let tv = self.textView else { return }
                     tv.font = Coordinator.bodyFont()
-                    self.load(force: true)
+                    self.load(force: true, rebuild: .silent)
                 }
             }
             // Q391: a video poster made off the main thread swaps into its block in place.
@@ -369,7 +369,15 @@ struct NoteBodyView: UIViewRepresentable {
         /// (Re)build the attributed text when the transcript changed under us
         /// (e.g. transcription finished) — never while the user is typing, and
         /// never over an uncommitted draft.
-        func load(force: Bool) {
+        /// How `load` swaps the text in. `.clear` is `attributedText =`, which UIKit answers by
+        /// emptying the undo stack (a sync arriving while the note is open, the first build).
+        /// `.undoable` puts the swap on the stack as a step (inside the caller's group), for a
+        /// rebuild of text the user just made (a picture insert the commit normalised, a block
+        /// delete). `.silent` redraws the same characters in place (a font size, a resized
+        /// picture, a marked-up photo) without a step, so the stack's positions stay valid.
+        enum Rebuild { case clear, undoable, silent }
+
+        func load(force: Bool, rebuild: Rebuild = .clear) {
             guard let tv = textView else { return }
             let t = bodyText
             // Cheap no-op checks FIRST — this runs on every updateUIView, and the
@@ -388,10 +396,21 @@ struct NoteBodyView: UIViewRepresentable {
             DevLog.log("noteBody: load rebuild force=\(force) len=\(display.count)")
             let selection = tv.selectedRange
             stopInlineVideo()
-            tv.attributedText = attributed(from: display)
-            let length = tv.attributedText.length
+            let rebuilt = attributed(from: display)
+            let length = rebuilt.length
             let location = min(selection.location, length)
             let carried = NSRange(location: location, length: min(selection.length, length - location))
+            if rebuild == .undoable, tv.textStorage.length > 0 || length > 0 {
+                undoableReplace(NSRange(location: 0, length: tv.textStorage.length), with: rebuilt,
+                                selectionAfter: carried, in: tv)
+            } else if rebuild == .silent, tv.textStorage.string == rebuilt.string {
+                let undo = tv.undoManager
+                undo?.disableUndoRegistration()
+                tv.textStorage.setAttributedString(rebuilt)
+                undo?.enableUndoRegistration()
+            } else {
+                tv.attributedText = rebuilt
+            }
             if tv.selectedRange != carried { tv.selectedRange = carried }
             loaded = t
             // Q453 (C223): an append landing while the note plays brings new words AND their
@@ -1080,13 +1099,17 @@ struct NoteBodyView: UIViewRepresentable {
             att.addAttribute(Self.markerKey, value: index, range: NSRange(location: 0, length: att.length))
             piece.append(att)
             piece.append(NSAttributedString(string: "\n", attributes: baseAttributes()))
-            tv.textStorage.insert(piece, at: at)
-            tv.selectedRange = NSRange(location: at + piece.length, length: 0)
+            // Q550: the insert, and the redraw of what the commit stored, are ONE undo step. The
+            // picture's file and manifest entry stay when it is undone, so Redo can bring it back.
+            tv.undoManager?.beginUndoGrouping()
+            undoableReplace(NSRange(location: at, length: 0), with: piece,
+                            selectionAfter: NSRange(location: at + piece.length, length: 0), in: tv)
             textViewDidChange(tv)
             commitDraft()          // persist text + manifest atomically
             // The commit may have moved the picture to its sentence end (C10) — show
             // what was stored.
-            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true) }
+            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true, rebuild: .undoable) }
+            tv.undoManager?.endUndoGrouping()
         }
 
         // MARK: name taps (via the selection, not a gesture)
@@ -1264,7 +1287,7 @@ struct NoteBodyView: UIViewRepresentable {
                     guard let self else { return }
                     NoteAttachmentStore.setSize(next, filename: e.filename, memo: self.memo)
                     tv.resignFirstResponder()
-                    self.load(force: true)
+                    self.load(force: true, rebuild: .silent)
                 }, at: 0)
             }
             if let name = newPersonOffer(for: range, in: tv) {
@@ -1386,27 +1409,28 @@ struct NoteBodyView: UIViewRepresentable {
             return UIMenu(children: children)
         }
 
+        /// Hold menu ▸ Delete on a picture / video / file block.
+        func deleteBlock(literal: String) {
+            guard let tv = textView, currentMode == .editing else { return }
+            let raw = reconstruct(tv.attributedText)
+            let changed = NoteAttachment.deleting(literal, in: raw)
+            guard changed != raw else { return }
+            // Q550: one undo step; the block's file and manifest entry stay, so Undo restores it.
+            replaceBody(with: changed, in: tv)
+        }
+
         private func performBlockAction(_ a: NoteAttachment.BlockAction, literal: String, filename: String, at point: CGPoint) {
             guard let tv = textView else { return }
             switch a {
             case .setSize(let s):
                 NoteAttachmentStore.setSize(s, filename: filename, memo: memo)
-                load(force: true)
+                load(force: true, rebuild: .silent)
             case .moveUp, .moveDown:
                 guard currentMode == .editing else { return }
                 let raw = reconstruct(tv.attributedText)
                 replaceBody(with: NoteAttachment.moving(literal, by: a == .moveUp ? -1 : 1, in: raw), in: tv)
             case .delete:
-                guard currentMode == .editing else { return }
-                let raw = reconstruct(tv.attributedText)
-                let changed = NoteAttachment.deleting(literal, in: raw)
-                guard changed != raw else { return }
-                tv.attributedText = attributed(from: changed)
-                markDraftDirty()
-                commitDraft()
-                load(force: true)
-                applyTierStyling()
-                Haptics.tap(.light)
+                deleteBlock(literal: literal)
             case .share:
                 guard let url = blockFileURL(literal), let host = Self.hostController(of: tv) else { return }
                 let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
@@ -1598,16 +1622,18 @@ struct NoteBodyView: UIViewRepresentable {
         /// Q547: a block move as ONE undo step. The whole text is swapped through
         /// `undoableReplace` (the text view's undo manager never sees a direct `attributedText`
         /// write), saved now (a move is a decisive act), and rebuilt only when the commit
-        /// normalised it into something else (a reload drops the undo stack).
+        /// normalised it into something else (that redraw is part of the same step).
         private func replaceBody(with body: String, in tv: UITextView) {
             let raw = reconstruct(tv.attributedText)
             guard body != raw else { return }
             let caret = tv.selectedRange
+            tv.undoManager?.beginUndoGrouping()
             undoableReplace(NSRange(location: 0, length: tv.textStorage.length), with: attributed(from: body),
                             selectionAfter: caret, in: tv)
             markDraftDirty()
             commitDraft()
-            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true) }
+            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true, rebuild: .undoable) }
+            tv.undoManager?.endUndoGrouping()
             applyTierStyling()
             refreshAccessory()
             Haptics.tap(.light)
@@ -1685,20 +1711,24 @@ struct NoteBodyView: UIViewRepresentable {
             let rule = BodyTransform.taskReturn(in: ns, caret: caret, boxIndex: line.location)
             let insertAt: Int
             let lead: String
+            var undoManagerGroup = false
             switch rule {
             case .passthrough:
                 return false
             case .dissolve(let range):
                 // Empty item → end the list here.
-                tv.textStorage.replaceCharacters(
-                    in: range, with: NSAttributedString(string: "", attributes: baseAttributes()))
-                tv.selectedRange = NSRange(location: line.location, length: 0)
+                undoableReplace(range, with: NSAttributedString(string: "", attributes: baseAttributes()),
+                                selectionAfter: NSRange(location: line.location, length: 0), in: tv)
                 textViewDidChange(tv)
                 return true
             case .continued(let removeSpace, let at, let leading):
                 // A space right after the caret is consumed (Notes trims the split tail),
                 // then "\n" + fresh box + " ".
-                if let removeSpace { tv.textStorage.deleteCharacters(in: removeSpace) }
+                if let removeSpace {
+                    undoManagerGroup = true
+                    tv.undoManager?.beginUndoGrouping()
+                    undoableReplace(removeSpace, with: NSAttributedString(), selectionAfter: tv.selectedRange, in: tv)
+                }
                 insertAt = at
                 lead = leading
             }
@@ -1709,8 +1739,9 @@ struct NoteBodyView: UIViewRepresentable {
             box.addAttributes(baseAttributes(), range: NSRange(location: 0, length: box.length))
             piece.append(box)
             piece.append(NSAttributedString(string: " ", attributes: baseAttributes()))
-            tv.textStorage.insert(piece, at: insertAt)
-            tv.selectedRange = NSRange(location: insertAt + piece.length, length: 0)
+            undoableReplace(NSRange(location: insertAt, length: 0), with: piece,
+                            selectionAfter: NSRange(location: insertAt + piece.length, length: 0), in: tv)
+            if undoManagerGroup { tv.undoManager?.endUndoGrouping() }   // the space and the box: ONE step
             textViewDidChange(tv)
             return true
         }
@@ -1860,7 +1891,7 @@ struct NoteBodyView: UIViewRepresentable {
             // display — materialize it into live checkboxes now that the
             // keyboard is down (rebuilding mid-typing would fight the caret).
             if BodyTransform.containsTaskSyntax(tv.text) {
-                load(force: true)
+                load(force: true, rebuild: .undoable)
             }
             applyTierStyling()
         }
@@ -2174,11 +2205,13 @@ struct NoteBodyView: UIViewRepresentable {
             let piece = NSMutableAttributedString(string: "\n", attributes: baseAttributes())
             piece.append(attachmentPiece(added.entry, literal: NoteAttachment.literal(kind: added.entry.kind, number: added.number)))
             piece.append(NSAttributedString(string: "\n", attributes: baseAttributes()))
-            tv.textStorage.insert(piece, at: at)
-            tv.selectedRange = NSRange(location: at + piece.length, length: 0)
+            tv.undoManager?.beginUndoGrouping()          // Q550: one undo step, as for a picture
+            undoableReplace(NSRange(location: at, length: 0), with: piece,
+                            selectionAfter: NSRange(location: at + piece.length, length: 0), in: tv)
             textViewDidChange(tv)
             commitDraft()
-            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true) }
+            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true, rebuild: .undoable) }
+            tv.undoManager?.endUndoGrouping()
         }
 
         // MARK: attributed text ⇄ marker string (round-trip)
@@ -2317,7 +2350,7 @@ final class NoteBodyProxy {
     func insertMemoLink(id: UUID, title: String) { coordinator?.insertMemoLink(id: id, title: title) }
     /// Rebuild the attributed text so attachment thumbnails re-decode (after
     /// a markup save-back rewrote a photo file). Caret carries across.
-    func refreshAttachments() { coordinator?.load(force: true) }
+    func refreshAttachments() { coordinator?.load(force: true, rebuild: .silent) }
     /// Zoom-transition anchor for the photo with marker `n` (P2#12).
     func photoAnchor(marker n: Int) -> MarkupQuickLook.Anchor? {
         coordinator?.photoAnchor(marker: n)
