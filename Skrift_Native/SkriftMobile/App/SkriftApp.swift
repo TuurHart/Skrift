@@ -155,6 +155,8 @@ struct SkriftApp: App {
         #if DEBUG
         if let demo = LaunchFlags.shareSheetDemo {
             ShareSheetDemoHost(state: demo, dark: LaunchFlags.shareSheetDemoDark)   // Q464 screenshots
+        } else if LaunchFlags.readAlongDemo {
+            ReadAlongDemoHost()   // Q537 screenshots
         } else if perfLibrary.isSeeding {
             PerfSeedingView(launch: perfLibrary)
         } else {
