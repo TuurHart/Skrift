@@ -419,6 +419,7 @@ struct TagUndoToastView: View {
             Text("Removed #\(tag)")
                 .font(.system(size: 13)).foregroundStyle(Color.white)
             Button("Undo", action: onUndo)
+                .buttonStyle(.plain)  // Q549: macOS keeps a bordered button inside the capsule otherwise
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12).padding(.vertical, 6)
