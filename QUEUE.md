@@ -3976,6 +3976,12 @@ needs: -
 gate+: yes
 do: Every edit in the phone note editor goes on the one undo stack, and Undo walks back through all of them in order, Redo forward. In `SkriftMobile/Features/MemoDetail/NoteBodyView.swift` these edit the text behind the undo manager: `insertPhoto` (direct `textStorage.insert` :1083), `insertAttachment` (:2177), the `textStorage` edits at :1693-1712 (find out what they are), attachment delete (`tv.attributedText =` :1404), and `load` (`tv.attributedText =` :391), which wipes the stack on any rebuild, including one triggered by a commit that normalised the text or by a sync arriving while the note is open. Route edits through `undoableReplace` (:777) as Q536 and Q547 did. Reproduce first with a failing test: type, Return, type, insert a picture, type, then undo to the start and check the text at each step, then redo to the end. Also check the Return key continuing a list, which Q536 left out. Undoing a picture insert must leave no stale picture marker in the saved text, and Redo must bring the same picture back: do not delete its file or manifest entry while it can still be redone. A rebuild that must happen while typing keeps the stack if it can; if a sync rebuild has to clear it, say so in the report. Leave the iPad and Mac editors alone.
 check: New unit test file for the sequence above with text asserted at every step, photo and file both. New XCUITest on a seeded note opened from the list through `memo-row-0`, using the bar's Undo, with PNGs looked at. `NoteBodyUndoTests`, `NoteBodyMoveBlockTests` and `EditorFormattingTests` still pass. Full builds of both apps.
+### Q551 [auto] (doing) Phone: after a picture or file goes in, typing starts on a new line below it
+spec: Found by Q550 (screenshot q550-2): after `insertPhoto` the caret sits right after the picture glyph, so typed text lands beside the picture and the stored text reads `[[img_001]]OMEGA` until a commit normalises it. Q547's known limit: a commit carrying an inline picture plus a picture paragraph after unpunctuated text still glues paragraphs, so this may bring the merge back.
+needs: -
+gate+: yes
+do: In `SkriftMobile/Features/MemoDetail/NoteBodyView.swift` `insertPhoto` and `insertAttachment`: after the insert the caret goes on its own empty line below the block, as Apple Notes does, and typing there is a new paragraph. This stays one undo group with the insert (Q550). First write a failing test on the real path: a voice note with unpunctuated paragraphs and an existing picture, insert a second picture, type a word, commit; every paragraph must stay separate and the new picture must stand alone. Also cover a caret in the middle of a sentence and at the end of the note. Do not change what `NotePhoto.inserting` does for a mid-sentence caret beyond the caret's final place. If the test shows the merge still happens with the caret fixed, fix `BodyV2.committed` for that case too. No trailing blank line may be saved if the user types nothing after the picture.
+check: New unit test file for the cases above, text asserted after commit and after Undo. Simulator PNG of picture then typed word, note opened from the list through `memo-row-0`, looked at. `NoteBodyUndoSequenceTests`, `NoteBodyMoveBlockTests`, `NoteBodyUndoTests` still pass. Full builds of both apps.
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5741,3 +5747,5 @@ check: New unit test file for the sequence above with text asserted at every ste
 - 2026-11-04 21:28 Q550 added
 - 2026-11-04 21:28 Q550 -> doing — worker dispatched 2026-11-04
 - 2026-11-04 21:52 Q550 -> done — gate 86s @93a5a1bb
+- 2026-11-04 21:53 Q551 added
+- 2026-11-04 21:53 Q551 -> doing — worker dispatched 2026-11-04
