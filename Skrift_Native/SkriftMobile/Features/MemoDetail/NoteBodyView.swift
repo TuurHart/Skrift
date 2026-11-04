@@ -1092,24 +1092,81 @@ struct NoteBodyView: UIViewRepresentable {
             meta.imageManifest = manifest
             memo.metadata = meta
 
-            let at = min(pendingPhotoLocation ?? tv.selectedRange.location, tv.textStorage.length)
-            pendingPhotoLocation = nil
-            let piece = NSMutableAttributedString(string: "\n", attributes: baseAttributes())
             let att = NSMutableAttributedString(attachment: imageAttachment(markerIndex: index))
             att.addAttribute(Self.markerKey, value: index, range: NSRange(location: 0, length: att.length))
-            piece.append(att)
-            piece.append(NSAttributedString(string: "\n", attributes: baseAttributes()))
-            // Q550: the insert, and the redraw of what the commit stored, are ONE undo step. The
-            // picture's file and manifest entry stay when it is undone, so Redo can bring it back.
+            // The picture's file and manifest entry stay when it is undone (Q550), so Redo can bring it back.
+            insertBlock(att, tagKey: Self.markerKey, tagValue: index, in: tv)
+        }
+
+        /// Q551: put a picture / file block into the note and leave the caret on its own empty
+        /// line below it, as Apple Notes does, so the next word is a new paragraph. The block goes
+        /// where the commit would store it (the end of the sentence the caret is in, C10) with a
+        /// blank line each side, so the text is already the shape the commit keeps and a note whose
+        /// paragraphs end without punctuation is not re-joined around its other pictures. The
+        /// insert, the commit's redraw and the empty line are ONE undo step (Q550). The empty line
+        /// is never saved: the commit trims trailing blank lines.
+        private func insertBlock(_ glyph: NSAttributedString, tagKey: NSAttributedString.Key,
+                                 tagValue: AnyHashable, in tv: UITextView) {
+            let requested = min(pendingPhotoLocation ?? tv.selectedRange.location, tv.textStorage.length)
+            pendingPhotoLocation = nil
+            let at = blockSpot(forCaret: requested, in: tv)
+            let piece = NSMutableAttributedString(string: "\n\n", attributes: baseAttributes())
+            piece.append(glyph)
+            piece.append(NSAttributedString(string: "\n\n", attributes: baseAttributes()))
             tv.undoManager?.beginUndoGrouping()
             undoableReplace(NSRange(location: at, length: 0), with: piece,
                             selectionAfter: NSRange(location: at + piece.length, length: 0), in: tv)
             textViewDidChange(tv)
             commitDraft()          // persist text + manifest atomically
-            // The commit may have moved the picture to its sentence end (C10) — show
-            // what was stored.
+            // The commit normalised the blank lines: show what was stored.
             if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true, rebuild: .undoable) }
+            placeCaretBelowBlock(tagKey: tagKey, tagValue: tagValue, in: tv)
             tv.undoManager?.endUndoGrouping()
+        }
+
+        /// The display location a block requested at `caret` is stored at: the caret itself at a
+        /// line start or the end of the text, else the end of the sentence / list item / quote it
+        /// is in (`BodyV2.spot`, worked out on the marker text and mapped back to the view).
+        private func blockSpot(forCaret caret: Int, in tv: UITextView) -> Int {
+            let storage = tv.textStorage
+            let shown = storage.string as NSString
+            let len = shown.length
+            let c = min(caret, len)
+            if c == 0 || c == len || shown.character(at: c - 1) == 10 { return c }
+            func rawLength(_ d: Int) -> Int {
+                reconstruct(storage.attributedSubstring(from: NSRange(location: 0, length: d))).utf16.count
+            }
+            let rawText = reconstruct(storage) as NSString
+            let target = BodyV2.spot(after: max(rawLength(c) - 1, 0), in: rawText)
+            var lo = c, hi = len
+            while lo < hi {                       // rawLength never decreases as d grows
+                let mid = (lo + hi) / 2
+                if rawLength(mid) >= target { hi = mid } else { lo = mid + 1 }
+            }
+            return lo
+        }
+
+        /// The caret on an empty line just below the block tagged `tagKey == tagValue`: a blank line
+        /// after it, and another before whatever text follows.
+        private func placeCaretBelowBlock(tagKey: NSAttributedString.Key, tagValue: AnyHashable, in tv: UITextView) {
+            let storage = tv.textStorage
+            var glyphEnd: Int?
+            storage.enumerateAttribute(tagKey, in: NSRange(location: 0, length: storage.length)) { v, r, stop in
+                if let v = v as? AnyHashable, v == tagValue { glyphEnd = NSMaxRange(r); stop.pointee = true }
+            }
+            guard let g = glyphEnd else { return }
+            let shown = storage.string as NSString
+            var k = 0
+            while g + k < shown.length, shown.character(at: g + k) == 10 { k += 1 }
+            let wanted = g + k == shown.length ? 2 : 4
+            if k < wanted {
+                undoableReplace(NSRange(location: g + k, length: 0),
+                                with: NSAttributedString(string: String(repeating: "\n", count: wanted - k), attributes: baseAttributes()),
+                                selectionAfter: NSRange(location: g + 2, length: 0), in: tv)
+            } else {
+                tv.selectedRange = NSRange(location: g + 2, length: 0)
+            }
+            applyTierStyling()
         }
 
         // MARK: name taps (via the selection, not a gesture)
@@ -2200,18 +2257,8 @@ struct NoteBodyView: UIViewRepresentable {
         func insertAttachment(fileURL: URL, originalName: String?, uti: String?) {
             guard let tv = textView, currentMode == .editing,
                   let added = NoteAttachmentStore.add(fileURL: fileURL, originalName: originalName, uti: uti, to: memo) else { return }
-            let at = min(pendingPhotoLocation ?? tv.selectedRange.location, tv.textStorage.length)
-            pendingPhotoLocation = nil
-            let piece = NSMutableAttributedString(string: "\n", attributes: baseAttributes())
-            piece.append(attachmentPiece(added.entry, literal: NoteAttachment.literal(kind: added.entry.kind, number: added.number)))
-            piece.append(NSAttributedString(string: "\n", attributes: baseAttributes()))
-            tv.undoManager?.beginUndoGrouping()          // Q550: one undo step, as for a picture
-            undoableReplace(NSRange(location: at, length: 0), with: piece,
-                            selectionAfter: NSRange(location: at + piece.length, length: 0), in: tv)
-            textViewDidChange(tv)
-            commitDraft()
-            if reconstruct(tv.attributedText) != (protectedQuote?.ramble ?? bodyText) { load(force: true, rebuild: .undoable) }
-            tv.undoManager?.endUndoGrouping()
+            let literal = NoteAttachment.literal(kind: added.entry.kind, number: added.number)
+            insertBlock(attachmentPiece(added.entry, literal: literal), tagKey: Self.attachmentKey, tagValue: literal, in: tv)
         }
 
         // MARK: attributed text ⇄ marker string (round-trip)
