@@ -3918,6 +3918,13 @@ gate+: yes
 do: The unified Text sheet (mocks/book-text-unified.html) shows Level 2 Book text, and an import prompt offers to add an ePub. A podcast episode has no book file. Hide every book-file offer for an episode: the Text sheet's Level 2, any "add a book file" line in the Transcribe flow, and the once-per-book import prompt. Audiobooks are unchanged. Use the existing `kind` on the book's metadata; do not add a new flag. Tick the BUGS.md line and update FEATURES.md.
 check: A phone unit test on the rule (an episode offers no book file, an audiobook does) and a simulator screenshot of the sheet for an episode, looked at.
 
+### Q542 [tuur] (todo) mockup: one bar while typing, and small and large pictures
+spec: D220 bug; Tuur 2026-11-04 ("can we unify the bars?", "do it now on mockup"); FeedbackKit 9343f168, cc368874; D202
+needs: -
+do: Mock only. (1) The two bars while typing against one bar. (2) Small and large pictures. Agent reads the source for the as-is state.
+check: Tuur picks on the mock page; the pick becomes a SPEC decision and a build item.
+ask: Open the mockup and pick: how many bars while typing, and how small and large pictures should look.
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5657,3 +5664,4 @@ check: A phone unit test on the rule (an episode offers no book file, an audiobo
 - 2026-11-04 14:10 Q535 -> stuck — NOT merged. Not reproduced on the iPhone 17 sim (iOS 26.3): the bar returned with and without the change. wt/Q535 adds .toolbar(.visible) on Library/Review/Settings, but Review pushes notes (JournalHomeView.swift:41) and Q387 found an explicit tab-level value beats the note's .hidden, so it risks D200 on those notes. Untried: cold launch with a pending import, iOS 26.6.1. Needs Rox's steps.
 - 2026-11-04 14:26 Q540 added
 - 2026-11-04 14:26 Q541 added
+- 2026-11-04 15:13 Q542 added
