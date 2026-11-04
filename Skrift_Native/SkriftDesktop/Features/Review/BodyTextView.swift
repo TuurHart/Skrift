@@ -946,16 +946,20 @@ struct BodyTextView: NSViewRepresentable {
         private func loadThumbnails(into tv: SelfSizingTextView, model: String) {
             guard let rx = BodyTextView.markerRegex else { return }
             let ns = model as NSString
-            var jobs: [(num: Int, url: URL)] = []
+            var jobs: [(num: Int, url: URL, size: NoteAttachment.Size)] = []
+            let large = parent.largeAttachments()
+            let column = NoteAttachment.wideMediaMaxWidth   // the widest the text gets, so a resize never blurs it
             for m in rx.matches(in: model, range: NSRange(location: 0, length: ns.length)) {
                 let num = Int(ns.substring(with: m.range(at: 1))) ?? 0
-                if let url = parent.imageURL(num) { jobs.append((num, url)) }
+                if let url = parent.imageURL(num) {
+                    jobs.append((num, url, NoteAttachment.size(of: url.lastPathComponent, large: large)))
+                }
             }
             guard !jobs.isEmpty else { return }
             Task.detached(priority: .userInitiated) {
                 var thumbs: [Int: NSImage] = [:]
                 for job in jobs where thumbs[job.num] == nil {
-                    if let img = Coordinator.loadThumbnail(url: job.url) { thumbs[job.num] = img }
+                    if let img = Coordinator.loadThumbnail(url: job.url, size: job.size, column: column) { thumbs[job.num] = img }
                 }
                 guard !thumbs.isEmpty else { return }
                 await MainActor.run { [weak self, weak tv] in
@@ -1100,7 +1104,10 @@ struct BodyTextView: NSViewRepresentable {
             let stored = NotePhoto.inserting(number: added.number, into: before, atOffset: caret,
                                              manifestCount: added.manifestCount)
             show(model: stored.text, in: tv)
-            if let url = parent.imageURL(added.number), let img = Coordinator.loadThumbnail(url: url) {
+            if let url = parent.imageURL(added.number),
+               let img = Coordinator.loadThumbnail(
+                   url: url, size: NoteAttachment.size(of: url.lastPathComponent, large: parent.largeAttachments()),
+                   column: NoteAttachment.wideMediaMaxWidth) {
                 splice([added.number: img], into: tv)   // now, so the caret can sit right after it
             }
             if let photo = photoLocation(added.number, in: tv), let storage = tv.textStorage {
@@ -1153,9 +1160,7 @@ struct BodyTextView: NSViewRepresentable {
             let dark = tv.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             let url = parent.attachmentURL(e)
             let size = NoteAttachment.size(of: e.filename, large: parent.largeAttachments())
-            let media = size == .large && url != nil && e.kind == NoteAttachment.Kind.video
-            let w = NoteAttachment.blockWidth(column: column, wide: true, largeMedia: media)
-            let img = NoteAttachmentArt.image(e, size: size, width: w,
+            let img = NoteAttachmentArt.image(e, size: size, column: column, wide: true,
                                               maxVideoHeight: NoteAttachment.videoMaxHeight(wide: true),
                                               fileURL: url, dark: dark)
             let att = NoteBlockAttachment(literal: literal, entry: e)
@@ -1364,24 +1369,17 @@ struct BodyTextView: NSViewRepresentable {
             let sel = tv.selectedRanges
             let column = columnWidth(tv)
             let large = parent.largeAttachments()
-            let dark = tv.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             storage.beginEditing()
             for m in rx.matches(in: storage.string, range: NSRange(location: 0, length: full.length)).reversed() {
                 let num = Int(full.substring(with: m.range(at: 1))) ?? 0
                 guard let img = thumbs[num] else { continue }
                 let att = ImageMarkerAttachment(imgNumber: num)
-                // D202: a photo is SMALL (the grey card) until the person switches it to large.
-                if let url = parent.imageURL(num),
-                   NoteAttachment.size(of: url.lastPathComponent, large: large) == .small {
-                    let w = NoteAttachment.blockWidth(column: column, wide: true, largeMedia: false)
-                    att.image = NoteAttachmentArt.photoCard(filename: url.lastPathComponent, fileURL: url, width: w, dark: dark)
-                    att.bounds = CGRect(x: 0, y: 0, width: w, height: NoteAttachment.cardMinHeight)
-                    storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
-                    continue
-                }
-                att.image = img
-                att.bounds = CGRect(origin: .zero, size: NoteLook.photoSize(image: img.size,
-                                                                           columnWidth: min(column, NoteAttachment.wideMediaMaxWidth)))
+                // D224: a photo is the picture itself, never cropped: SMALL (the default) a third of
+                // the text width on its longest side, LARGE the full text width at any height.
+                let size = photoSize(num, large: large)
+                let drawn = NoteAttachmentArt.picture(img, size: size, column: NoteAttachment.pictureColumn(column: column, wide: true))
+                att.image = drawn
+                att.bounds = CGRect(origin: .zero, size: drawn.size)
                 storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
             }
             storage.endEditing()
@@ -1907,34 +1905,26 @@ struct BodyTextView: NSViewRepresentable {
             return out
         }
 
-        /// Thread-safe downscaled thumbnail via ImageIO — decodes directly at thumbnail
-        /// size, so it's cheap to run OFF the main thread (unlike NSImage
-        /// lockFocus/draw, which forced a full decode on main → the ~600ms/image lag).
-        static func loadThumbnail(url: URL, maxPixel: CGFloat = 1024) -> NSImage? {
+        /// Thread-safe downscaled copy of a photo via ImageIO — decodes directly at the size the
+        /// photo will draw (twice its longest side, for Retina), so it is cheap to run OFF the main
+        /// thread (unlike NSImage lockFocus/draw, which forced a full decode on main → the ~600ms/image
+        /// lag). `splice` draws it through `NoteAttachmentArt.picture` (corners, size, no crop).
+        static func loadThumbnail(url: URL, size: NoteAttachment.Size, column: CGFloat) -> NSImage? {
+            let target = NoteAttachment.pictureSize(natural: NoteAttachmentArt.pixelSize(of: url), size: size, column: column)
+            let maxPixel = max(256, max(target.width, target.height) * 2)
             guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
                   let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, [
                       kCGImageSourceCreateThumbnailFromImageAlways: true,
                       kCGImageSourceThumbnailMaxPixelSize: maxPixel,
                       kCGImageSourceCreateThumbnailWithTransform: true,
                   ] as CFDictionary) else { return nil }
-            // Pixel-size image; `splice` sizes it with the shared NoteLook rule (fill the
-            // column, 320pt tall cap — the phone's), 1024px is crisp for that on Retina.
-            let img = NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width), height: CGFloat(cg.height)))
-            return roundedCorners(img)
+            return NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width), height: CGFloat(cg.height)))
         }
 
-        /// Clip an inline photo to soft rounded corners — reads better in the note body.
-        private static func roundedCorners(_ image: NSImage) -> NSImage {
-            let size = image.size
-            guard size.width > 0, size.height > 0 else { return image }
-            let radius = min(size.width, size.height) * NoteLook.photoCornerFraction
-            let out = NSImage(size: size)
-            out.lockFocus()
-            let rect = NSRect(origin: .zero, size: size)
-            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).addClip()
-            image.draw(in: rect)
-            out.unlockFocus()
-            return out
+        /// The size a photo draws at: the stored small / large flag, small by default.
+        private func photoSize(_ number: Int, large: [String]?) -> NoteAttachment.Size {
+            guard let url = parent.imageURL(number) else { return .small }
+            return NoteAttachment.size(of: url.lastPathComponent, large: large)
         }
     }
 }
