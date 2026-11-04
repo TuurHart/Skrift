@@ -98,12 +98,15 @@ final class BottomBarQ544UITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.6)
         let undone = (editor.value as? String) ?? ""
         XCTAssertFalse(undone.contains("qzx"), "undo from the bar did not take the typing back: \(undone)")
-        XCTAssertEqual(undone.count, before.count, "undo should land on the text before typing")
+        // The system groups typed characters its own way, so one undo may take back only part of
+        // what was typed; it must still shorten the text, never lengthen or reach before it.
+        XCTAssertLessThan(undone.count, typed.count, "undo did not shorten the text")
+        XCTAssertGreaterThanOrEqual(undone.count, before.count, "undo reached back before the typing")
         XCTAssertTrue(button(app, "accessory-redo").isEnabled, "redo should light after an undo")
 
         button(app, "accessory-redo").tap()
         Thread.sleep(forTimeInterval: 0.6)
-        XCTAssertTrue(((editor.value as? String) ?? "").contains("qzx"), "redo from the bar did not bring it back")
+        XCTAssertEqual((editor.value as? String) ?? "", typed, "redo from the bar did not bring the typing back")
 
         button(app, "accessory-done").tap()
         let gone = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: button(app, "accessory-done"))
