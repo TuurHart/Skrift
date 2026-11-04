@@ -71,12 +71,21 @@ enum NotePhoto {
     static func inserting(number: Int, into text: String, atOffset caret: Int,
                           manifestCount: Int) -> (text: String, markerOffset: Int) {
         let ns = text as NSString
-        let at = max(0, min(caret, ns.length))
+        let requested = max(0, min(caret, ns.length))
+        // Q552: the picture goes where the commit would store it, at the end of the sentence the
+        // caret is in, so the text is already the stored shape. Wrapping the caret itself and
+        // leaving the snap to move it split a word at a mid-word caret ("thi rd") and, with the
+        // commit's sentence rule below, glued the paragraphs around an older picture.
+        let at = (requested == 0 || requested == ns.length || ns.character(at: requested - 1) == 10)
+            ? requested : BodyV2.spot(after: requested - 1, in: ns)
         let marker = BodyV2Marker.literal(number)
         let raw = ns.replacingCharacters(in: NSRange(location: at, length: 0), with: "\n\n" + marker + "\n\n")
         let entries = Array(repeating: ImageManifestEntry(filename: "", offsetSeconds: 0),
                             count: max(manifestCount, number))
-        let stored = BodyV2.committed(BodyV2.Input(text: raw, manifest: entries, source: .typed, userEdited: true))
+        // keepOwnParagraphs (Q547): an older picture on its own paragraph stays there even after a
+        // paragraph that ends without . ? ! … :.
+        let stored = BodyV2.committed(BodyV2.Input(text: raw, manifest: entries, source: .typed, userEdited: true,
+                                                   keepOwnParagraphs: true))
         let found = (stored as NSString).range(of: marker)
         return (stored, found.location == NSNotFound ? at : found.location)
     }
