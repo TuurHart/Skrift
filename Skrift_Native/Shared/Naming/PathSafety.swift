@@ -81,17 +81,17 @@ enum PathSafety {
     /// Standardised, symlinks resolved. A path that does not exist yet resolves its parent and
     /// re-attaches the last component (and follows the last component too if it does exist).
     private static func resolved(_ url: URL, depth: Int = 0) -> URL {
-        guard depth < 40 else { return url.standardizedFileURL }   // a symlink loop
+        // A symlink loop resolves to nowhere inside any root, so it is refused.
+        guard depth < 40 else { return URL(fileURLWithPath: "/dev/null/symlink-loop") }
         let std = url.standardizedFileURL
-        if FileManager.default.fileExists(atPath: std.path) || (try? std.checkResourceIsReachable()) == true {
-            return std.resolvingSymlinksInPath()
-        }
-        // A dangling symlink exists as a link even though its target does not: resolve it by hand.
-        if let dest = try? FileManager.default.destinationOfSymbolicLink(atPath: std.path) {
+        let fm = FileManager.default
+        // A symlink leaf (live or dangling) is followed by hand, one hop at a time.
+        if let dest = try? fm.destinationOfSymbolicLink(atPath: std.path) {
             let target = dest.hasPrefix("/") ? URL(fileURLWithPath: dest)
                                              : std.deletingLastPathComponent().appendingPathComponent(dest)
             return resolved(target, depth: depth + 1)
         }
+        if fm.fileExists(atPath: std.path) { return std.resolvingSymlinksInPath() }
         let parent = std.deletingLastPathComponent()
         if parent.path == std.path || parent.path == "/" { return std }
         return resolved(parent, depth: depth + 1).appendingPathComponent(std.lastPathComponent)
