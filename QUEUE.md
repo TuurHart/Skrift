@@ -4000,7 +4000,7 @@ needs: -
 gate+: yes
 do: Find what reorders blocks at the end of an edit and stop it. Path: phone Done, `textViewDidEndEditing`, `commitDraft`/`committedBody`, `BodyV2.committed`, `load`, and the end-of-edit normalise. `BodyV2Marker.regex` matches only `[[img_NNN]]`, so `[[file_NNN]]` and `[[vid_NNN]]` are plain text to it: look there, but that is a lead, not a cause. In the recording he had also undone everything and redone it before Done (Q550), so test both with and without an undo/redo round, and note that a redo may leave manifest numbers out of order. Write the failing test first on the real path with: text, photo, library photo, file, then Done. Also cover file then photo, video between photos, and marker numbers not in reading order. A commit must never change the order of blocks the user placed. Check the Mac's end-of-edit commit for the same fault.
 check: New unit tests with the stored text quoted before and after. `NoteBodyUndoSequenceTests`, `NoteBodyMoveBlockTests`, `NoteBodyPhotoCaretTests`, `PhoneEndOfEditNormaliseTests` pass unedited. XCUITest on a seeded note opened through `memo-row-0` with a PNG after Done, looked at. Full builds of both apps.
-### Q555 [auto] (doing) Mac: Command-Z restores a tag you just removed
+### Q555 [auto] (done) Mac: Command-Z restores a tag you just removed
 spec: Tuur 2026-11-07, Dev 205 Mac: after removing a tag the toast's Undo works, but Command-Z does not do the same ("I'd imagine that would be the same").
 needs: -
 gate+: yes
@@ -5793,3 +5793,4 @@ check: `git grep PortfolioVault` empty outside archive. Unit tests: ExportGate o
 - 2026-11-07 13:01 Q555 -> doing — worker dispatched 2026-11-07
 - 2026-11-07 13:08 Q556 added
 - 2026-11-07 13:08 Q556 -> doing — worker dispatched 2026-11-07
+- 2026-11-07 13:15 Q555 -> done — gate 146s @39b23f72
