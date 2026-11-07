@@ -122,20 +122,24 @@ enum PortfolioTagPresets {
 ///
 /// The ON/OFF switch SYNCS across devices (Tuur 2026-10-02, D162, Q98: "if I turn it on
 /// somewhere, it turns on everywhere"): a Bool plus its own LWW stamp in UserDefaults, mirrored
-/// to the `VocabularyRecord` carrier by `DestinationsSyncCore`. The portfolio FOLDER stays per
-/// device (a security-scoped bookmark / path means nothing on another machine): a device with
-/// the switch on and no folder shows the chips and cannot export yet.
+/// to the `VocabularyRecord` carrier by `DestinationsSyncCore`. The portfolio FOLDER exists on
+/// the Mac only (D227: Portfolio notes export from the Mac; the phone and iPad have no folder).
 enum DestinationSettings {
     private static let key = "skrift.destinations.enabled"
     static let stampKey = "skrift.destinations.enabledModifiedAt"
 
-    /// ONE portfolio root. Every Portfolio note lands in `<root>/_inbox/`
-    /// (`NoteDestination.portfolioFolder`).
-    ///
-    /// `.personal` is NOT here: it keeps the existing Obsidian vault setting on each app
-    /// (the phone's security-scoped bookmark, the Mac's `AppSettings.noteFolder`), so
-    /// turning destinations on moves nothing that already works.
+    /// The key an older phone build saved its Portfolio folder bookmark under. Nothing reads it
+    /// any more (D227); `dropPhonePortfolioFolder` deletes it.
     static let portfolioRootKey = "skrift.destinations.portfolioRoot"
+
+    #if os(iOS)
+    /// D227: clear the Portfolio folder bookmark an older build saved on this phone or iPad.
+    /// Run at every launch; removing an absent key does nothing, so a stale bookmark is cleared
+    /// once and later launches change nothing.
+    static func dropPhonePortfolioFolder(defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: portfolioRootKey)
+    }
+    #endif
 
     static var isEnabled: Bool {
         get { forcedOn || storedEnabled() }
@@ -176,8 +180,10 @@ enum DestinationSettings {
         defaults.set(now, forKey: stampKey)
     }
 
-    /// Settings copy for a device that has the switch on but no folder picked here.
+    #if os(macOS)
+    /// Settings copy for a Mac that has the switch on but no portfolio folder picked.
     static let needsFolderNotice = "Pick a portfolio folder on this device to export"
+    #endif
 
     /// `-destinationsOn` — the screenshot/UI rig's override. Read straight from the
     /// process arguments so this type stays app-agnostic (the Mac has no `LaunchFlags`).
@@ -194,7 +200,6 @@ enum DestinationSettings {
         guard LaunchArgs.has("-resetDestinations") else { return }
         UserDefaults.standard.removeObject(forKey: key)
         UserDefaults.standard.removeObject(forKey: stampKey)
-        UserDefaults.standard.removeObject(forKey: portfolioRootKey)
     }
     #endif
 }

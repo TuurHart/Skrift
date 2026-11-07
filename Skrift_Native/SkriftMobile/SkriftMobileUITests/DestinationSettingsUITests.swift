@@ -1,9 +1,9 @@
 import XCTest
 
-/// Settings → Destinations: the one switch and the one portfolio-folder pick.
+/// Settings → Destinations: the one switch. D227: the phone and iPad have no Portfolio folder;
+/// Portfolio notes export from the Mac, and the footer under the switch says so.
 ///
-/// Off is the shipped default and must look like nothing changed; on reveals the folder
-/// row; configured shows what Skrift will actually do with that folder BEFORE it does it.
+/// Off is the shipped default and must look like nothing changed.
 /// Screenshots because a settings section reviewed from source is one nobody has looked at.
 final class DestinationSettingsUITests: XCTestCase {
 
@@ -59,26 +59,11 @@ final class DestinationSettingsUITests: XCTestCase {
         // stayed "0" and the failure read like a broken binding.
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         XCTAssertEqual(toggle.value as? String, "1", "the switch should now read on")
-        let folder = app.buttons["portfolio-folder"]
-        reveal(app, folder)   // the new row can land below the fold on a small screen
-        XCTAssertTrue(folder.waitForExistence(timeout: 5),
-                      "on reveals the portfolio folder pick")
-        capture(app, "settings-on-unconfigured")
-    }
-
-    /// Configured: the `_inbox` folder Portfolio notes land in is shown read-only, so what the
-    /// folder is about to be used for is visible before anything is written to it.
-    func testConfiguredShowsTheInboxFolder() {
-        let app = launch(["-destinationsOn", "-seedPortfolioFolder"])
-        let folderRow = app.buttons["portfolio-folder"]
-        reveal(app, folderRow)
-        XCTAssertTrue(folderRow.waitForExistence(timeout: 5))
-        let inbox = app.staticTexts["portfolio-path-portfolio"]
-        XCTAssertTrue(inbox.waitForExistence(timeout: 5),
-                      "the resolved subfolder must be shown, not just promised")
-        // `LabeledContent` reads its label and value as ONE element ("Portfolio, portfolio/_inbox"),
-        // which is the right thing for VoiceOver — so match the path inside it.
-        XCTAssertTrue(inbox.label.hasSuffix("portfolio/_inbox"), inbox.label)
-        capture(app, "settings-configured")
+        // D227: the phone has no Portfolio folder row; the footer says the Mac exports.
+        XCTAssertFalse(app.buttons["portfolio-folder"].exists, "the phone has no Portfolio folder row")
+        let footer = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "export from your Mac")).firstMatch
+        reveal(app, footer)
+        XCTAssertTrue(footer.waitForExistence(timeout: 5), "the footer should say Portfolio notes export from the Mac")
+        capture(app, "settings-on")
     }
 }

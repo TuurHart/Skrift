@@ -99,10 +99,6 @@ final class TwoDestinationsTests: XCTestCase {
     private func publisher(movie: URL? = nil) -> ObsidianPublisher {
         var p = ObsidianPublisher(
             vaultProvider: { self.sandbox.appendingPathComponent("vault") },
-            portfolioFolderProvider: { d in
-                d.portfolioFolder.map { self.portfolioRoot.appendingPathComponent($0, isDirectory: true) }
-            },
-            portfolioScopeRoot: { self.portfolioRoot },
             manageScope: false,
             author: "Tiuri Hartog",
             peopleProvider: { [] },
@@ -129,35 +125,7 @@ final class TwoDestinationsTests: XCTestCase {
         portfolioRoot.appendingPathComponent("_inbox").appendingPathComponent(name)
     }
 
-    func testPortfolioNoteLandsInInboxWithMediaBesideAndPresetTagsInFrontmatter() throws {
-        let movie = sandbox.appendingPathComponent("clip.mov")
-        try Data("MOVIE".utf8).write(to: movie)
-        let memo = portfolioMemo(tags: ["idea", "inspiration", "lisbon"])
-
-        let outcome = try publisher(movie: movie).publish(memo)
-        guard case .written(let rel) = outcome else { return XCTFail("expected a write, got \(outcome)") }
-
-        XCTAssertEqual(rel, "the-bench-outside-cafe-garrett.md")
-        let note = inbox(rel)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: note.path), note.path)
-        for beside in ["the-bench-outside-cafe-garrett.m4a", "the-bench-outside-cafe-garrett.mov"] {
-            XCTAssertTrue(FileManager.default.fileExists(atPath: inbox(beside).path), "\(beside) beside the note")
-        }
-        for gone in ["_ideas", "_inspiration", "_projects", "Skrift"] {
-            XCTAssertFalse(FileManager.default.fileExists(atPath: portfolioRoot.appendingPathComponent(gone).path), gone)
-        }
-
-        let text = try String(contentsOf: note, encoding: .utf8)
-        XCTAssertTrue(text.contains("tags:\n  - idea\n  - inspiration\n  - lisbon"), text)
-        XCTAssertTrue(text.contains("capture: Voice-memo"), text)
-        XCTAssertFalse(text.contains("author:"), text)
-    }
-
-    func testPortfolioProfileWritesNoSummaryButThePersonalProfileKeepsIt() throws {
-        _ = try publisher().publish(portfolioMemo(tags: ["idea"]))
-        let portfolio = try String(contentsOf: inbox("the-bench-outside-cafe-garrett.md"), encoding: .utf8)
-        XCTAssertFalse(portfolio.contains("summary:"), "the archive dropped summary: (2026-08-26)")
-
+    func testThePersonalProfileKeepsSummary() throws {
         try FileManager.default.createDirectory(at: sandbox.appendingPathComponent("vault"), withIntermediateDirectories: true)
         let personal = portfolioMemo(tags: [])
         personal.destination = .personal
@@ -165,19 +133,6 @@ final class TwoDestinationsTests: XCTestCase {
         _ = try publisher().publish(personal)
         let vault = try String(contentsOf: sandbox.appendingPathComponent("vault/Skrift/A vault note.md"), encoding: .utf8)
         XCTAssertTrue(vault.contains("summary:"), "the vault profile is unchanged")
-    }
-
-    func testCreditIsNeededOnlyWhenTheInspirationTagIsThere() throws {
-        for (tags, wants) in [(["inspiration"], true), (["Inspiration", "idea"], true),
-                              (["idea"], false), (["project"], false), ([], false)] as [([String], Bool)] {
-            let p = publisher()
-            let memo = portfolioMemo(tags: tags)
-            memo.id = UUID()
-            _ = try p.publish(memo)
-            let text = try String(contentsOf: inbox("the-bench-outside-cafe-garrett.md"), encoding: .utf8)
-            XCTAssertEqual(text.contains("  - credit"), wants, "tags \(tags)")
-            try? FileManager.default.removeItem(at: portfolioRoot.appendingPathComponent("_inbox"))
-        }
     }
 
     func testTypingIdeaOnAPersonalNoteIsJustATag() throws {
@@ -192,11 +147,4 @@ final class TwoDestinationsTests: XCTestCase {
         XCTAssertTrue(text.contains("  - idea"))
     }
 
-    func testAnOldStoredIdeaStillExportsToInboxWithItsTag() throws {
-        let memo = portfolioMemo(tags: ["lisbon"])
-        memo.destinationRaw = "idea"          // never opened since the four-destination era
-        _ = try publisher().publish(memo)
-        let text = try String(contentsOf: inbox("the-bench-outside-cafe-garrett.md"), encoding: .utf8)
-        XCTAssertTrue(text.contains("tags:\n  - lisbon\n  - idea"), text)
-    }
 }

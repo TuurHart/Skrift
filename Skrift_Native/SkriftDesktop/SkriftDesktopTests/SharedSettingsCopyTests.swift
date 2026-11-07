@@ -81,7 +81,7 @@ final class SharedSettingsCopyTests: XCTestCase {
     private let both = [
         "SettingsCopy.customWordPlaceholder", "SettingsCopy.customWordsHelp",
         "SettingsCopy.obsidianFolderLabel", "SettingsCopy.chooseVerb", "SettingsCopy.obsidianHelp",
-        "SettingsCopy.destinationsToggleLabel", "SettingsCopy.portfolioFolderLabel", "SettingsCopy.destinationsHelp",
+        "SettingsCopy.destinationsToggleLabel", "SettingsCopy.destinationsHelp",
         "NamesCopy.emptyTitle", "NamesCopy.emptyBody", "NamesCopy.searchPlaceholder",
         "NamesCopy.voiceEnrolled", "NamesCopy.voiceMissing", "NamesCopy.voiceMissingHint",
         "NamesCopy.voiceEnrolledHelp", "NamesCopy.newPersonTitle", "NamesCopy.editorTitle",

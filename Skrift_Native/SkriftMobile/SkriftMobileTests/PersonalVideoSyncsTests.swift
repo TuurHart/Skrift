@@ -99,8 +99,6 @@ final class PersonalVideoSyncsTests: XCTestCase {
         let root = sandbox.appendingPathComponent("portfolio")
         return ObsidianPublisher(
             vaultProvider: { self.sandbox.appendingPathComponent("vault") },
-            portfolioFolderProvider: { d in d.portfolioFolder.map { root.appendingPathComponent($0, isDirectory: true) } },
-            portfolioScopeRoot: { root },
             manageScope: false,
             author: "Tiuri Hartog",
             peopleProvider: { [] },
@@ -136,15 +134,6 @@ final class PersonalVideoSyncsTests: XCTestCase {
                       "no movie ever goes into the Obsidian vault")
         XCTAssertTrue(movFiles(under: sandbox.appendingPathComponent("portfolio")).isEmpty,
                       "a Personal note is not a portfolio note")
-    }
-
-    func testPortfolioExportStillCopiesTheMovie() throws {
-        let movie = sandbox.appendingPathComponent("the-movie.mov")
-        try Data("MOVIE".utf8).write(to: movie)
-        let outcome = try publisher(movie: movie, ledger: "q.json").publish(videoMemo(destination: .portfolio))
-        guard case .written = outcome else { return XCTFail("expected a write, got \(outcome)") }
-        XCTAssertEqual(movFiles(under: sandbox.appendingPathComponent("portfolio")).count, 1)
-        XCTAssertTrue(movFiles(under: sandbox.appendingPathComponent("vault")).isEmpty)
     }
 
     func testTheShareCardNoLongerSaysPersonalDiscardsTheMovie() {

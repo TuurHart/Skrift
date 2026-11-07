@@ -43,10 +43,6 @@ final class PicAtStartPublisherTests: XCTestCase {
     private func publisher(photos: [String: Data]) -> ObsidianPublisher {
         ObsidianPublisher(
             vaultProvider: { self.sandbox.appendingPathComponent("vault") },
-            portfolioFolderProvider: { d in
-                d.portfolioFolder.map { self.portfolioRoot.appendingPathComponent($0, isDirectory: true) }
-            },
-            portfolioScopeRoot: { self.portfolioRoot },
             manageScope: false,
             author: "Tiuri", peopleProvider: { [] },
             photosProvider: { _ in photos },
@@ -64,8 +60,7 @@ final class PicAtStartPublisherTests: XCTestCase {
     @MainActor
     func testBodyOpeningWithAPictureKeepsItsFrontmatterOnBothProfiles() throws {
         for (destination, label, root, embed) in [(NoteDestination, String, URL, String)]([
-            (NoteDestination.personal, "vault", sandbox.appendingPathComponent("vault"), "![["),
-            (.portfolio, "portfolio", portfolioRoot, "![](")]) {
+            (NoteDestination.personal, "vault", sandbox.appendingPathComponent("vault"), "![[")]) {
             let (memo, photos) = try corpusMemo()
             memo.destination = destination
             memo.tags = []

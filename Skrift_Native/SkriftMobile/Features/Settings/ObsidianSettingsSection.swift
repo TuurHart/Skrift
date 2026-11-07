@@ -34,8 +34,6 @@ struct ObsidianSettingsSection: View {
     /// folder, and the whole thing is Tuur's own way of separating his thoughts from his
     /// work (2026-08-26: *"somebody might not care. This is very specific for me"*).
     @State private var destinationsOn = DestinationSettings.isEnabled
-    @State private var pickingPortfolio = false
-    @State private var portfolioName = PortfolioVault.displayName
 
     /// Can THIS device turn a memo into a polished note? If not, it has nothing to
     /// export, so the export controls don't appear at all.
@@ -112,9 +110,8 @@ struct ObsidianSettingsSection: View {
         destinationsSection
     }
 
-    /// Settings → Destinations. One switch, then ONE portfolio-folder pick. The `_inbox`
-    /// subfolder Portfolio notes land in is shown read-only underneath, so what Skrift will do
-    /// with the folder is visible before it does it.
+    /// Settings → Destinations. One switch. No folder (D227): Portfolio notes export from the Mac,
+    /// so the phone and iPad have nothing to pick; the footer says so.
     @ViewBuilder
     private var destinationsSection: some View {
         Section {
@@ -136,48 +133,10 @@ struct ObsidianSettingsSection: View {
                 let stored = DestinationSettings.storedEnabled()
                 if stored != destinationsOn { destinationsOn = stored }
             }
-
-            if destinationsOn {
-                Button {
-                    pickingPortfolio = true
-                } label: {
-                    HStack {
-                        Label(SettingsCopy.portfolioFolderLabel, systemImage: "folder.badge.gearshape")
-                            .foregroundStyle(Color.skText)
-                        Spacer()
-                        Text(portfolioName ?? SettingsCopy.chooseVerb)
-                            .foregroundStyle(portfolioName == nil ? Color.skAccent : Color.skTextDim)
-                    }
-                }
-                .accessibilityIdentifier("portfolio-folder")
-
-                if let portfolioName {
-                    LabeledContent(NoteDestination.portfolio.label) {
-                        Text(SettingsCopy.portfolioInboxLine(root: portfolioName))
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(Color.skTextFaint)
-                            // Identified explicitly: `LabeledContent` folds its label and
-                            // value into ONE accessibility element, so the resolved path
-                            // is not findable by its own text.
-                            .accessibilityIdentifier("portfolio-path-portfolio")
-                    }
-                }
-            }
         } header: {
             Text("Destinations")
         } footer: {
-            Text(SettingsCopy.destinationsHelp(on: destinationsOn, hasFolder: portfolioName != nil))
-        }
-        .fileImporter(isPresented: $pickingPortfolio,
-                      allowedContentTypes: [.folder]) { result in
-            guard case .success(let url) = result else { return }
-            do {
-                try PortfolioVault.setRoot(url)
-                portfolioName = PortfolioVault.displayName
-                pickError = nil
-            } catch {
-                pickError = "Couldn't save the portfolio folder — pick it again."
-            }
+            Text(SettingsCopy.destinationsHelp(on: destinationsOn))
         }
     }
 }

@@ -1,8 +1,8 @@
 import Foundation
 
 /// One security-scoped-bookmark store for a user-picked folder, keyed by a `UserDefaults` key.
-/// `ObsidianVault` (the vault) and `PortfolioVault` (the portfolio root) are the same store
-/// under different keys; they keep their own extras and forward here.
+/// `ObsidianVault` (the vault) forwards here. (The phone's Portfolio folder used the same store
+/// until D227 removed it: Portfolio notes export from the Mac only.)
 struct ScopedFolderBookmark {
     let key: String
 
@@ -29,32 +29,25 @@ struct ScopedFolderBookmark {
     var displayName: String? { resolve()?.lastPathComponent }
 }
 
-/// Where a note's destination writes: the folder the user picked, the root the bookmark's
-/// security scope belongs to, and the layout profile. Derived once for the publisher and for
-/// the coordinator's ledger lookup, so the two cannot disagree about it.
+/// Where a note's destination writes: the vault folder the user picked and the layout profile.
+/// Derived once for the publisher and for the coordinator's ledger lookup, so the two cannot
+/// disagree about it.
 ///
-/// A portfolio destination writes into its folder inside the portfolio root, flat (see
-/// `ExportProfile`), and the scope belongs to the portfolio ROOT, not that subfolder.
-/// `.personal` is the Obsidian vault: picked root and scope root are the same folder.
+/// Only `.personal` (the Obsidian vault) writes from the phone and iPad (D227): a Portfolio
+/// note resolves to nil here and exports from the Mac.
 struct ExportDestinationRoot {
     let picked: URL
-    let scopeRoot: URL
     let profile: ExportProfile
 
-    /// nil when no folder is configured for this destination.
-    static func resolve(for destination: NoteDestination,
-                        vault: () -> URL?,
-                        portfolioFolder: (NoteDestination) -> URL?,
-                        portfolioScopeRoot: () -> URL?) -> ExportDestinationRoot? {
-        let profile = ExportProfile.of(destination)
-        guard let picked = destination.isPortfolio ? portfolioFolder(destination) : vault() else { return nil }
-        let scopeRoot = destination.isPortfolio ? (portfolioScopeRoot() ?? picked) : picked
-        return ExportDestinationRoot(picked: picked, scopeRoot: scopeRoot, profile: profile)
+    /// nil when no vault is configured, or when the note is a Portfolio note.
+    static func resolve(for destination: NoteDestination, vault: () -> URL?) -> ExportDestinationRoot? {
+        guard !destination.isPortfolio, let picked = vault() else { return nil }
+        return ExportDestinationRoot(picked: picked, profile: ExportProfile.of(destination))
     }
 
-    /// Start the scope (unless `manage` is false — temp-dir tests); `close()` the token with `defer`.
+    /// Start the scope (unless `manage` is false - temp-dir tests); `close()` the token with `defer`.
     func openScope(manage: Bool = true) -> Scope {
-        Scope(root: scopeRoot, started: manage && scopeRoot.startAccessingSecurityScopedResource())
+        Scope(root: picked, started: manage && picked.startAccessingSecurityScopedResource())
     }
 
     struct Scope {

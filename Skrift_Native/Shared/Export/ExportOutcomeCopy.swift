@@ -31,6 +31,10 @@ enum ExportOutcomeCopy {
         var isRefusal: Bool { stickiness == .sticky }
     }
 
+    /// D227: the one quiet line a Portfolio note shows on the phone and iPad where Export would
+    /// have been. Never an action.
+    static let exportsFromMacLine = "Exports from the Mac"
+
     // MARK: - Refusals before the engine runs (Q156)
 
     /// The sentence for each gate `ExportGate.check` can fail, the SAME words on both devices;
@@ -39,6 +43,8 @@ enum ExportOutcomeCopy {
     static func refusal(_ failure: ExportGate.Failure, device: ExportGate.Device) -> Message {
         let text: String
         switch failure {
+        case .exportsFromMac:
+            text = exportsFromMacLine
         case .noPortfolioFolder:
             text = "No portfolio folder is set on this device yet. Pick one in Settings → Destinations."
         case .noVaultFolder:

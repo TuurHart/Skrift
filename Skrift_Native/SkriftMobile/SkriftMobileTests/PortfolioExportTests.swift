@@ -41,10 +41,6 @@ final class PortfolioExportTests: XCTestCase {
     private func publisher(ledger: ExportLedger) -> ObsidianPublisher {
         ObsidianPublisher(
             vaultProvider: { self.sandbox.appendingPathComponent("vault") },
-            portfolioFolderProvider: { d in
-                d.portfolioFolder.map { self.portfolioRoot.appendingPathComponent($0, isDirectory: true) }
-            },
-            portfolioScopeRoot: { self.portfolioRoot },
             manageScope: false,
             author: "Tiuri Hartog",
             peopleProvider: { [] },
@@ -64,113 +60,6 @@ final class PortfolioExportTests: XCTestCase {
     }
 
     // MARK: - The shape of an entry
-
-    func testPortfolioEntryIsFlatAndTimestampNamed() throws {
-        let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("l.json"))
-        let memo = ideaMemo()
-
-        let outcome = try publisher(ledger: ledger).publish(memo)
-        guard case .written(let rel) = outcome else {
-            return XCTFail("expected a write, got \(outcome)")
-        }
-
-        XCTAssertEqual(rel, "the-bench-outside-cafe-garrett.md",
-                       "named, not dated, and FLAT — his 148 items are `Lamps/<name>/item.md`")
-        let file = portfolioRoot.appendingPathComponent("_inbox").appendingPathComponent(rel)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: file.path), file.path)
-
-        // The Obsidian house — Skrift/, Images/, Recordings/ — must NOT appear in the portfolio.
-        for unwanted in ["Skrift", "_inbox/Skrift", "_inbox/Images", "_inbox/Recordings"] {
-            XCTAssertFalse(
-                FileManager.default.fileExists(
-                    atPath: portfolioRoot.appendingPathComponent(unwanted).path),
-                "the portfolio is not a vault — found \(unwanted)")
-        }
-    }
-
-    func testPortfolioNoteCarriesNoWikiEmbedAndNoSensorFrontmatter() throws {
-        let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("l.json"))
-        let memo = ideaMemo()
-        _ = try publisher(ledger: ledger).publish(memo)
-
-        let file = portfolioRoot.appendingPathComponent("_inbox/the-bench-outside-cafe-garrett.md")
-        let text = try String(contentsOf: file, encoding: .utf8)
-
-        XCTAssertFalse(text.contains("![["), "a vault-relative embed does not travel")
-        for key in ["weather:", "pressure:", "dayPeriod:", "daylight:", "steps:", "significance:"] {
-            XCTAssertFalse(text.contains(key), "\(key) is personal-notes furniture")
-        }
-        // …and the keys a portfolio entry DOES need, including the stamp that stops a filed
-        // note from being written again.
-        for key in ["date:", "tags:", VaultStamp.idKey] {
-            XCTAssertTrue(text.contains(key), "missing \(key)")
-        }
-        // C130 (export v2, Q436): `title:` only when he typed it; this one is the Mac's suggestion.
-        XCTAssertFalse(text.contains("title:"))
-        XCTAssertFalse(text.contains("summary:"), "D189: the archive dropped summary:")
-
-        // The portfolio OWNS these two keys with other meanings — Skrift must not squat on them.
-        // `type:` is that repo's category (`type: lamps`, on 100+ items, from his own folder
-        // names) and `source:` is an item's provenance path. Verified against the real repo
-        // 2026-08-27; `type: idea` shipped for a day and was pulled.
-        XCTAssertFalse(text.contains("type:"), "type: belongs to the portfolio's categories")
-        XCTAssertFalse(text.contains("source:"), "source: belongs to the portfolio's provenance")
-        XCTAssertTrue(text.contains("capture: Voice-memo"), "…Skrift says capture: instead")
-
-        // `author:` is dropped: everything in the portfolio is his by that portfolio's rule, so the
-        // key could only ever hold one value. `voice:` carries what varies — and it is the
-        // portfolio's own key with the portfolio's own three values.
-        XCTAssertFalse(text.contains("author:"))
-        XCTAssertTrue(text.contains("voice: cleaned"), "the copy-edit is what was exported")
-    }
-
-    /// `needs:` is the portfolio's punch list. An `inspiration`-TAGGED note is someone else's work,
-    /// so one with no maker is always incomplete. `idea` and `project` are HIS, so raising credit
-    /// on them would be a false need, and a punch list of false needs is not one (D189: the tag
-    /// is the only signal, inspiration is no longer a destination).
-    func testOnlyTheInspirationTagAsksForCredit() throws {
-        for (tags, wantsCredit) in [(["inspiration"], true), (["idea", "Inspiration"], true),
-                                    (["idea"], false), (["project"], false), ([String](), false)] {
-            let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("\(UUID().uuidString).json"))
-            let memo = ideaMemo()
-            memo.tags = tags
-            _ = try publisher(ledger: ledger).publish(memo)
-
-            let note = portfolioRoot.appendingPathComponent("_inbox/the-bench-outside-cafe-garrett.md")
-            let text = try String(contentsOf: note, encoding: .utf8)
-            XCTAssertEqual(text.contains("- credit"), wantsCredit, "tags \(tags)")
-            try FileManager.default.removeItem(at: portfolioRoot.appendingPathComponent("_inbox"))
-        }
-    }
-
-    /// The case Tuur says happens most: someone else's object gives HIM an idea. It carries
-    /// `idea` + `inspiration`, and the inspiration tag raises the credit need.
-    func testAnIdeaTaggedInspirationStillAsksForCredit() throws {
-        let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("tagged.json"))
-        let memo = ideaMemo()
-        memo.tags = ["lisbon", "idea", "inspiration"]
-        _ = try publisher(ledger: ledger).publish(memo)
-
-        let text = try String(
-            contentsOf: portfolioRoot.appendingPathComponent("_inbox/the-bench-outside-cafe-garrett.md"),
-            encoding: .utf8)
-        XCTAssertTrue(text.contains("- credit"),
-                      "the object is someone else's even though the idea is his")
-        XCTAssertTrue(text.contains("  - inspiration"), "…and the tag itself is kept")
-    }
-
-    /// `voice:` says how the words got there. A typed note was never spoken.
-    func testVoiceIsWrittenForATypedNote() throws {
-        let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("typed.json"))
-        let memo = ideaMemo()
-        memo.audioFilename = ""          // typed — no recording behind it
-        _ = try publisher(ledger: ledger).publish(memo)
-
-        let text = try String(
-            contentsOf: portfolioRoot.appendingPathComponent("_inbox/the-bench-outside-cafe-garrett.md"),
-            encoding: .utf8)
-        XCTAssertTrue(text.contains("voice: written"), text)
-    }
 
     /// …and a vault note gets no `type:`. `personal` is the default and thousands of existing
     /// notes do not need a key repeating it.
@@ -268,15 +157,6 @@ final class PortfolioExportTests: XCTestCase {
         XCTAssertFalse(slug.hasSuffix("-"), "no trailing hyphen")
         XCTAssertTrue(slug.hasSuffix("seventeen") || slug.hasSuffix("letters"),
                       "cut between words, not mid-word — got \(slug)")
-    }
-
-    /// No month folder either: an entry sits directly in its destination folder.
-    func testEntriesAreFlatInTheirDestinationFolder() throws {
-        let ledger = ExportLedger(fileURL: sandbox.appendingPathComponent("flat.json"))
-        _ = try publisher(ledger: ledger).publish(ideaMemo())
-        let byMonth = portfolioRoot.appendingPathComponent("_inbox/2026-08")
-        XCTAssertFalse(FileManager.default.fileExists(atPath: byMonth.path),
-                       "no date folders — Tuur, 2026-08-28: we dont need the month either")
     }
 
     // MARK: - Body links

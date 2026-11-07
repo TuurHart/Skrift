@@ -130,13 +130,6 @@ struct ObsidianPublisher {
     /// Returns the vault root, or nil if unconfigured. `manageScope` wraps the write in
     /// `start/stopAccessingSecurityScopedResource` (true in prod; false for temp-dir tests).
     var vaultProvider: () -> URL?
-    /// The folder a PORTFOLIO destination writes into (portfolio root + `_ideas` etc). Injected
-    /// like `vaultProvider` rather than read from `PortfolioVault` inside, so a test can point
-    /// the whole thing at a temp directory — the portfolio layout is derived data and derived
-    /// data has to be proven end-to-end on real files.
-    var portfolioFolderProvider: (NoteDestination) -> URL? = { PortfolioVault.folder(for: $0) }
-    /// The root the security scope belongs to (the bookmarked folder, not the subfolder).
-    var portfolioScopeRoot: () -> URL? = { PortfolioVault.resolveRoot() }
     var manageScope: Bool
     var author: String
     var peopleProvider: () -> [Person]
@@ -159,8 +152,9 @@ struct ObsidianPublisher {
         return FileManager.default.fileExists(atPath: url.path) ? .file(url) : nil
     }
     /// C63 / C136: the kept source movie of a video note (the file `MemoSaver.keepMovie` wrote,
-    /// or the iPad's materialized copy of the synced `video` asset). Only a PORTFOLIO export
-    /// asks; nil when the note has none or the file is not on this device.
+    /// or the iPad's materialized copy of the synced `video` asset). Asked for the poster frame
+    /// and for the Portfolio side of "Export all as a zip"; nil when the note has none or the
+    /// file is not on this device.
     var movieProvider: (Memo) -> URL? = { memo in
         guard let name = memo.metadata?.videoFilename, !name.isEmpty else { return nil }
         let url = AppPaths.recordingsDirectory.appendingPathComponent(name)
@@ -225,46 +219,16 @@ struct ObsidianPublisher {
     /// `publish`, with the file the engine named and the photos it placed — what the
     /// outcome line quotes (`ExportOutcomeCopy`).
     func publishReport(_ memo: Memo) throws -> PublishReport {
-        // WHERE and HOW both follow the note's destination. `.personal` is the Obsidian vault
-        // and today's layout, unchanged; a portfolio destination is its folder inside the
-        // portfolio root, written flat (see `ExportProfile`).
-        guard let destination = ExportDestinationRoot.resolve(
-            for: memo.destination, vault: vaultProvider,
-            portfolioFolder: portfolioFolderProvider, portfolioScopeRoot: portfolioScopeRoot) else {
+        // Only `.personal` (the Obsidian vault) writes from the phone and iPad (D227): a Portfolio
+        // note exports from the Mac, so it resolves to no destination here (the gate refuses it
+        // first; this is the belt for a caller that skipped the gate).
+        guard let destination = ExportDestinationRoot.resolve(for: memo.destination, vault: vaultProvider) else {
             return PublishReport(outcome: .noVault, relativePath: "", assetCount: 0)
         }
         let profile = destination.profile
         let vaultRoot = destination.picked
-        // Scope the ROOT the bookmark was made against — for the portfolio that is the portfolio
-        // root, not the per-destination subfolder we write into.
         let scope = destination.openScope(manage: manageScope)
         defer { scope.close() }
-
-        // C163 (Q490): re-filed to the other destination since this device exported it? Edited
-        // or filed away there refuses the move, named, and nothing is written. Ours and
-        // untouched is removed once the new home has agreed to take the note (below).
-        var oldScope: ExportDestinationRoot.Scope?
-        defer { oldScope?.close() }
-        var removeOld: (() -> Void)?
-        let otherDestination: NoteDestination = memo.destination.isPortfolio ? .personal : .portfolio
-        if let other = ExportDestinationRoot.resolve(
-            for: otherDestination, vault: vaultProvider,
-            portfolioFolder: portfolioFolderProvider, portfolioScopeRoot: portfolioScopeRoot) {
-            let oldHome = VaultLayout.home(forPicked: other.picked, profile: other.profile)
-            if oldHome.standardizedFileURL != VaultLayout.home(forPicked: vaultRoot, profile: profile).standardizedFileURL {
-                oldScope = other.openScope(manage: manageScope)
-                let oldLedger = ExportLedger.default(for: oldHome)
-                switch DestinationMove.verdict(id: memo.id, oldHome: oldHome, ledger: oldLedger) {
-                case .nothingThere:
-                    break
-                case .refuse(let outcome):
-                    return PublishReport(outcome, relativePath: outcome.relativePath)
-                case .remove(let rel):
-                    removeOld = { DestinationMove.removeOld(relativePath: rel, id: memo.id, oldHome: oldHome,
-                                                            ledger: oldLedger) }
-                }
-            }
-        }
 
         // Resolve the PICK into the folder Skrift owns — the same call the Mac makes, or the
         // two apps would write to different places in one vault again (iOS at the picked
@@ -289,7 +253,6 @@ struct ObsidianPublisher {
         case .proceed(let rel, _):
             relPath = rel
         }
-        removeOld?()
         let stem = PublishOutcome.stem(ofRelativePath: relPath)
 
         // Memo-link stems: the ledger's sticky filename first (rename-safe), else the
@@ -378,13 +341,9 @@ struct ObsidianPublisher {
             audio = VaultAsset(name: stem + "." + (ext.isEmpty ? "m4a" : ext), source: .data(blob))
         }
 
-        // C63 / C136 / D172: a video filed Inspiration / Idea / Project brings its movie, beside
-        // the note like the picture. The Obsidian vault never gets it (a 200 MB clip has no
-        // business in a notes folder), and a Personal note never reaches this branch.
-        var documents: [VaultAsset] = document.map { [$0] } ?? []
-        if profile == .portfolio, memo.destination.isPortfolio, let movie = movieProvider(memo) {
-            documents.append(VaultAsset(name: stem + "." + movie.pathExtension, source: .file(movie)))
-        }
+        // A Personal note never carries its movie to the vault (a 200 MB clip has no business in
+        // a notes folder; D188). The Portfolio movie is the Mac's export (D227).
+        let documents: [VaultAsset] = document.map { [$0] } ?? []
 
         let r = try writer.commit(markdown: converted, id: memo.id, relativePath: relPath,
                                   attachments: attachments, audio: audio, documents: documents,

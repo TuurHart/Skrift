@@ -28,8 +28,9 @@ struct SkriftApp: App {
         DemoDataSeeder.seedIfRequested(repo)
         NamesSeeder.seedIfRequested()
         DestinationSettings.resetIfRequested()
-        PortfolioVault.seedIfRequested()
         #endif
+        // D227: the phone no longer has a Portfolio folder; drop the one an older build saved.
+        DestinationSettings.dropPhonePortfolioFolder()
         repository = repo
         #if DEBUG
         // Q313: `-perfLibrary` seeds its separate store off the main thread (a no-op otherwise).
