@@ -136,8 +136,6 @@ final class VideoAssetPhoneTests: XCTestCase {
         let root = sandbox.appendingPathComponent("portfolio")
         return ObsidianPublisher(
             vaultProvider: { self.sandbox.appendingPathComponent("vault") },
-            portfolioFolderProvider: { d in d.portfolioFolder.map { root.appendingPathComponent($0, isDirectory: true) } },
-            portfolioScopeRoot: { root },
             manageScope: false,
             author: "Tiuri Hartog",
             peopleProvider: { [] },
@@ -160,17 +158,6 @@ final class VideoAssetPhoneTests: XCTestCase {
         return m
     }
 
-    func testPortfolioExportCopiesTheMovieBesideTheNote() throws {
-        let movie = sandbox.appendingPathComponent("the-movie.mov")
-        try Data("MOVIE".utf8).write(to: movie)
-        let outcome = try publisher(movie: movie, ledger: "a.json").publish(videoMemo(destination: .portfolio))
-        guard case .written(let rel) = outcome else { return XCTFail("expected a write, got \(outcome)") }
-
-        let stem = (rel as NSString).deletingPathExtension
-        let copied = sandbox.appendingPathComponent("portfolio/_inbox/\(stem).mov")
-        XCTAssertEqual(try? Data(contentsOf: copied), Data("MOVIE".utf8), "the pair travels together")
-    }
-
     func testPersonalExportNeverGetsTheMovie() throws {
         let movie = sandbox.appendingPathComponent("the-movie.mov")
         try Data("MOVIE".utf8).write(to: movie)
@@ -180,11 +167,6 @@ final class VideoAssetPhoneTests: XCTestCase {
                                    includingPropertiesForKeys: nil)?.allObjects as? [URL] ?? [])
             .filter { $0.pathExtension == "mov" }
         XCTAssertTrue(found.isEmpty, "a 200 MB clip has no business in the notes vault")
-    }
-
-    func testPortfolioNoteWithNoMovieOnThisDeviceStillExports() throws {
-        let outcome = try publisher(movie: nil, ledger: "c.json").publish(videoMemo(destination: .portfolio))
-        guard case .written = outcome else { return XCTFail("expected a write, got \(outcome)") }
     }
 
     // MARK: - delete

@@ -18,15 +18,13 @@ final class ExportGateParityTests: XCTestCase {
 
     override func tearDownWithError() throws { try? FileManager.default.removeItem(at: sandbox) }
 
-    private func coordinator(vault: Bool = true, portfolio: Bool = true,
-                             processed: Bool = true) -> PublishCoordinator {
+    private func coordinator(vault: Bool = true, processed: Bool = true) -> PublishCoordinator {
         let publisher = ObsidianPublisher(vaultProvider: { self.sandbox }, manageScope: false,
                                           author: "T", peopleProvider: { [] },
                                           ledgerOverride: ledger)
         return PublishCoordinator(
             publisher: publisher,
             obsidianEnabled: { vault },
-            portfolioConfigured: { portfolio },
             enhancementProvider: { id in
                 processed ? MemoEnhancement(memoID: id, copyedit: "P.", title: "T", summary: "S") : nil
             })
@@ -42,7 +40,7 @@ final class ExportGateParityTests: XCTestCase {
     func testIpadRefusalIsTheSharedGateInTheSharedWords() {
         let cases: [(Memo, PublishCoordinator, ExportGate.Failure)] = [
             (memo(), coordinator(vault: false), .noVaultFolder),
-            (memo { $0.destination = .portfolio }, coordinator(portfolio: false), .noPortfolioFolder),
+            (memo { $0.destination = .portfolio }, coordinator(), .exportsFromMac),
             (memo { $0.deletedAt = Date() }, coordinator(), .trashed),
             (memo { $0.locked = true }, coordinator(), .locked),
             (memo { $0.significance = 0 }, coordinator(), .unrated),
