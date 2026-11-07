@@ -215,6 +215,8 @@ targets:
       - path: Features/Review/NoteMeasure.swift
       # Q125: the note find bar's setup + menu verbs (AppKit-only), so MacFindBarTests can assert it.
       - path: Features/Review/NoteFindBar.swift
+      # Q555: Command-Z = the tag Undo toast's Undo while it shows (AppKit-only), TagUndoKeyTests.
+      - path: Features/Review/TagUndoKey.swift
       # Q363: the typing debounce + body update gate (Foundation-only), MacTypingWorkTests.
       - path: Features/Review/MacTypingWork.swift
       # Q360: the Format commands + Export confirm rules (Foundation-only), MacEditorFormattingTests.
