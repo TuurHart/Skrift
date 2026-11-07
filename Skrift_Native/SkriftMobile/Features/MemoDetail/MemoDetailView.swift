@@ -372,8 +372,11 @@ struct MemoDetailView: View {
                 if memo.destination.isPortfolio {
                     // D227: a Portfolio note exports from the Mac. One quiet line, never a button.
                     Text(ExportOutcomeCopy.exportsFromMacLine)
-                        .font(.system(size: 12.5, weight: .medium))
+                        .font(.system(size: 11.5, weight: .medium))
                         .foregroundStyle(Color.skTextFaint)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+                        .multilineTextAlignment(.trailing)
                         .accessibilityIdentifier("ipad-exports-from-mac")
                 } else if let flash = exportFlash {
                     Text(flash)
