@@ -95,7 +95,16 @@ enum BodyV2 {
             }
         }
         let breaks = timed ? BodyV2Text.breakLocations(in: bare, words: input.words, clipStarts: input.clipStarts) : []
-        return BodyV2Text.normalised(build(ns, spots: spots, breaks: breaks))
+        let built = BodyV2Text.normalised(build(ns, spots: spots, breaks: breaks))
+        // Q554: a commit never changes the order of blocks the user placed. The markers that stood
+        // in the text must stand in the same order after it; if the move above broke that, keep
+        // the text as written (whitespace tidied only) rather than reorder it.
+        if !timed {
+            let before = markerSequence(in: text)
+            let kept = Set(before)
+            if markerSequence(in: built).filter({ kept.contains($0) }) != before { return BodyV2Text.normalised(text) }
+        }
+        return built
     }
 
     // MARK: - lifting markers out
@@ -120,6 +129,11 @@ enum BodyV2 {
                 let structural = isStructure(lineBefore(run.range.location, in: ns))
                     || isStructure(ns.substring(from: end))
                 if run.newlinesBefore >= 2, run.newlinesAfter >= 2, !structural { newlines -= 4 }
+                // Q554: a video / file marker is a block of its own, plain text to this pass. Joining
+                // its line to the prose around the run (a space) put the pictures after it.
+                if newlines < 2, endsWithAttachmentMarker(out) || startsWithAttachmentMarker(ns.substring(from: end)) {
+                    newlines = 2
+                }
                 out += newlines >= 2 ? "\n\n" : newlines == 1 ? "\n" : " "
             }
             cursor = end
@@ -129,6 +143,18 @@ enum BodyV2 {
         let trimmed = out.trimmingCharacters(in: .whitespacesAndNewlines)
         let length = (trimmed as NSString).length
         return (trimmed, lifted.map { ($0.at.map { min(max(0, $0 - lead), length) }, $0.n) })
+    }
+
+    private static let attachmentTail = try! NSRegularExpression(pattern: #"\[\[(?:vid|file)_\d+\]\]\s*$"#)
+    private static let attachmentHead = try! NSRegularExpression(pattern: #"^\s*\[\[(?:vid|file)_\d+\]\]"#)
+    private static func endsWithAttachmentMarker(_ s: String) -> Bool { matches(attachmentTail, s) }
+    private static func startsWithAttachmentMarker(_ s: String) -> Bool { matches(attachmentHead, s) }
+
+    /// Every picture / video / file marker in `text`, in body order.
+    static let anyMarker = try! NSRegularExpression(pattern: #"\[\[(?:img|vid|file)_\d+\]\]"#)
+    static func markerSequence(in text: String) -> [String] {
+        let ns = text as NSString
+        return anyMarker.matches(in: text, range: NSRange(location: 0, length: ns.length)).map { ns.substring(with: $0.range) }
     }
 
     /// A run already in v2 shape: its own paragraph, after a finished sentence / line of
@@ -271,7 +297,7 @@ enum BodyV2 {
     static func build(_ ns: NSString, spots: [(at: Int?, n: Int)], breaks: [Int]) -> String {
         var groups: [Int: [Int]] = [:]
         var top: [Int] = []
-        for s in spots.sorted(by: { $0.n < $1.n }) {
+        for s in spots {
             if let at = s.at { groups[at, default: []].append(s.n) } else { top.append(s.n) }
         }
         var out = ""
