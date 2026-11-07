@@ -85,6 +85,16 @@ struct BookBundleManifest: Codable, Equatable, Sendable {
         schema <= Self.currentSchema && schema > 0 && !audioFilenames.isEmpty
             && audioFilenames.count == book.files.count
     }
+
+    /// Q534: every file name the manifest declares is ONE plain name. The importer builds paths from
+    /// these, and the manifest is whatever the sender (or a stranger's AirDrop) wrote, so a name with
+    /// a `/`, a `..`, or a control character is refused before anything is unpacked. A name any real
+    /// bundle carries (`PathSafety.isSafeComponent`) passes.
+    var hasSafeFilenames: Bool {
+        let names = audioFilenames + book.files + textFilenames + transcriptFilenames
+            + alignmentFilenames + book.attachedTextFilenames + (coverFilename.map { [$0] } ?? [])
+        return names.allSatisfy(PathSafety.isSafeComponent)
+    }
 }
 
 extension Audiobook {
