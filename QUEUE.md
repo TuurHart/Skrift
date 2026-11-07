@@ -4006,6 +4006,12 @@ needs: -
 gate+: yes
 do: While the tag Undo toast (`Shared/UI/TagEditorRow.swift` `TagUndoToastView`) is showing on the Mac, Command-Z does what its Undo button does. When no toast is showing, Command-Z stays the note editor's own undo, and typed text undo must not change. Find how the Mac handles the shortcut in the note pane before choosing where to attach it. Phone unchanged.
 check: A unit test of whatever logic can be tested headless; say plainly what can't be. Full SkriftDesktop build. No macOS UI tests; I will ask Tuur to press the key.
+### Q556 [auto] (doing) Phone and iPad: Portfolio notes export from the Mac only; the phone's Portfolio folder is removed
+spec: D227.
+needs: -
+gate+: yes
+do: Remove means delete. On the universal iOS target (phone and iPad), delete the Portfolio folder setting and its code: the row at `Features/Settings/ObsidianSettingsSection.swift:145` and its picker, `Services/Export/PortfolioVault.swift`, the `portfolioFolderProvider` routing in `ObsidianPublisher.swift` and `PublishCoordinator.swift:116-125`, the portfolio side of `ScopedFolderBookmark.swift` use, and `ObsidianPublisher+ExportAll.swift` only where it writes to that folder. A Portfolio note on these devices can still be read, edited, rated and flipped to Personal, and flipping stays the one tap pill. Its export control is gone or replaced by one quiet line, "Exports from the Mac", wherever the note's primary verb (`Shared/Pipeline/NoteWorkState.swift`) or the export button would have offered Export or Re-export; it must never offer an action that can't work. `Shared/Export/ExportGate.swift` and `ExportOutcomeCopy.swift`: on iOS a Portfolio note gets that line instead of 'No portfolio folder is set on this device yet', and `DestinationSettings.needsFolderNotice` plus `SettingsCopy.swift:55` lose the 'pick a folder on this device' wording on iOS; the Mac's own no-folder message stays. The Mac is unchanged: `AppSettings.portfolioRoot`, its picker and export. Personal export on phone and iPad is unchanged. The 'Export all as a zip' feature (D218) is unchanged and still includes Portfolio notes: it writes a zip the user saves, not the Portfolio folder. Leave the synced `DestinationSettings.isEnabled` switch and the `portfolioRootKey` constant only if the Mac needs them. A stale bookmark in UserDefaults on an upgraded phone must be cleared once or be harmless; say which.
+check: `git grep PortfolioVault` empty outside archive. Unit tests: ExportGate on iOS for a Portfolio note, Mac gate unchanged. Existing tests that exercise the phone's Portfolio folder are protected: list them in the report instead of editing, because they need hand accept. Simulator PNGs of a Portfolio note reading and typing, and of Settings, looked at. `-destinationsOn` shows the pill. Full builds of both apps. Update FEATURES.md line 'Two export destinations' in the same commit.
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5785,3 +5791,5 @@ check: A unit test of whatever logic can be tested headless; say plainly what ca
 - 2026-11-07 13:01 Q17 -> done — Both halves passed: force-quit 2026-10-27; call during a recording 2026-11-07, Dev 205, note kept (Tuur).
 - 2026-11-07 13:01 Q554 -> doing — worker dispatched 2026-11-07
 - 2026-11-07 13:01 Q555 -> doing — worker dispatched 2026-11-07
+- 2026-11-07 13:08 Q556 added
+- 2026-11-07 13:08 Q556 -> doing — worker dispatched 2026-11-07
