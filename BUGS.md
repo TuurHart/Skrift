@@ -317,6 +317,8 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [x] **Text typed right after a new picture lands beside it** (found by Q550, 2026-11-04); may also re-trigger the paragraph merge. Q551. Merged, Dev 205; his check owed. Worse than typed text: every picture or file insert into an unpunctuated voice note glued its paragraphs and moved older pictures to the end.
 - [x] **The Mac's picture insert glued unpunctuated paragraphs too** (found 2026-11-04). Q552 merged, Dev 205; live Mac editor not exercised.
 - [x] **The one-time body rewrite glued paragraphs in a note with mixed picture shapes** (test 2026-11-04). Q553 merged, not yet in a build. Notes it already rewrote are not revisited; its local ledger holds the original.
+- [ ] **Tapping Done moved a file above the picture before it** (Tuur's screen recording 2026-11-07, Dev 205). Q554.
+- [ ] **Mac: Command-Z does not restore a removed tag** (Tuur 2026-11-07, Dev 205). Q555.
 - [ ] **Mac: three sidebar problems** (Tuur 2026-09-30, prod Mac build): (a) shift-click does not
       select a range of notes; (b) imported voice memos did not transcribe on their own — C49 says a
       Mac import floors to 0.1, so it should be picked up; he had to right-click → Process; (c) that

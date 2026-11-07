@@ -136,7 +136,7 @@ node: AuditFix2
 do: The phone persists audio in segments on every interruption and every 60 s with a marker; a launch sweep rebuilds the note from the segments and says so; a force-quit finalises; disk full stops the take with an honest error and keeps what landed (R46). D131: on a low-memory warning the audio is flushed and a checkpoint row written FIRST, then the transcriber unloads, captions stop, the model reloads after Stop; in the background live captions stop and the recording continues. Recovery never runs over a `transcriptUserEdited` memo (C263); unrecoverable `rec_tmp_*` are cleaned after a failed sweep (C288); every lifecycle transition logs a Release-safe `os_log` line (C287). Test in `RecoverySweepTests`. Hardware-flavoured: per CLAUDE.md the orchestrator owns route/audio-session changes; the worker keeps to persistence + sweep.
 check: `plan/mtest.sh RecoverySweepTests`
 
-### Q17 [tuur] (tuur) iPhone 17 Pro: call and force-quit mid-take
+### Q17 [tuur] (done) iPhone 17 Pro: call and force-quit mid-take
 spec: C99
 needs: Q16
 node: AuditFix2
@@ -3994,6 +3994,18 @@ needs: -
 gate+: yes
 do: First a failing test for that mixed shape through `BodyNormaliseMigration.rewrite`, machine text and user-edited both, and through `markTranscribed`'s commit. Quote the actual output. If it glues: a rewrite may move only the markers that needed moving, and every paragraph break not next to a moved marker survives; add paragraph-break preservation to the guard so a glued result is refused and the note left as it was. Refusing is the safe outcome. The existing v1-wrap repair must keep working (`sat\n\n[[img_001]]\n\n down.`). Bump nothing that would re-run the migration on notes already done. If the test does not glue, the item ends with the test as the guard.
 check: New test file; existing `BodyNormaliseMigration` tests and goldens pass unedited. `plan/mtest.sh` for the phone classes and the Mac UnitTests classes. Full builds of both apps.
+### Q554 [auto] (doing) Phone: tapping Done keeps pictures and files in the order they were added
+spec: Tuur's screen recording 2026-11-07, Dev 205, /Users/tiurihartog/Downloads/ScreenRecording_11-07-2026 12-52-14_1.MP4 at 241-243 s (he did not notice it). While editing the note read: photo, library photo, file. Under half a second after Done it read: photo, file, library photo, and stayed that way. No hold, drag or menu was involved.
+needs: -
+gate+: yes
+do: Find what reorders blocks at the end of an edit and stop it. Path: phone Done, `textViewDidEndEditing`, `commitDraft`/`committedBody`, `BodyV2.committed`, `load`, and the end-of-edit normalise. `BodyV2Marker.regex` matches only `[[img_NNN]]`, so `[[file_NNN]]` and `[[vid_NNN]]` are plain text to it: look there, but that is a lead, not a cause. In the recording he had also undone everything and redone it before Done (Q550), so test both with and without an undo/redo round, and note that a redo may leave manifest numbers out of order. Write the failing test first on the real path with: text, photo, library photo, file, then Done. Also cover file then photo, video between photos, and marker numbers not in reading order. A commit must never change the order of blocks the user placed. Check the Mac's end-of-edit commit for the same fault.
+check: New unit tests with the stored text quoted before and after. `NoteBodyUndoSequenceTests`, `NoteBodyMoveBlockTests`, `NoteBodyPhotoCaretTests`, `PhoneEndOfEditNormaliseTests` pass unedited. XCUITest on a seeded note opened through `memo-row-0` with a PNG after Done, looked at. Full builds of both apps.
+### Q555 [auto] (doing) Mac: Command-Z restores a tag you just removed
+spec: Tuur 2026-11-07, Dev 205 Mac: after removing a tag the toast's Undo works, but Command-Z does not do the same ("I'd imagine that would be the same").
+needs: -
+gate+: yes
+do: While the tag Undo toast (`Shared/UI/TagEditorRow.swift` `TagUndoToastView`) is showing on the Mac, Command-Z does what its Undo button does. When no toast is showing, Command-Z stays the note editor's own undo, and typed text undo must not change. Find how the Mac handles the shortcut in the note pane before choosing where to attach it. Phone unchanged.
+check: A unit test of whatever logic can be tested headless; say plainly what can't be. Full SkriftDesktop build. No macOS UI tests; I will ask Tuur to press the key.
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5768,3 +5780,8 @@ check: New test file; existing `BodyNormaliseMigration` tests and goldens pass u
 - 2026-11-04 22:23 Q553 added
 - 2026-11-04 22:23 Q553 -> doing — worker dispatched 2026-11-04
 - 2026-11-04 22:36 Q553 -> done — gate 77s @bc01425c
+- 2026-11-07 13:01 Q554 added
+- 2026-11-07 13:01 Q555 added
+- 2026-11-07 13:01 Q17 -> done — Both halves passed: force-quit 2026-10-27; call during a recording 2026-11-07, Dev 205, note kept (Tuur).
+- 2026-11-07 13:01 Q554 -> doing — worker dispatched 2026-11-07
+- 2026-11-07 13:01 Q555 -> doing — worker dispatched 2026-11-07
