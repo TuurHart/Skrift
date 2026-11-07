@@ -20,7 +20,7 @@ import Foundation
 extension Memo {
     /// Resolved on-disk audio location, or nil for memos without audio.
     var audioURL: URL? {
-        audioFilename.isEmpty ? nil : AppPaths.recordingsDirectory.appendingPathComponent(audioFilename)
+        audioFilename.isEmpty ? nil : PathSafety.childOrInert(audioFilename, in: AppPaths.recordingsDirectory)   // Q534: synced name
     }
 
     /// Resolved on-disk location of a shared `.file` capture's document (e.g. a PDF),
@@ -28,7 +28,7 @@ extension Memo {
     /// resolved against the recordings dir — same rule as `audioURL`.
     var sharedFileURL: URL? {
         guard let path = sharedContent?.filePath, !path.isEmpty else { return nil }
-        return AppPaths.recordingsDirectory.appendingPathComponent(path)
+        return PathSafety.descendant(path, in: AppPaths.recordingsDirectory)   // Q534: synced name; nil when it would leave the folder
     }
 
     /// Typed convenience factory — matches the pre-split `Memo(…)` initializer signature

@@ -126,7 +126,12 @@ final class CloudKitAudiobookTransport: AudiobookAudioTransport {
             case .success(let record):
                 guard let asset = record["asset"] as? CKAsset, let staged = asset.fileURL else { return }
                 let filename = filenameByName[recordID.recordName] ?? recordID.recordName
-                let dest = destFolder.appendingPathComponent(filename)
+                // Q534: the filename came from a synced book record; it must be one plain name that
+                // stays inside the book's folder, or the asset is skipped.
+                guard let dest = PathSafety.child(filename, in: destFolder) else {
+                    DevLog.log("audiobook asset refused: unsafe filename")
+                    return
+                }
                 let tmp = destFolder.appendingPathComponent(".\(UUID().uuidString).part")
                 do {
                     try FileManager.default.copyItem(at: staged, to: tmp)

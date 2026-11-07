@@ -157,7 +157,7 @@ struct ObsidianPublisher {
     /// file is not on this device.
     var movieProvider: (Memo) -> URL? = { memo in
         guard let name = memo.metadata?.videoFilename, !name.isEmpty else { return nil }
-        let url = AppPaths.recordingsDirectory.appendingPathComponent(name)
+        let url = PathSafety.childOrInert(name, in: AppPaths.recordingsDirectory)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
     /// C63 / D210: the poster frame (JPEG) a video note puts in the vault in place of its movie.

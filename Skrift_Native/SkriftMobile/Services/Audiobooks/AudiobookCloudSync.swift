@@ -265,7 +265,9 @@ enum AudiobookCloudSync {
         if let book = library.book(id: bookID) {
             let folder = library.folder(for: bookID)
             for name in syncedFilenames(book) {
-                try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
+                // Q534: a name that would step out of the book's folder is never deleted.
+                guard let url = PathSafety.child(name, in: folder) else { continue }
+                try? FileManager.default.removeItem(at: url)
             }
         }
         setDownloadRemoved(bookID, true, defaults: defaults)

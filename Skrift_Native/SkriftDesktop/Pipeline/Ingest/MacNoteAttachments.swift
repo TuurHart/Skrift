@@ -40,7 +40,7 @@ enum MacNoteAttachments {
         guard let working else { return nil }
         // D210: a video note's own movie is the kept `source.<ext>` beside `original.m4a`.
         if NoteAttachment.isKeptMovie(entry.filename) { return VaultExporter.keptSourceVideo(in: working) }
-        let url = folder(in: working).appendingPathComponent(entry.filename)
+        let url = PathSafety.childOrInert(entry.filename, in: folder(in: working))   // Q534: synced name
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
@@ -132,13 +132,13 @@ enum MacNoteAttachments {
         let dir = folder(in: working)
         var wrote = false
         // D210: the kept movie lands as `source.<ext>` (`MemoPhotoMaterializer`), never here.
-        let missing = Set(entries.map(\.filename).filter { !$0.isEmpty && !NoteAttachment.isKeptMovie($0)
+        let missing = Set(entries.map(\.filename).filter { PathSafety.isSafeComponent($0) && !NoteAttachment.isKeptMovie($0)
             && !fm.fileExists(atPath: dir.appendingPathComponent($0).path) })
         if !missing.isEmpty {
             for asset in fetchAssets() where missing.contains(asset.filename)
                 && (asset.kind == MemoAsset.Kind.file || asset.kind == MemoAsset.Kind.video) && !asset.blob.isEmpty {
                 try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-                if (try? asset.blob.write(to: dir.appendingPathComponent(asset.filename))) != nil { wrote = true }
+                if (try? asset.blob.write(to: PathSafety.childOrInert(asset.filename, in: dir))) != nil { wrote = true }
             }
         }
         if manifest(in: working) != entries, let data = try? JSONEncoder().encode(entries) {

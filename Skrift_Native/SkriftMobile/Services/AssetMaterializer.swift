@@ -41,8 +41,10 @@ enum AssetMaterializer {
     nonisolated static let fullSweepInterval: TimeInterval = 7 * 86_400
 
     /// recordings/<filename> — the canonical on-disk location for an asset.
-    private nonisolated static func fileURL(_ filename: String) -> URL {
-        AppPaths.recordingsDirectory.appendingPathComponent(filename)
+    /// Q534: nil when `filename` (a synced name) is absolute, holds a `..` or control character, or
+    /// resolves outside the recordings folder; the sweep then neither writes nor reads it.
+    private nonisolated static func fileURL(_ filename: String) -> URL? {
+        PathSafety.descendant(filename, in: AppPaths.recordingsDirectory)
     }
 
     /// Run both directions. Idempotent — safe on every launch + foreground.
@@ -69,7 +71,10 @@ enum AssetMaterializer {
         var descriptor = FetchDescriptor<MemoAsset>()
         descriptor.propertiesToFetch = [\.filename, \.kind, \.byteCount]
         for asset in (try? context.fetch(descriptor)) ?? [] where !asset.filename.isEmpty {
-            let url = fileURL(asset.filename)
+            guard let url = fileURL(asset.filename) else {
+                DevLog.log("asset: refused an unsafe filename")
+                continue
+            }
             guard !FileManager.default.fileExists(atPath: url.path) else { continue }
             do {
                 try asset.blob.write(to: url, options: .atomic)
@@ -210,15 +215,15 @@ enum AssetMaterializer {
     /// the asset is already current. Returns true on a create/refresh.
     private nonisolated static func captureFile(_ filename: String, kind: String, memoID: UUID,
                                                 existing: [String: MemoAsset], context: ModelContext) -> Bool {
-        guard !filename.isEmpty, let size = fileSize(fileURL(filename)) else { return false }
+        guard !filename.isEmpty, let url = fileURL(filename), let size = fileSize(url) else { return false }
         if let asset = existing[filename] {
-            guard asset.byteCount != size, let data = try? Data(contentsOf: fileURL(filename)) else { return false }
+            guard asset.byteCount != size, let data = try? Data(contentsOf: url) else { return false }
             asset.blob = data
             asset.byteCount = data.count
             DevLog.log("asset: refreshed \(kind) \(filename) (\(data.count)B)")
             return true
         }
-        guard let data = try? Data(contentsOf: fileURL(filename)) else { return false }
+        guard let data = try? Data(contentsOf: url) else { return false }
         context.insert(MemoAsset(memoID: memoID, kind: kind, filename: filename, blob: data))
         DevLog.log("asset: captured \(kind) \(filename) (\(data.count)B)")
         return true

@@ -150,14 +150,14 @@ final class NotesRepository {
         if let url = memo.audioURL { try? FileManager.default.removeItem(at: url) }
         if let fileURL = memo.sharedFileURL { try? FileManager.default.removeItem(at: fileURL) }
         memo.metadata?.imageManifest?.forEach {
-            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
+            try? FileManager.default.removeItem(at: PathSafety.childOrInert($0.filename, in: AppPaths.recordingsDirectory))
             // C273: the photo's kept pre-Markup original, if any.
-            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory
-                .appendingPathComponent(MarkupOriginal.originalFilename(for: $0.filename)))
+            try? FileManager.default.removeItem(at: PathSafety.childOrInert(
+                MarkupOriginal.originalFilename(for: $0.filename), in: AppPaths.recordingsDirectory))
         }
         // C63 / C148: a kept source movie is a file of its own (up to ~200 MB).
         if let name = memo.metadata?.videoFilename, !name.isEmpty {
-            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(name))
+            try? FileManager.default.removeItem(at: PathSafety.childOrInert(name, in: AppPaths.recordingsDirectory))
         }
         WordTimingsStore().delete(for: memo.id)
         DiarizationStore().delete(for: memo.id)

@@ -42,6 +42,12 @@ enum PathSafety {
         return isContained(url, in: root) ? url : nil
     }
 
+    /// `child`, or — for a join site that must return a URL — a path inside `root` that never holds
+    /// a file, so a refused name reads as "not there" and a write or delete through it hits nothing.
+    static func childOrInert(_ name: String, in root: URL) -> URL {
+        child(name, in: root) ?? root.appendingPathComponent(".refused-unsafe-name")
+    }
+
     /// `root/relative` for a relative path of several components (a zip entry path such as
     /// `audio/part1.m4a`): every component must be safe, and the resolved result must stay in `root`.
     /// Absolute paths, `..` and empty components are refused.

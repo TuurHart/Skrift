@@ -25,7 +25,7 @@ enum MarkupOriginal {
     }
 
     private static func fileURL(_ filename: String) -> URL {
-        AppPaths.recordingsDirectory.appendingPathComponent(filename)
+        PathSafety.childOrInert(filename, in: AppPaths.recordingsDirectory)
     }
 
     /// The kept-original asset row for a photo, or nil.

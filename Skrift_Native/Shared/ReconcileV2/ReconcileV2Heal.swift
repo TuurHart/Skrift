@@ -81,7 +81,7 @@ extension ReconcileV2 {
         /// Q260: a link capture's thumbnail, beside the capture.
         static func linkThumbnail(_ memo: Memo, _ folder: URL, _ assets: AssetIndex) -> Bool {
             guard let name = MemoAsset.Kind.linkThumbnailFilename(memo.sharedContent) else { return false }
-            let dest = folder.appendingPathComponent(name)
+            let dest = PathSafety.childOrInert(name, in: folder)   // Q534: a synced name
             guard !FileManager.default.fileExists(atPath: dest.path),
                   assets.has(memo.id, MemoAsset.Kind.thumbnail, named: name),
                   let thumb = assets.blobs(for: memo.id, kind: MemoAsset.Kind.thumbnail).first(where: { $0.filename == name }),
@@ -108,14 +108,14 @@ extension ReconcileV2 {
             let dir = MacNoteAttachments.folder(in: folder)
             let kinds = [MemoAsset.Kind.file, MemoAsset.Kind.video]
             let missing = Set(entries.map(\.filename).filter { name in
-                !name.isEmpty && !NoteAttachment.isKeptMovie(name)
+                PathSafety.isSafeComponent(name) && !NoteAttachment.isKeptMovie(name)   // Q534
                     && !fm.fileExists(atPath: dir.appendingPathComponent(name).path)
                     && kinds.contains { assets.has(memo.id, $0, named: name) }
             })
             var wrote = false
             for a in missing.isEmpty ? [] : kinds.flatMap({ assets.blobs(for: memo.id, kind: $0) })
             where missing.contains(a.filename) && !a.blob.isEmpty {
-                wrote = write(a.blob, to: dir.appendingPathComponent(a.filename)) || wrote
+                wrote = write(a.blob, to: PathSafety.childOrInert(a.filename, in: dir)) || wrote
             }
             if MacNoteAttachments.manifest(in: folder) != entries, let data = try? JSONEncoder().encode(entries) {
                 wrote = write(data, to: folder.appendingPathComponent(MacNoteAttachments.manifestName)) || wrote
@@ -133,13 +133,13 @@ extension ReconcileV2 {
             let dir = folder.appendingPathComponent("images", isDirectory: true)
             var wrote = false
             let missing = Set(manifest.map(\.filename).filter {
-                !$0.isEmpty && !fm.fileExists(atPath: dir.appendingPathComponent($0).path)
+                PathSafety.isSafeComponent($0) && !fm.fileExists(atPath: dir.appendingPathComponent($0).path)   // Q534
                     && assets.has(memo.id, MemoAsset.Kind.photo, named: $0)
             })
             if !missing.isEmpty {
                 try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
                 for photo in assets.blobs(for: memo.id, kind: MemoAsset.Kind.photo) where missing.contains(photo.filename) {
-                    wrote = write(photo.blob, to: dir.appendingPathComponent(photo.filename)) || wrote
+                    wrote = write(photo.blob, to: PathSafety.childOrInert(photo.filename, in: dir)) || wrote
                 }
             }
             let url = folder.appendingPathComponent("image_manifest.json")

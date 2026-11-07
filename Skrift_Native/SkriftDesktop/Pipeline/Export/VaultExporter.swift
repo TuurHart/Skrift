@@ -316,7 +316,10 @@ enum VaultExporter {
             let bang = ns.substring(with: m.range(at: 1))
             let raw = ns.substring(with: m.range(at: 2))
             let name = raw.removingPercentEncoding ?? raw
-            let src = attachmentsSrc.appendingPathComponent(name)
+            // Q534: the reference is the note's own text, so `Attachments/../../x` or a %2e%2e%2f name
+            // must not read a file from outside the note's Attachments folder, nor name the copy
+            // outside the vault's attachment folder. A ref that fails stays as the author's text.
+            guard let src = PathSafety.child(name, in: attachmentsSrc) else { continue }
             guard fm.fileExists(atPath: src.path) else { continue }
             guard let written = (place ?? owned(id))(src, name, attDir) else {
                 Self.logCopyFailure(name: name); continue

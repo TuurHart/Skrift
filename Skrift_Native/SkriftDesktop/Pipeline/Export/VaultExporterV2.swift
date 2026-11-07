@@ -73,11 +73,11 @@ extension VaultExporter {
         /// The v2 compile with every asset going through `placer` (the ownership copy, or a dry run).
         func compile(_ placer: Placer) -> ExportV2.Output {
             ExportV2.compile(note, profile: profile, stem: safe, placePicture: { source, name in
-                guard let file = imagesDir?.appendingPathComponent(source),
+                guard let file = imagesDir.map({ PathSafety.childOrInert(source, in: $0) }),
                       FileManager.default.fileExists(atPath: file.path) else { return nil }
                 return placer(file, name, attDir)?.lastPathComponent
             }, placeAttachment: { source, name in
-                guard let file = attachmentsDir?.appendingPathComponent(source),
+                guard let file = attachmentsDir.map({ PathSafety.childOrInert(source, in: $0) }),
                       FileManager.default.fileExists(atPath: file.path) else { return nil }
                 return placer(file, name, attDir)?.lastPathComponent
             }, poster: { _, name in
@@ -135,7 +135,7 @@ extension VaultExporter {
             audio = VaultAsset(name: safe + "." + (ext.isEmpty ? "m4a" : ext), source: .file(URL(fileURLWithPath: pf.path)))
         }
         let removed: [VaultAsset] = out.removedPictures.compactMap { p in
-            guard let src = imagesDir?.appendingPathComponent(p.source),
+            guard let src = imagesDir.map({ PathSafety.childOrInert(p.source, in: $0) }),
                   FileManager.default.fileExists(atPath: src.path) else { return nil }
             return VaultAsset(name: p.embedName, source: .file(src))
         }

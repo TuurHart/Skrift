@@ -48,7 +48,13 @@ final class AudiobookSyncRecord {
     var epubSignature: String = ""
 
     /// The decoded synced `Audiobook` state (nil when the blob doesn't decode).
-    var book: Audiobook? { try? JSONDecoder().decode(Audiobook.self, from: blob) }
+    /// Q534: nil too when a file name in it is not one plain name (`../x`, `/x`): a synced record is
+    /// another device's data, and every local path for the book is built from these names.
+    var book: Audiobook? {
+        guard let book = try? JSONDecoder().decode(Audiobook.self, from: blob),
+              (book.files + book.attachedTextFilenames).allSatisfy(PathSafety.isSafeComponent) else { return nil }
+        return book
+    }
 
     init(bookID: UUID, blob: Data, modifiedAt: Date = Date(), audioUploadedAt: Date? = nil,
          transcriptSignature: String = "", alignmentSignature: String = "") {
