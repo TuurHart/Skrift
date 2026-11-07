@@ -56,24 +56,75 @@ final class NoteBodyBlockOrderTests: XCTestCase {
         return re.matches(in: text, range: NSRange(location: 0, length: ns.length)).map { ns.substring(with: $0.range) }
     }
 
-    func testProbeTextPhotoLibraryPhotoFileThenDone() throws {
+    private static let logPath = "/private/tmp/claude-501/q554-probe.log"
+    private func log(_ s: String) {
+        let line = s + "\n"
+        if let h = FileHandle(forWritingAtPath: Self.logPath) { h.seekToEndOfFile(); h.write(Data(line.utf8)); try? h.close() }
+        else { try? line.write(toFile: Self.logPath, atomically: true, encoding: .utf8) }
+    }
+
+    private func undoAll(_ c: NoteBodyView.Coordinator, _ tv: NoteBodyTextView) {
+        var n = 0
+        while tv.undoManager?.canUndo == true, n < 60 { c.undo(); settle(); n += 1 }
+    }
+    private func redoAll(_ c: NoteBodyView.Coordinator, _ tv: NoteBodyTextView) {
+        var n = 0
+        while tv.undoManager?.canRedo == true, n < 60 { c.redo(); settle(); n += 1 }
+    }
+
+    /// Runs `build`, then Done; logs stored text before and after; asserts the block order held.
+    private func scenario(_ name: String, undoRedo: Bool, _ build: (NoteBodyView.Coordinator, NoteBodyTextView) throws -> Void) throws {
         let (c, tv, memo) = editor()
-        type("Hello world", tv)
-        c.insertPhoto(photo()); settle()
-        let s1 = memo.transcript ?? ""
-        c.insertPhoto(photo()); settle()
-        let s2 = memo.transcript ?? ""
-        try file(c)
+        try build(c, tv)
+        if undoRedo { undoAll(c, tv); redoAll(c, tv) }
         let before = memo.transcript ?? ""
         let shown = c.reconstruct(tv.attributedText)
         c.finishEditing(); settle()
         c.textViewDidEndEditing(tv); settle()
         let after = memo.transcript ?? ""
-        print("Q554 s1 \(s1.debugDescription)")
-        print("Q554 s2 \(s2.debugDescription)")
-        print("Q554 before \(before.debugDescription)")
-        print("Q554 shown \(shown.debugDescription)")
-        print("Q554 after \(after.debugDescription)")
-        XCTAssertEqual(order(after), order(before))
+        let imgs = memo.metadata?.imageManifest?.count ?? 0, atts = memo.metadata?.attachmentManifest?.map(\.kind) ?? []
+        log("[\(name) undoRedo=\(undoRedo)] imgs=\(imgs) atts=\(atts)\n  before \(before.debugDescription)\n  shown  \(shown.debugDescription)\n  after  \(after.debugDescription)")
+        XCTAssertEqual(order(shown), order(after), "\(name) undoRedo=\(undoRedo): Done reordered the blocks. before \(before.debugDescription) after \(after.debugDescription)")
+        XCTAssertEqual(order(before), order(after), "\(name) undoRedo=\(undoRedo): committed text reordered. before \(before.debugDescription) after \(after.debugDescription)")
+    }
+
+    func testTextPhotoLibraryPhotoFile() throws {
+        for ur in [false, true] {
+            try scenario("text,photo,photo,file", undoRedo: ur) { c, tv in
+                self.type("Hello world", tv); c.insertPhoto(self.photo()); self.settle()
+                c.insertPhoto(self.photo()); self.settle(); try self.file(c)
+            }
+        }
+    }
+    func testFileThenPhoto() throws {
+        for ur in [false, true] {
+            try scenario("text,file,photo", undoRedo: ur) { c, tv in
+                self.type("Hello world", tv); try self.file(c); c.insertPhoto(self.photo()); self.settle()
+            }
+        }
+    }
+    func testVideoBetweenPhotos() throws {
+        for ur in [false, true] {
+            try scenario("photo,video,photo", undoRedo: ur) { c, tv in
+                self.type("Hello world", tv); c.insertPhoto(self.photo()); self.settle()
+                try self.video(c); c.insertPhoto(self.photo()); self.settle()
+            }
+        }
+    }
+    func testNoTextPhotoFilePhotoFile() throws {
+        for ur in [false, true] {
+            try scenario("photo,file,photo,file", undoRedo: ur) { c, tv in
+                c.insertPhoto(self.photo()); self.settle(); try self.file(c)
+                c.insertPhoto(self.photo()); self.settle(); try self.file(c, name: "b.txt")
+            }
+        }
+    }
+    func testTypingAfterBlocks() throws {
+        for ur in [false, true] {
+            try scenario("text,photo,file,photo,text", undoRedo: ur) { c, tv in
+                self.type("One line", tv); c.insertPhoto(self.photo()); self.settle(); try self.file(c)
+                c.insertPhoto(self.photo()); self.settle(); self.type("tail", tv)
+            }
+        }
     }
 }
