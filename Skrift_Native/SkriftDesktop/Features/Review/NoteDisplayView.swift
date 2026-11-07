@@ -51,6 +51,8 @@ struct NoteDisplayView: View {
     /// `GeometryReader`'s own `.overlay`, below `unlockedContent`), not
     /// `TagEditorRow`'s own bounds, which run narrower than the column.
     @State private var tagToast: TagEditorRow.TagToast?
+    /// Q555: Command-Z = the tag toast's Undo, installed only while that toast shows.
+    @State private var tagUndoKey = TagUndoKey.Monitor()
     /// Q85: the header pill's step toast, same column-level overlay as the tag toast.
     @State private var ratingToast: RatingToast?
     /// Drives the shared person editor sheet (mocks/opt-in-naming.html) — opened by the
@@ -258,6 +260,14 @@ struct NoteDisplayView: View {
             // (a sibling below, not inside this frame) — no player-height padding
             // to keep in sync, unlike the phone/iPad's floating capsule.
             .overlay(alignment: .bottom) { tagToastView }
+            .onChange(of: tagToast?.id) { _, id in
+                if id != nil {
+                    tagUndoKey.install { undoTagToast() }
+                } else {
+                    tagUndoKey.remove()
+                }
+            }
+            .onDisappear { tagUndoKey.remove() }
             .overlay(alignment: .bottom) { ratingToastView }
             // The player DOCKS at the note's bottom edge — iPad parity (Tuur
             // 2026-07-25: "keep the apps looking the same"). Because the inspector
@@ -492,16 +502,20 @@ struct NoteDisplayView: View {
     /// offers Undo for 4 s".
     @ViewBuilder private var tagToastView: some View {
         if let toast = tagToast {
-            TagUndoToastView(tag: toast.tag, style: .mac, onUndo: {
-                toast.undo()
-                tagToast = nil
-            })
+            TagUndoToastView(tag: toast.tag, style: .mac, onUndo: { undoTagToast() })
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .task(id: toast.id) {
                 try? await Task.sleep(for: .seconds(4))
                 if tagToast?.id == toast.id { tagToast = nil }
             }
         }
+    }
+
+    /// The toast's Undo button and Command-Z (Q555) both land here.
+    private func undoTagToast() {
+        guard let toast = tagToast else { return }
+        toast.undo()
+        tagToast = nil
     }
 
     /// Right-click "A new person…" → open the shared editor (mocks/opt-in-naming.html panel 3)
