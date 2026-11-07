@@ -20,10 +20,6 @@ import Foundation
 struct PublishCoordinator {
     var publisher: ObsidianPublisher
     var obsidianEnabled: () -> Bool
-    /// Is a PORTFOLIO root configured on this device? A note bound for the portfolio needs that
-    /// folder, not the vault — and the two are separate picks, so a device can legitimately
-    /// have one and not the other.
-    var portfolioConfigured: () -> Bool = { false }
     /// The device's polish for a memo, if it has one. A vault note is a PROCESSED note
     /// (see `shouldPublish`), so this is what decides whether there's anything to send.
     var enhancementProvider: (UUID) -> MemoEnhancement? = { _ in nil }
@@ -36,7 +32,6 @@ struct PublishCoordinator {
             // old `skrift.publish.obsidianEnabled` key is dead and deliberately unread,
             // so devices that had it false don't stay silently off).
             obsidianEnabled: { ObsidianVault.isConfigured },
-            portfolioConfigured: { PortfolioVault.isConfigured },
             // RATED-ONLY, always — not a setting (Tuur, 2026-07-26: unrated notes
             // "cant export either"). The gate asks `NoteConsent.isRated` unconditionally;
             // a device that stored "all" under the old `skrift.publish.policy` key is never
@@ -46,8 +41,8 @@ struct PublishCoordinator {
     }
 
     /// The ONE predicate (`ExportGate`, Q156): the first gate this memo fails right now, nil
-    /// when it may publish. The folder IS the consent, per destination: a note bound for the
-    /// portfolio needs the PORTFOLIO folder picked here, one bound for the vault needs the vault.
+    /// when it may publish. The vault folder IS the consent. A Portfolio note never publishes
+    /// from this device (D227): the gate answers `.exportsFromMac`.
     ///
     /// Locked notes stay inside Skrift (the vault is plaintext .md on disk; locking never
     /// deletes an already-published file, the lock flow tells the user it's still there).
@@ -66,7 +61,7 @@ struct PublishCoordinator {
     func gateFailure(_ memo: Memo) -> ExportGate.Failure? {
         let facts = ExportGate.Facts(
             memo: memo,
-            folderConfigured: memo.destination.isPortfolio ? portfolioConfigured() : obsidianEnabled(),
+            folderConfigured: obsidianEnabled(),
             processed: enhancementProvider(memo.id)?.isProcessed == true)
         return ExportGate.check(facts, device: .ipad)
     }
@@ -112,14 +107,11 @@ struct PublishCoordinator {
         ledger(for: memo)?.entry(for: memo.id) != nil
     }
 
-    /// The export ledger of the folder this note would be written to; nil when no vault /
-    /// portfolio folder is configured. Per DESTINATION: the ledger is keyed on the folder
-    /// written to, so "has this been exported" is asked of the folder the note would go to.
+    /// The export ledger of the vault folder this note would be written to; nil when no vault is
+    /// configured, and for a Portfolio note (this device does not export it, D227).
     static func ledger(for memo: Memo) -> ExportLedger? {
         guard let destination = ExportDestinationRoot.resolve(
-            for: memo.destination, vault: { ObsidianVault.resolveVault() },
-            portfolioFolder: { PortfolioVault.folder(for: $0) },
-            portfolioScopeRoot: { PortfolioVault.resolveRoot() }) else { return nil }
+            for: memo.destination, vault: { ObsidianVault.resolveVault() }) else { return nil }
         let scope = destination.openScope()
         defer { scope.close() }
         return ExportLedger.default(for: VaultLayout.home(forPicked: destination.picked, profile: destination.profile))

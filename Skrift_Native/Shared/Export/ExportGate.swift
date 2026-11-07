@@ -13,7 +13,8 @@ import Foundation
 ///
 /// | # | Failure             | iPad | Mac | Notes |
 /// |---|---------------------|------|-----|-------|
-/// | 1 | `noPortfolioFolder` | yes  | yes | portfolio-bound note, no portfolio root picked on this device |
+/// | 0 | `exportsFromMac`    | yes  | no  | D227: a Portfolio note never exports from the phone or iPad; the Mac does |
+/// | 1 | `noPortfolioFolder` | no   | yes | portfolio-bound note, no portfolio root picked on this Mac |
 /// | 1 | `noVaultFolder`     | yes  | yes | vault-bound note, no vault folder picked on this device |
 /// | 2 | `trashed`           | yes  | yes | |
 /// | 3 | `locked`            | yes  | yes | the vault is plain text |
@@ -26,7 +27,7 @@ enum ExportGate {
     enum Device: Equatable { case ipad, mac }
 
     enum Failure: Equatable, CaseIterable {
-        case noPortfolioFolder, noVaultFolder, trashed, locked, twoVersions
+        case exportsFromMac, noPortfolioFolder, noVaultFolder, trashed, locked, twoVersions
         case unrated, nothingToExport, unprocessed
     }
 
@@ -80,6 +81,7 @@ enum ExportGate {
 
     /// The first failing gate, nil when the note may export.
     static func check(_ facts: Facts, device: Device, scope: Scope = .full) -> Failure? {
+        if device == .ipad, facts.destinationIsPortfolio { return .exportsFromMac }
         if !facts.folderConfigured {
             return facts.destinationIsPortfolio ? .noPortfolioFolder : .noVaultFolder
         }

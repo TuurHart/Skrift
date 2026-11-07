@@ -37,20 +37,23 @@ enum SettingsCopy {
 
     // ── Destinations (setexp-67) ──
     static let destinationsToggleLabel = "Separate destinations"
+    #if os(macOS)
     static let portfolioFolderLabel = "Portfolio folder"
     /// The one read-only line under the portfolio picker: where Portfolio notes land.
     static func portfolioInboxLine(root: String) -> String {
         "\(root)/\(NoteDestination.portfolio.portfolioFolder ?? "_inbox")"
     }
+    #endif
 
-    /// The footer under the Destinations switch: off / on with no folder on this device /
-    /// on with a folder. The on-without-folder text names the per-device folder (phone's
-    /// wording; the Mac showed only the bare notice).
-    static func destinationsHelp(on: Bool, hasFolder: Bool) -> String {
+    /// The footer under the Destinations switch: off / on with no folder / on with a folder.
+    /// D227: only the Mac has a Portfolio folder. The phone and iPad say Portfolio notes export
+    /// from the Mac and take no folder (`hasFolder` is the Mac's alone).
+    static func destinationsHelp(on: Bool, hasFolder: Bool = true) -> String {
         guard on else {
             return "Off, every note goes to your Obsidian vault. On, each note is Personal or "
                  + "Portfolio, picked on the note itself."
         }
+        #if os(macOS)
         guard hasFolder else {
             return DestinationSettings.needsFolderNotice + ". This switch is on for all your "
                  + "devices; the folder is chosen per device. Skrift writes Portfolio notes into "
@@ -60,6 +63,11 @@ enum SettingsCopy {
         return "Personal notes go to your Obsidian vault. Portfolio notes go to the portfolio's "
              + "_inbox folder, a folder you have chosen to let an AI read, so nothing personal is "
              + "ever written there. Idea, inspiration and project are tags you tap on the note."
+        #else
+        return "Personal notes go to your Obsidian vault. Portfolio notes export from your Mac; "
+             + "here you can read, edit, rate and re-file them. Idea, inspiration and project are "
+             + "tags you tap on the note."
+        #endif
     }
 }
 

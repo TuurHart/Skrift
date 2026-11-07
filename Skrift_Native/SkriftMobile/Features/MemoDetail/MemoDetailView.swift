@@ -369,7 +369,13 @@ struct MemoDetailView: View {
                 // Gate = isAvailable (it can process, so it may export); the label
                 // flips to Re-export via the ledger read in `workState`, re-run when
                 // the success flash clears (`exportFlash = nil`).
-                if let flash = exportFlash {
+                if memo.destination.isPortfolio {
+                    // D227: a Portfolio note exports from the Mac. One quiet line, never a button.
+                    Text(ExportOutcomeCopy.exportsFromMacLine)
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(Color.skTextFaint)
+                        .accessibilityIdentifier("ipad-exports-from-mac")
+                } else if let flash = exportFlash {
                     Text(flash)
                         .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(Color.skGreen)
@@ -761,7 +767,12 @@ struct MemoDetailView: View {
         }
         if let memo = currentMemo, !workState(for: memo).wantsProcessing,
            PolishCenter.shared.isAvailable {
-            Button(workState(for: memo).label(for: memo.destination), action: { exportNow(memo) })
+            if memo.destination.isPortfolio {
+                // D227: a Portfolio note exports from the Mac; a line, not an action.
+                Text(ExportOutcomeCopy.exportsFromMacLine)
+            } else {
+                Button(workState(for: memo).label(for: memo.destination), action: { exportNow(memo) })
+            }
         }
         // Q359 (mock Q350 pick 1): Find left the keyboard bar for this menu.
         if let memo = currentMemo, !memo.isShareCapture, SpeakerTranscript.parse(memo.transcript) == nil {
