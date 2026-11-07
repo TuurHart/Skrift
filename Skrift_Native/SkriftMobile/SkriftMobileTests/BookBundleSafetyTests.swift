@@ -4,6 +4,7 @@ import ZIPFoundation
 
 /// Q534: a `.skriftbook` from another person can name anything. Names in its manifest that could
 /// leave the book's folder are refused before and during unpacking; nothing lands outside.
+@MainActor
 final class BookBundleSafetyTests: XCTestCase {
 
     private var base: URL!
