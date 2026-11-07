@@ -3994,7 +3994,7 @@ needs: -
 gate+: yes
 do: First a failing test for that mixed shape through `BodyNormaliseMigration.rewrite`, machine text and user-edited both, and through `markTranscribed`'s commit. Quote the actual output. If it glues: a rewrite may move only the markers that needed moving, and every paragraph break not next to a moved marker survives; add paragraph-break preservation to the guard so a glued result is refused and the note left as it was. Refusing is the safe outcome. The existing v1-wrap repair must keep working (`sat\n\n[[img_001]]\n\n down.`). Bump nothing that would re-run the migration on notes already done. If the test does not glue, the item ends with the test as the guard.
 check: New test file; existing `BodyNormaliseMigration` tests and goldens pass unedited. `plan/mtest.sh` for the phone classes and the Mac UnitTests classes. Full builds of both apps.
-### Q554 [auto] (doing) Phone: tapping Done keeps pictures and files in the order they were added
+### Q554 [auto] (done) Phone: tapping Done keeps pictures and files in the order they were added
 spec: Tuur's screen recording 2026-11-07, Dev 205, /Users/tiurihartog/Downloads/ScreenRecording_11-07-2026 12-52-14_1.MP4 at 241-243 s (he did not notice it). While editing the note read: photo, library photo, file. Under half a second after Done it read: photo, file, library photo, and stayed that way. No hold, drag or menu was involved.
 needs: -
 gate+: yes
@@ -5794,3 +5794,4 @@ check: `git grep PortfolioVault` empty outside archive. Unit tests: ExportGate o
 - 2026-11-07 13:08 Q556 added
 - 2026-11-07 13:08 Q556 -> doing — worker dispatched 2026-11-07
 - 2026-11-07 13:15 Q555 -> done — gate 146s @39b23f72
+- 2026-11-07 13:52 Q554 -> done — gate 135s @e01c4040
