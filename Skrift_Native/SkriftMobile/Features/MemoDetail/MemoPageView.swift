@@ -1623,7 +1623,7 @@ struct MemoPageView: View {
     var linkThumbnail: UIImage? {
         guard let name = memo.sharedContent?.urlThumbnailUrl, !name.isEmpty,
               !name.contains("://") else { return nil }
-        return UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(name).path)
+        return UIImage(contentsOfFile: PathSafety.childOrInert(name, in: AppPaths.recordingsDirectory).path)
     }
 
     func captureURLCard(sc: SharedContent) -> some View {
@@ -1704,7 +1704,7 @@ struct MemoPageView: View {
 
     @ViewBuilder var captureImageEmbed: some View {
         if let filename = memo.sharedContent?.fileName,
-           let img = UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(filename).path) {
+           let img = UIImage(contentsOfFile: PathSafety.childOrInert(filename, in: AppPaths.recordingsDirectory).path) {
             captureImage(img)
         } else if let manifest = memo.metadata?.imageManifest, !manifest.isEmpty {
             // Look up via the image manifest (the drain copies the images to the
@@ -1712,7 +1712,7 @@ struct MemoPageView: View {
             // (B2 — always one note) stacks EVERY photo in order.
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(manifest, id: \.filename) { entry in
-                    let manifestURL = AppPaths.recordingsDirectory.appendingPathComponent(entry.filename)
+                    let manifestURL = PathSafety.childOrInert(entry.filename, in: AppPaths.recordingsDirectory)
                     if let img = UIImage(contentsOfFile: manifestURL.path) {
                         captureImage(img)
                     }

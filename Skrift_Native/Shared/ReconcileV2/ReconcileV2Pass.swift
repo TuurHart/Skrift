@@ -153,7 +153,7 @@ extension ReconcileV2 {
             for p in shape.photos { asset(MemoAsset.Kind.photo, p.filename, p.source) }
             for a in shape.attachments { asset(a.kind, a.filename, a.source, nonEmpty: true) }
             if let name = capture?.filePath, !name.isEmpty, let folder = row.workingFolder {
-                asset(MemoAsset.Kind.document, name, folder.appendingPathComponent("files").appendingPathComponent(name))
+                asset(MemoAsset.Kind.document, name, PathSafety.childOrInert(name, in: folder.appendingPathComponent("files")))   // Q534
             }
             keptMovie(row, memo: memo, in: cloud)
             return memo
@@ -260,7 +260,7 @@ extension ReconcileV2 {
                     if !entries.isEmpty {
                         meta.attachmentManifest = entries
                         for e in entries {
-                            let source = MacNoteAttachments.folder(in: folder).appendingPathComponent(e.filename)
+                            let source = PathSafety.childOrInert(e.filename, in: MacNoteAttachments.folder(in: folder))   // Q534
                             if fm.fileExists(atPath: source.path) { attachments.append((source, e.filename, e.kind)) }
                         }
                     }
@@ -270,7 +270,7 @@ extension ReconcileV2 {
                         meta.imageManifest = images.enumerated().map { i, entry in
                             let x = (entry.filename as NSString).pathExtension.lowercased()
                             let name = "photo_\(memoID.uuidString)_\(String(format: "%03d", i + 1)).\(x.isEmpty ? "jpg" : x)"
-                            let source = dir.appendingPathComponent(entry.filename)
+                            let source = PathSafety.childOrInert(entry.filename, in: dir)   // Q534
                             if fm.fileExists(atPath: source.path) { photos.append((source, name)) }
                             var renamed = entry
                             renamed.filename = name

@@ -129,7 +129,7 @@ struct MemoCard: View {
         m.media = NoteCardBuilder.media(for: facts)
         m.portfolio = memo.destination.isPortfolio
         if let filename = memo.thumbnailPhotoFilename,
-           let img = MemoImageLoader.thumbnail(at: AppPaths.recordingsDirectory.appendingPathComponent(filename), maxWidth: 96) {
+           let img = MemoImageLoader.thumbnail(at: PathSafety.childOrInert(filename, in: AppPaths.recordingsDirectory), maxWidth: 96) {
             m.thumb = Image(uiImage: img)
         }
         return m

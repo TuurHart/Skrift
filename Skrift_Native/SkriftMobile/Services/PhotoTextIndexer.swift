@@ -34,7 +34,7 @@ enum PhotoTextIndexer {
         let memoID: UUID
         let index: Int
         let filename: String
-        var url: URL { AppPaths.recordingsDirectory.appendingPathComponent(filename) }
+        var url: URL { PathSafety.childOrInert(filename, in: AppPaths.recordingsDirectory) }
     }
 
     /// Photos whose `text == nil` and whose file is on disk. Decodes every memo's metadata
@@ -47,7 +47,7 @@ enum PhotoTextIndexer {
         for memo in live {
             guard let manifest = memo.metadata?.imageManifest else { continue }
             for (i, entry) in manifest.enumerated() where entry.text == nil {
-                let url = AppPaths.recordingsDirectory.appendingPathComponent(entry.filename)
+                let url = PathSafety.childOrInert(entry.filename, in: AppPaths.recordingsDirectory)
                 if FileManager.default.fileExists(atPath: url.path) {
                     jobs.append(Job(memoID: memo.id, index: i, filename: entry.filename))
                 }

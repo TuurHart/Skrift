@@ -535,7 +535,8 @@ enum CaptureInboxDrainer {
                 ?? src.lastPathComponent
             let dir = FileManager.default.temporaryDirectory
                 .appendingPathComponent("shared_book_\(entry.id.uuidString)", isDirectory: true)
-            let dest = dir.appendingPathComponent(name)
+            // Q534: a shared file's name is the sending app's; ".." or an empty name never becomes the target.
+            let dest = PathSafety.childOrInert(name, in: dir)
             let copied = await offMain { () -> Bool in
                 try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
                 try? FileManager.default.removeItem(at: dest)

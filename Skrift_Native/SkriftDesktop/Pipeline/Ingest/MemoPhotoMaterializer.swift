@@ -38,14 +38,14 @@ enum MemoPhotoMaterializer {
         // 1. Write any manifest photo whose file isn't on disk yet — fetching
         //    the blob rows only when something is missing.
         let missing = Set(manifest.map(\.filename).filter {
-            !$0.isEmpty && !fm.fileExists(atPath: imagesDir.appendingPathComponent($0).path)
+            PathSafety.isSafeComponent($0) && !fm.fileExists(atPath: imagesDir.appendingPathComponent($0).path)   // Q534
         })
         if !missing.isEmpty {
             let photos = fetchAssets().filter {
                 $0.kind == MemoAsset.Kind.photo && missing.contains($0.filename)
             }
             for photo in photos {
-                let dest = imagesDir.appendingPathComponent(photo.filename)
+                let dest = PathSafety.childOrInert(photo.filename, in: imagesDir)
                 try? fm.createDirectory(at: imagesDir, withIntermediateDirectories: true)
                 if (try? photo.blob.write(to: dest)) != nil { wrote = true }
             }
@@ -102,7 +102,7 @@ enum MemoPhotoMaterializer {
         guard let name = MemoAsset.Kind.linkThumbnailFilename(memo.sharedContent),
               let folder = pf.workingFolder else { return false }
         let fm = FileManager.default
-        let dest = folder.appendingPathComponent(name)
+        let dest = PathSafety.childOrInert(name, in: folder)   // Q534: a synced name
         guard !fm.fileExists(atPath: dest.path),
               let thumb = fetchAssets().first(where: {
                   $0.kind == MemoAsset.Kind.thumbnail && $0.filename == name

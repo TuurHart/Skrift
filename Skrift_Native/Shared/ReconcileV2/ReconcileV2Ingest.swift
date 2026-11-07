@@ -238,7 +238,7 @@ extension ReconcileV2 {
                     let entry = i < manifest.count ? manifest[i] : [:]
                     let name = (entry["filename"] as? String)
                         ?? (photo.filename.isEmpty ? String(format: "img_%03d.jpg", i + 1) : photo.filename)
-                    try photo.blob.write(to: dir.appendingPathComponent(name))
+                    try photo.blob.write(to: PathSafety.childOrInert(name, in: dir))   // Q534: `name` may be a synced manifest name
                     saved.append(["filename": name, "offsetSeconds": entry["offsetSeconds"] ?? 0])
                 }
             } else {

@@ -82,9 +82,9 @@ extension VaultExporter {
         }
 
         var out = ExportV2.compile(note, profile: profile, stem: stem, placePicture: { source, name in
-            placed(imagesDir?.appendingPathComponent(source), name)
+            placed(imagesDir.map { PathSafety.childOrInert(source, in: $0) }, name)
         }, placeAttachment: { source, name in
-            placed(attachmentsDir?.appendingPathComponent(source), name)
+            placed(attachmentsDir.map { PathSafety.childOrInert(source, in: $0) }, name)
         }, poster: { _, name in
             placed(working.flatMap { MacNoteAttachments.posterFrame(in: $0) }, name)
         })

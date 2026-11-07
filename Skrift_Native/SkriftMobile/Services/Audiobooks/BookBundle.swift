@@ -15,6 +15,8 @@ enum BookBundle {
         case unreadableArchive
         case missingManifest
         case unsupportedBundle
+        /// A manifest name that would leave the book's folder (`../x`, `/etc/x`, a control character) (Q534).
+        case unsafeEntryName
         case missingAudio(String)
         /// An entry's bytes do not match its recorded CRC-32 (Q502) — nothing was kept.
         case damaged(String)
@@ -26,6 +28,7 @@ enum BookBundle {
             case .unreadableArchive:  return "This file isn't a Skrift book."
             case .missingManifest:    return "This book file is missing its details."
             case .unsupportedBundle:  return "This book was shared from a newer version of Skrift."
+            case .unsafeEntryName:    return "This file isn't a valid Skrift book, so nothing was added."
             case .missingAudio(let n): return "The audio file \(n) is missing from this book."
             case .damaged(let n):     return "\(n) is damaged inside this book file, so nothing was added. Ask for the book to be sent again."
             case .alreadyInLibrary:   return "This book is already in your books."
@@ -171,6 +174,7 @@ enum BookBundle {
             throw BundleError.missingManifest
         }
         guard manifest.isReadable else { throw BundleError.unsupportedBundle }
+        guard manifest.hasSafeFilenames else { throw BundleError.unsafeEntryName }
         return manifest
     }
 
@@ -204,6 +208,9 @@ enum BookBundle {
         let needsStop = url.startAccessingSecurityScopedResource()
         defer { if needsStop { url.stopAccessingSecurityScopedResource() } }
 
+        // Q534: unpack is public and takes a manifest the caller read earlier; re-check the names here
+        // so no path is ever built from one that could leave the folder.
+        guard manifest.hasSafeFilenames else { throw BundleError.unsafeEntryName }
         guard let archive = try? Archive(url: url, accessMode: .read) else {
             throw BundleError.unreadableArchive
         }
@@ -232,7 +239,12 @@ enum BookBundle {
             }
             // Flatten back out: the archive's directories are for legibility when
             // someone renames the file to .zip; on disk a book folder is flat.
-            let target = folder.appendingPathComponent(sourceName(for: path))
+            // Q534: resolved and checked to sit inside the book's folder (a symlink already in the
+            // folder cannot carry the write out either); refusing undoes the whole pass.
+            guard let target = PathSafety.child(sourceName(for: path), in: folder) else {
+                undo()
+                throw BundleError.unsafeEntryName
+            }
             try? fm.removeItem(at: target)
             do {
                 try VerifiedZip.extract(entry, in: archive, to: target)

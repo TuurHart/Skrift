@@ -12,7 +12,10 @@ enum NoteAttachmentStore {
     }
 
     static func fileURL(_ entry: NoteAttachmentEntry) -> URL {
-        AppPaths.recordingsDirectory.appendingPathComponent(entry.filename)
+        // Q534: `entry.filename` is synced data. One that is not a plain name inside the recordings
+        // folder maps to a path that never holds a file, so nothing outside the folder is read,
+        // played, exported or written through it.
+        PathSafety.childOrInert(entry.filename, in: AppPaths.recordingsDirectory)
     }
 
     static func fileExists(_ entry: NoteAttachmentEntry) -> Bool {
