@@ -4006,7 +4006,7 @@ needs: -
 gate+: yes
 do: While the tag Undo toast (`Shared/UI/TagEditorRow.swift` `TagUndoToastView`) is showing on the Mac, Command-Z does what its Undo button does. When no toast is showing, Command-Z stays the note editor's own undo, and typed text undo must not change. Find how the Mac handles the shortcut in the note pane before choosing where to attach it. Phone unchanged.
 check: A unit test of whatever logic can be tested headless; say plainly what can't be. Full SkriftDesktop build. No macOS UI tests; I will ask Tuur to press the key.
-### Q556 [auto] (doing) Phone and iPad: Portfolio notes export from the Mac only; the phone's Portfolio folder is removed
+### Q556 [auto] (done) Phone and iPad: Portfolio notes export from the Mac only; the phone's Portfolio folder is removed
 spec: D227.
 needs: -
 gate+: yes
@@ -5795,3 +5795,4 @@ check: `git grep PortfolioVault` empty outside archive. Unit tests: ExportGate o
 - 2026-11-07 13:08 Q556 -> doing — worker dispatched 2026-11-07
 - 2026-11-07 13:15 Q555 -> done — gate 146s @39b23f72
 - 2026-11-07 13:52 Q554 -> done — gate 135s @e01c4040
+- 2026-11-07 14:06 Q556 -> done — hand-merged (D227 removes the phone Portfolio export; these protected tests covered that removed feature, Personal cases kept)
