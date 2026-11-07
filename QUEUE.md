@@ -3862,7 +3862,7 @@ gate+: yes
 do: On the Mac the Notes surface's sidebar sits in an HSplitView with minWidth 240 / idealWidth 292 / maxWidth 360 (RootView.swift:59–75), and the Review surface (JournalView) lays out its own left column at a different width, so switching Notes ⇄ Review (⌘1/⌘2 or the pill) visibly changes the sidebar width. Make both surfaces use the same left-column width: one persisted value (AppStorage) that the Notes split writes when dragged and the Review column reads, defaulting to 292. Do not change the column's contents.
 check: Mac unit test of the shared width value (default 292, a drag-written value read by both), plus hosted -snapshot-shell renders of Notes and Review at the same window size showing the same column width (vision-check the PNGs).
 
-### Q534 [auto] (doing) Security check: untrusted file paths on import and export, and secrets baked into the apps
+### Q534 [auto] (done) Security check: untrusted file paths on import and export, and secrets baked into the apps
 spec: D220 bug check; Tuur 2026-11-03 ("yes queue it", after the vibecoded-app security article)
 needs: -
 gate+: yes
@@ -5806,3 +5806,4 @@ check: New test class passes in Mac `UnitTests`; actual output in the report.
 - 2026-11-07 14:09 Q557 -> doing — worker dispatched 2026-11-07
 - 2026-11-07 14:15 Q557 -> done — gate 86s @26681e60
 - 2026-11-07 15:02 Q534 -> doing — worker dispatched 2026-11-07
+- 2026-11-07 15:21 Q534 -> done — gate 100s @1ca08494
