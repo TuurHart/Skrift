@@ -204,7 +204,7 @@ final class SettingsStore {
     static var freshDefault: AppSettings {
         var s = AppSettings.default
         #if DEBUG
-        s.noteFolder = (("~/Hackerman/Obsidian_LLM_Test_Vault") as NSString).expandingTildeInPath
+        s.noteFolder = (("~/Hackerman/archive/Obsidian_LLM_Test_Vault") as NSString).expandingTildeInPath
         #endif
         return s
     }
