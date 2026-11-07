@@ -12,8 +12,8 @@ final class NoteBodyBlockOrderTests: XCTestCase {
 
     override func tearDown() { window = nil; super.tearDown() }
 
-    private func editor(_ body: String = "") -> (NoteBodyView.Coordinator, NoteBodyTextView, Memo) {
-        let memo = Memo(audioFilename: "", transcript: body.isEmpty ? nil : body)
+    private func editor(_ body: String = "", audio: String = "") -> (NoteBodyView.Coordinator, NoteBodyTextView, Memo) {
+        let memo = Memo(audioFilename: audio, transcript: body.isEmpty ? nil : body)
         let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: { _ in })
         let tv = NoteBodyTextView()
         tv.installAccessoryHosts()
@@ -73,8 +73,9 @@ final class NoteBodyBlockOrderTests: XCTestCase {
     }
 
     /// Runs `build`, then Done; logs stored text before and after; asserts the block order held.
-    private func scenario(_ name: String, undoRedo: Bool, _ build: (NoteBodyView.Coordinator, NoteBodyTextView) throws -> Void) throws {
-        let (c, tv, memo) = editor()
+    private func scenario(_ name: String, undoRedo: Bool, body: String = "", audio: String = "",
+                          _ build: (NoteBodyView.Coordinator, NoteBodyTextView) throws -> Void) throws {
+        let (c, tv, memo) = editor(body, audio: audio)
         try build(c, tv)
         if undoRedo { undoAll(c, tv); redoAll(c, tv) }
         let before = memo.transcript ?? ""
@@ -116,6 +117,78 @@ final class NoteBodyBlockOrderTests: XCTestCase {
             try scenario("photo,file,photo,file", undoRedo: ur) { c, tv in
                 c.insertPhoto(self.photo()); self.settle(); try self.file(c)
                 c.insertPhoto(self.photo()); self.settle(); try self.file(c, name: "b.txt")
+            }
+        }
+    }
+    /// Tuur's note: a voice memo (audio, so the speech source) with two dictated lines.
+    func testVoiceNoteWithDictatedLines() throws {
+        for ur in [false, true] {
+            try scenario("voice: photo above, photo,photo,file below", undoRedo: ur, body: "Wor\nType", audio: "memo_q554.m4a") { c, tv in
+                tv.selectedRange = NSRange(location: 0, length: 0)
+                c.insertPhoto(self.photo()); self.settle()
+                tv.selectedRange = NSRange(location: tv.textStorage.length, length: 0)
+                c.insertPhoto(self.photo()); self.settle()
+                c.insertPhoto(self.photo()); self.settle()
+                try self.file(c)
+            }
+        }
+    }
+    func testVoiceNoteEndOnly() throws {
+        for ur in [false, true] {
+            try scenario("voice: end photo,photo,file", undoRedo: ur, body: "Wor\nType", audio: "memo_q554.m4a") { c, tv in
+                tv.selectedRange = NSRange(location: tv.textStorage.length, length: 0)
+                c.insertPhoto(self.photo()); self.settle()
+                c.insertPhoto(self.photo()); self.settle()
+                try self.file(c)
+            }
+        }
+    }
+    /// Backspace once at the start of a block's line: the glyph now touches the one before it.
+    private func backspace(before marker: String, _ c: NoteBodyView.Coordinator, _ tv: NoteBodyTextView) {
+        var at: Int?
+        let st = tv.textStorage
+        st.enumerateAttributes(in: NSRange(location: 0, length: st.length)) { attrs, r, stop in
+            if r.length == 1, c.reconstruct(st.attributedSubstring(from: r)) == marker { at = r.location; stop.pointee = true }
+        }
+        guard let loc = at else { XCTFail("no glyph for \(marker)"); return }
+        tv.selectedRange = NSRange(location: loc, length: 0)
+        tv.deleteBackward(); settle()
+    }
+
+    func testBackspaceBeforeTheFileBlock() throws {
+        for ur in [false, true] {
+            try scenario("backspace before file", undoRedo: ur, body: "Wor\nType", audio: "memo_q554.m4a") { c, tv in
+                tv.selectedRange = NSRange(location: tv.textStorage.length, length: 0)
+                c.insertPhoto(self.photo()); self.settle()
+                c.insertPhoto(self.photo()); self.settle()
+                try self.file(c)
+                self.backspace(before: "[[file_001]]", c, tv)
+            }
+        }
+    }
+    func testBackspaceBeforeSecondPhoto() throws {
+        for ur in [false, true] {
+            try scenario("backspace before 2nd photo", undoRedo: ur, body: "Wor\nType", audio: "memo_q554.m4a") { c, tv in
+                tv.selectedRange = NSRange(location: tv.textStorage.length, length: 0)
+                c.insertPhoto(self.photo()); self.settle()
+                c.insertPhoto(self.photo()); self.settle()
+                try self.file(c)
+                self.backspace(before: "[[img_002]]", c, tv)
+            }
+        }
+    }
+    /// One earlier picture glued to the line above (a Backspace) makes the commit lift EVERY
+    /// picture run; the others used to land after the file next to them.
+    func testGluedPictureElsewhereDoesNotMovePicturesPastTheFile() throws {
+        for ur in [false, true] {
+            try scenario("glued photo up top, photos+file below", undoRedo: ur, body: "Wor\nType", audio: "memo_q554.m4a") { c, tv in
+                tv.selectedRange = NSRange(location: tv.textStorage.length, length: 0)
+                c.insertPhoto(self.photo()); self.settle()
+                self.type("mid", tv)
+                c.insertPhoto(self.photo()); self.settle()
+                c.insertPhoto(self.photo()); self.settle()
+                try self.file(c)
+                self.backspace(before: "[[img_001]]", c, tv)
             }
         }
     }
