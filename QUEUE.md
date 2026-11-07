@@ -4012,6 +4012,12 @@ needs: -
 gate+: yes
 do: Remove means delete. On the universal iOS target (phone and iPad), delete the Portfolio folder setting and its code: the row at `Features/Settings/ObsidianSettingsSection.swift:145` and its picker, `Services/Export/PortfolioVault.swift`, the `portfolioFolderProvider` routing in `ObsidianPublisher.swift` and `PublishCoordinator.swift:116-125`, the portfolio side of `ScopedFolderBookmark.swift` use, and `ObsidianPublisher+ExportAll.swift` only where it writes to that folder. A Portfolio note on these devices can still be read, edited, rated and flipped to Personal, and flipping stays the one tap pill. Its export control is gone or replaced by one quiet line, "Exports from the Mac", wherever the note's primary verb (`Shared/Pipeline/NoteWorkState.swift`) or the export button would have offered Export or Re-export; it must never offer an action that can't work. `Shared/Export/ExportGate.swift` and `ExportOutcomeCopy.swift`: on iOS a Portfolio note gets that line instead of 'No portfolio folder is set on this device yet', and `DestinationSettings.needsFolderNotice` plus `SettingsCopy.swift:55` lose the 'pick a folder on this device' wording on iOS; the Mac's own no-folder message stays. The Mac is unchanged: `AppSettings.portfolioRoot`, its picker and export. Personal export on phone and iPad is unchanged. The 'Export all as a zip' feature (D218) is unchanged and still includes Portfolio notes: it writes a zip the user saves, not the Portfolio folder. Leave the synced `DestinationSettings.isEnabled` switch and the `portfolioRootKey` constant only if the Mac needs them. A stale bookmark in UserDefaults on an upgraded phone must be cleared once or be harmless; say which.
 check: `git grep PortfolioVault` empty outside archive. Unit tests: ExportGate on iOS for a Portfolio note, Mac gate unchanged. Existing tests that exercise the phone's Portfolio folder are protected: list them in the report instead of editing, because they need hand accept. Simulator PNGs of a Portfolio note reading and typing, and of Settings, looked at. `-destinationsOn` shows the pill. Full builds of both apps. Update FEATURES.md line 'Two export destinations' in the same commit.
+### Q557 [auto] (doing) Mac test: exporting a Portfolio note copies its movie beside the note
+spec: D227 made the Mac the only Portfolio exporter; Q556 deleted the phone tests that covered this and no Mac test covers it.
+needs: -
+gate+: yes
+do: New Mac test file, tests only: exporting a Portfolio note with a kept movie writes the `.mov` beside the note in `_inbox/`, and a note whose movie is not on this Mac still exports its text. Also assert what the deleted phone tests held that no Mac test does: no `Skrift`, `Images` or `Recordings` folders under the portfolio root, no `capture:` key, and `voice: written` on a typed note. If a case fails, report it as a bug with the actual output rather than changing production code or weakening the case.
+check: New test class passes in Mac `UnitTests`; actual output in the report.
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -5796,3 +5802,5 @@ check: `git grep PortfolioVault` empty outside archive. Unit tests: ExportGate o
 - 2026-11-07 13:15 Q555 -> done — gate 146s @39b23f72
 - 2026-11-07 13:52 Q554 -> done — gate 135s @e01c4040
 - 2026-11-07 14:06 Q556 -> done — hand-merged (D227 removes the phone Portfolio export; these protected tests covered that removed feature, Personal cases kept)
+- 2026-11-07 14:09 Q557 added
+- 2026-11-07 14:09 Q557 -> doing — worker dispatched 2026-11-07
